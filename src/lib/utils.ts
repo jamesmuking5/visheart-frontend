@@ -1,1 +1,6 @@
-// Should contain code for utility functions like formatting dates, generating unique IDs, et.c if required.
+import { clsx, type ClassValue } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
