@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 // import { Geist, Geist_Mono } from "next/font/google";
-import "@/app/globals.css";
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -13,9 +12,9 @@ import "@/app/globals.css";
 // });
 
 export const metadata: Metadata = {
-  title: "VisHeart Frontend",
+  title: "VisHeart Frontend Login Page",
   description:
-    "VisHeart Frontend Application for Cardiac Component Segmentation",
+    "VisHeart Frontend Application Login Page for Cardiac Component Segmentation",
 };
 
 export default function RootLayout({
