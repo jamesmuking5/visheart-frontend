@@ -12,10 +12,12 @@ import "@/app/globals.css";
 //   subsets: ["latin"],
 // });
 
+import { ThemeProvider } from "@/components/theme-provider";
+
 export const metadata: Metadata = {
-  title: "VisHeart Frontend",
+  title: "VisHeart",
   description:
-    "VisHeart Frontend Application for Cardiac Component Segmentation",
+    "VisHeart Web Application for Cardiac Component Segmentation",
 };
 
 export default function RootLayout({
@@ -24,11 +26,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-      className={`flex`}
-      >
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body className={`flex bg-background`}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

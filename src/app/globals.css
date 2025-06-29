@@ -2,8 +2,8 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
-/* 
-* {
+
+/* * {
   border: 1px solid red;
 } */
 

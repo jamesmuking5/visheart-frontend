@@ -1,8 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { useState } from "react";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -10,22 +8,22 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
-import { Button } from "@/components/ui/button";
+import { CircleUser, KeyRound, UserCog } from "lucide-react";
+import ThemeToggle from "../theme-toggle";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full bg-white border-b">
-      {/* Logo */}
-      <div className=""></div>
+    <header className="sticky top-0 z-50 h-3.5 w-full bg-background backdrop-blur-2xl">
       {/* Navigation Bar */}
-      <div className="flex items-center justify-center">
-        <NavigationMenu>
+      <div className="flex items-center justify-center bg-background">
+        <NavigationMenu viewport={false}>
           <NavigationMenuList>
             {/* Home Logo */}
             <NavigationMenuItem>
-              <NavigationMenuTrigger>VisHeart</NavigationMenuTrigger>
+              <NavigationMenuTrigger>
+                <span className="text-red-500">VisHeart</span>
+              </NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid gap-2 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
                   <li className="row-span-3">
@@ -55,24 +53,27 @@ export default function Header() {
             </NavigationMenuItem>
             {/* Tools */}
             <NavigationMenuItem>
-              <NavigationMenuTrigger>List</NavigationMenuTrigger>
+              <NavigationMenuTrigger>Tools</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid w-[300px] gap-4">
                   <li>
                     <NavigationMenuLink asChild>
                       <Link href="/cardiac-segmentation">
                         <div className="font-medium">
-                          2D Cardiac Segmentation
+                          <span className="text-green-500">2D</span> Cardiac
+                          Segmentation
                         </div>
                         <div className="text-muted-foreground">
-                          Segment Cardiac Components using YOLO or MedSAM.
+                          Start a new project to segment Cardiac Components
+                          using YOLO & MedSAM.
                         </div>
                       </Link>
                     </NavigationMenuLink>
                     <NavigationMenuLink asChild>
                       <Link href="#">
                         <div className="font-medium">
-                          3D Cardiac Segmentation
+                          <span className="text-red-500">3D</span> Cardiac
+                          Segmentation
                         </div>
                         <div className="text-muted-foreground">
                           Coming soon.
@@ -83,8 +84,12 @@ export default function Header() {
                 </ul>
               </NavigationMenuContent>
             </NavigationMenuItem>
+            {/* Login/Profile */}
+            <ProfileMenu />
           </NavigationMenuList>
         </NavigationMenu>
+        {/* Theme Toggle */}
+        <ThemeToggle />
       </div>
     </header>
   );
@@ -109,4 +114,44 @@ function ListItem({
       </NavigationMenuLink>
     </li>
   );
+}
+
+// ProfileMenu component for user profile and settings
+function ProfileMenu() {
+  return (
+    <NavigationMenuItem>
+      <NavigationMenuTrigger>{getUserName()}</NavigationMenuTrigger>
+      <NavigationMenuContent>
+        <ul className="grid w-[200px] gap-4">
+          <li>
+            <NavigationMenuLink asChild>
+              <Link href="#" className="flex-row items-center gap-2">
+                <CircleUser />
+                Profile
+              </Link>
+            </NavigationMenuLink>
+            <NavigationMenuLink asChild>
+              <Link href="#" className="flex-row items-center gap-2">
+                <KeyRound />
+                Login
+              </Link>
+            </NavigationMenuLink>
+            <NavigationMenuLink asChild>
+              <Link href="#" className="flex-row items-center gap-2">
+                <UserCog />
+                User Settings
+              </Link>
+            </NavigationMenuLink>
+          </li>
+        </ul>
+      </NavigationMenuContent>
+    </NavigationMenuItem>
+  );
+}
+
+// Check if user is logged in and return name if true
+export function getUserName() {
+  // This is a placeholder function. Add logic to get user name.
+  // Might be moved to utils
+  return "Profile"; // Replace with actual user name retrieval logic
 }
