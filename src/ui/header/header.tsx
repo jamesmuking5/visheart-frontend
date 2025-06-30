@@ -14,78 +14,17 @@ import ThemeToggle from "../theme-toggle";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 h-3.5 w-full bg-background backdrop-blur-2xl">
+    <header className="sticky top-0 z-50 h-3.5 w-full bg-background backdrop-blur-2xl" suppressHydrationWarning>
       {/* Navigation Bar */}
       <div className="flex items-center justify-center bg-background">
         <NavigationMenu viewport={false}>
           <NavigationMenuList>
             {/* Home Logo */}
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>
-                <span className="text-red-500">VisHeart</span>
-              </NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid gap-2 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
-                  <li className="row-span-3">
-                    <NavigationMenuLink asChild>
-                      <Link
-                        className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-6 no-underline outline-hidden select-none focus:shadow-md"
-                        href="/"
-                      >
-                        <div className="mt-4 mb-2 text-lg font-medium">
-                          VisHeart
-                        </div>
-                        <p className="text-muted-foreground text-sm leading-tight">
-                          A Cardiac Component Segmentation Web Application
-                        </p>
-                      </Link>
-                    </NavigationMenuLink>
-                  </li>
-                  <ListItem href="/docs" title="Documentation">
-                    How to use the VisHeart application, its features and
-                    components
-                  </ListItem>
-                  <ListItem href="/about" title="About">
-                    About the VisHeart team, project and its goals
-                  </ListItem>
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
+            <HomeDropDown />
             {/* Tools */}
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Tools</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[300px] gap-4">
-                  <li>
-                    <NavigationMenuLink asChild>
-                      <Link href="/cardiac-segmentation">
-                        <div className="font-medium">
-                          <span className="text-green-500">2D</span> Cardiac
-                          Segmentation
-                        </div>
-                        <div className="text-muted-foreground">
-                          Start a new project to segment Cardiac Components
-                          using YOLO & MedSAM.
-                        </div>
-                      </Link>
-                    </NavigationMenuLink>
-                    <NavigationMenuLink asChild>
-                      <Link href="#">
-                        <div className="font-medium">
-                          <span className="text-red-500">3D</span> Cardiac
-                          Segmentation
-                        </div>
-                        <div className="text-muted-foreground">
-                          Coming soon.
-                        </div>
-                      </Link>
-                    </NavigationMenuLink>
-                  </li>
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
+            <ToolsDropDown />
             {/* Login/Profile */}
-            <ProfileMenu />
+            <ProfileDropDown />
           </NavigationMenuList>
         </NavigationMenu>
         {/* Theme Toggle */}
@@ -116,8 +55,42 @@ function ListItem({
   );
 }
 
-// ProfileMenu component for user profile and settings
-function ProfileMenu() {
+// HomeDropDown component for the home link
+function HomeDropDown() {
+  return (
+    <NavigationMenuItem>
+      <NavigationMenuTrigger>
+        <span className="text-red-500">VisHeart</span>
+      </NavigationMenuTrigger>
+      <NavigationMenuContent>
+        <ul className="grid gap-2 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
+          <li className="row-span-3">
+            <NavigationMenuLink asChild>
+              <Link
+                className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-6 no-underline outline-hidden select-none focus:shadow-md"
+                href="/"
+              >
+                <div className="mt-4 mb-2 text-lg font-medium">VisHeart</div>
+                <p className="text-muted-foreground text-sm leading-tight">
+                  A Cardiac Component Segmentation Web Application
+                </p>
+              </Link>
+            </NavigationMenuLink>
+          </li>
+          <ListItem href="/docs" title="Documentation">
+            How to use the VisHeart application, its features and components
+          </ListItem>
+          <ListItem href="/about" title="About">
+            About the VisHeart team, project and its goals
+          </ListItem>
+        </ul>
+      </NavigationMenuContent>
+    </NavigationMenuItem>
+  );
+}
+
+// ProfileDropDown component for user profile and settings
+function ProfileDropDown() {
   return (
     <NavigationMenuItem>
       <NavigationMenuTrigger>{getUserName()}</NavigationMenuTrigger>
@@ -140,6 +113,41 @@ function ProfileMenu() {
               <Link href="#" className="flex-row items-center gap-2">
                 <UserCog />
                 User Settings
+              </Link>
+            </NavigationMenuLink>
+          </li>
+        </ul>
+      </NavigationMenuContent>
+    </NavigationMenuItem>
+  );
+}
+
+// ToolsDropDown component for tools navigation
+function ToolsDropDown() {
+  return (
+    <NavigationMenuItem>
+      <NavigationMenuTrigger>Tools</NavigationMenuTrigger>
+      <NavigationMenuContent>
+        <ul className="grid w-[300px] gap-4">
+          <li>
+            <NavigationMenuLink asChild>
+              <Link href="/cardiac-segmentation">
+                <div className="font-medium">
+                  <span className="text-green-500">2D</span> Cardiac
+                  Segmentation
+                </div>
+                <div className="text-muted-foreground">
+                  Start a new project to segment Cardiac Components using YOLO &
+                  MedSAM.
+                </div>
+              </Link>
+            </NavigationMenuLink>
+            <NavigationMenuLink asChild>
+              <Link href="#">
+                <div className="font-medium">
+                  <span className="text-red-500">3D</span> Cardiac Segmentation
+                </div>
+                <div className="text-muted-foreground">Coming soon.</div>
               </Link>
             </NavigationMenuLink>
           </li>

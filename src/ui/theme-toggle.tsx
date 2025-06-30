@@ -15,6 +15,7 @@ export default function ThemeToggle() {
       size="icon"
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
       className="h-9 w-9 text-foreground hover:bg-accent hover:text-accent-foreground"
+      suppressHydrationWarning
     >
       {theme === "light" ? (
         <Sun className="h-4 w-4" />
