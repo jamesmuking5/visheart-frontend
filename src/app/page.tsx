@@ -40,11 +40,12 @@ export default function Home() {
     <>
       <Header />
       <main>
-        {/* Hero Section with Background Video */}
-        <motion.div
-          style={{ opacity: 1, scale: 1 }}
-          className="hero-section relative w-full h-screen overflow-hidden"
-        >
+        {/* Hero/Intro Section - Main introduction with VisHeart branding and key features */}
+        <section aria-label="Hero introduction" className="hero-intro-section">
+          <motion.div
+            style={{ opacity: 1, scale: 1 }}
+            className="hero-section relative w-full h-screen overflow-hidden"
+          >
           {/* Background Video with Parallax Effect */}
           <div className="absolute inset-0 w-full h-full">
             <div className="absolute inset-0 bg-[#3A4454] opacity-30 z-10"></div>
@@ -149,15 +150,17 @@ export default function Home() {
             </motion.div>
           </div>
         </motion.div>
+        </section>
 
-        {/* Information Section with Image Slider */}
-        <div id="info-section" className="info-section py-24 px-8 bg-[#FFFCF6]">
+        {/* About/Key Benefits Section - Detailed information and benefits */}
+        <section aria-label="About VisHeart and key benefits" className="about-benefits-section">
+          <div id="info-section" className="info-section py-24 px-8 bg-[#FFFCF6]">
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col lg:flex-row gap-12 items-start">
               {/* Info Description */}
               <div className="info-desc w-full lg:w-1/2 lg:sticky lg:top-8">
                 <h2 className="text-3xl font-light mb-8 text-[#3A4454]">
-                  Advanced Cardiac<br />Imaging Technology
+                  About Us
                 </h2>
 
                 <p className="text-base mb-6 text-[#3A4454] leading-relaxed">
@@ -186,14 +189,6 @@ export default function Home() {
                       <span>Intuitive interface optimized for clinical workflows</span>
                     </li>
                   </ul>
-                </div>
-
-                <div className="info-button mt-8">
-                  <Link href="/about-us"
-                    className="px-6 py-3 bg-[#5B7B9A] hover:bg-[#4A6A89] text-white rounded-md transition-all duration-300 shadow-md"
-                  >
-                    Learn More
-                  </Link>
                 </div>
               </div>
 
@@ -248,6 +243,7 @@ export default function Home() {
             </div>
           </div>
         </div>
+        </section>
         {/* ... other sections from LandingPage.jsx can be added here ... */}
       </main>
       <Footer />
