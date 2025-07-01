@@ -9,7 +9,6 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import { CircleUser, KeyRound, UserCog } from "lucide-react";
 import ThemeToggle from "../theme-toggle";
 import { Button } from "@/components/ui/button"
 import {
@@ -22,7 +21,6 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import Image from 'next/image'
 
 export default function Header() {
   return (
@@ -127,7 +125,7 @@ function LoginCard() {
           Login
         </CardTitle>
         <CardDescription>
-          No Account? Click on the Register button!
+          No Account? Register Now!
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6">
