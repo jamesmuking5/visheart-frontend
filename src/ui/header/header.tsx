@@ -14,10 +14,10 @@ import ThemeToggle from "../theme-toggle";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 h-3.5 w-full bg-background backdrop-blur-2xl" suppressHydrationWarning>
+    <header className="sticky top-0 z-50 h-12 w-full bg-background flex justify-center items-center" suppressHydrationWarning>
       {/* Navigation Bar */}
       <div className="flex items-center justify-center bg-background">
-        <NavigationMenu viewport={false}>
+        <NavigationMenu>
           <NavigationMenuList>
             {/* Home Logo */}
             <HomeDropDown />
@@ -116,7 +116,7 @@ function ProfileDropDown() {
             <NavigationMenuLink asChild>
               <Link
                 className="from-muted/50 to-muted flex h-full w-full flex-col justify-center rounded-md p-6 no-underline outline-hidden select-none focus:shadow-md"
-                href="/sign-in"
+                href="/login"
               >
                 <div className="mt-4 mb-2 text-lg font-medium">Sign In</div>
                 <p className="text-muted-foreground text-sm leading-tight">
