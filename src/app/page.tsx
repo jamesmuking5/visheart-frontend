@@ -259,16 +259,16 @@ export default function Home() {
 
         {/* About/Key Benefits Section - Detailed information and benefits */}
         <section aria-label="About VisHeart and key benefits" className="about-benefits-section">
-          <div id="info-section" className="info-section py-24 px-8 bg-[#FFFCF6]">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex flex-col lg:flex-row gap-12 items-start">
+          <div id="info-section" className="py-24 bg-gradient-to-br from-background to-muted">
+            <div className="max-w-6xl mx-auto">
+              <div className="flex flex-col lg:flex-row gap-12 items-start">
               {/* Info Description */}
               <div className="info-desc w-full lg:w-1/2 lg:sticky lg:top-8">
-                <h2 className="text-3xl font-light mb-8 text-[#3A4454]">
+                <h2 className="text-3xl font-light mb-8 text-foreground">
                   About Us
                 </h2>
 
-                <p className="text-base mb-6 text-[#3A4454] leading-relaxed">
+                <p className="text-base mb-6 text-muted-foreground leading-relaxed">
                   The cardiac system is the heart's network for circulating oxygen-rich blood throughout the body. Our VisHeart technology provides unprecedented visualization capabilities for cardiac specialists, enabling more accurate diagnosis through AI-powered segmentation.
                 </p>
 
@@ -352,7 +352,7 @@ export default function Home() {
 
         {/* Services Section - Our medical services and offerings */}
         <section id="services-section" aria-label="VisHeart Services" className="services-section">
-          <div className="py-24 px-8 bg-[#3A4454]">
+          <div className="py-24 bg-gradient-to-br from-background to-muted">
             <div className="max-w-6xl mx-auto">
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
@@ -361,10 +361,10 @@ export default function Home() {
                 viewport={{ once: true }}
                 className="text-center mb-16"
               >
-                <h2 className="text-4xl font-light mb-6 text-white">
+                <h2 className="text-4xl font-light mb-6 text-foreground">
                   Services
                 </h2>
-                <p className="text-xl text-white/80 max-w-3xl mx-auto leading-relaxed">
+                <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
                   Comprehensive cardiac imaging solutions powered by cutting-edge AI technology to support healthcare professionals in delivering precision care.
                 </p>
               </motion.div>
@@ -376,15 +376,15 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.1 }}
                   viewport={{ once: true }}
-                  className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all duration-300 group"
+                  className="bg-card backdrop-blur-sm rounded-2xl p-8 border border-border hover:border-primary/40 transition-all duration-300 group shadow-lg hover:shadow-xl"
                 >
-                  <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mb-6 group-hover:bg-blue-500/30 transition-all duration-300">
-                    <svg className="w-8 h-8 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mb-6 group-hover:bg-primary/30 transition-all duration-300">
+                    <svg className="w-8 h-8 text-primary" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h4a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd"/>
                     </svg>
                   </div>
-                  <h3 className="text-xl font-semibold text-white mb-4">AI Cardiac Segmentation</h3>
-                  <p className="text-white/80 leading-relaxed">
+                  <h3 className="text-xl font-semibold text-foreground mb-4">AI Cardiac Segmentation</h3>
+                  <p className="text-muted-foreground leading-relaxed">
                     Advanced machine learning algorithms automatically identify and segment cardiac structures from medical imaging data with unprecedented accuracy.
                   </p>
                 </motion.div>
@@ -395,16 +395,16 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.2 }}
                   viewport={{ once: true }}
-                  className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all duration-300 group"
+                  className="bg-card backdrop-blur-sm rounded-2xl p-8 border border-border hover:border-primary/40 transition-all duration-300 group shadow-lg hover:shadow-xl"
                 >
-                  <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-6 group-hover:bg-green-500/30 transition-all duration-300">
-                    <svg className="w-8 h-8 text-green-300" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="w-16 h-16 bg-secondary/20 rounded-full flex items-center justify-center mb-6 group-hover:bg-secondary/30 transition-all duration-300">
+                    <svg className="w-8 h-8 text-secondary" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd"/>
                       <path fillRule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 102 0V3h4v1a1 1 0 102 0V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm8 8a1 1 0 01-1-1V8a1 1 0 00-1-1H8a1 1 0 00-1 1v4a1 1 0 01-1 1h6z" clipRule="evenodd"/>
                     </svg>
                   </div>
-                  <h3 className="text-xl font-semibold text-white mb-4">Real-time Analysis</h3>
-                  <p className="text-white/80 leading-relaxed">
+                  <h3 className="text-xl font-semibold text-foreground mb-4">Real-time Analysis</h3>
+                  <p className="text-muted-foreground leading-relaxed">
                     Instant processing and analysis of cardiac imaging data, providing immediate insights to support clinical decision-making in critical situations.
                   </p>
                 </motion.div>
@@ -415,16 +415,16 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.3 }}
                   viewport={{ once: true }}
-                  className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 hover:bg-white/15 transition-all duration-300 group"
+                  className="bg-card backdrop-blur-sm rounded-2xl p-8 border border-border hover:border-primary/40 transition-all duration-300 group shadow-lg hover:shadow-xl"
                 >
-                  <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mb-6 group-hover:bg-purple-500/30 transition-all duration-300">
-                    <svg className="w-8 h-8 text-purple-300" fill="currentColor" viewBox="0 0 20 20">
+                  <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mb-6 group-hover:bg-accent/30 transition-all duration-300">
+                    <svg className="w-8 h-8 text-accent" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z" clipRule="evenodd"/>
                       <path d="M15 7h1a2 2 0 012 2v5.5a1.5 1.5 0 01-3 0V9a1 1 0 00-1-1h-1v-1z"/>
                     </svg>
                   </div>
-                  <h3 className="text-xl font-semibold text-white mb-4">Cloud Integration</h3>
-                  <p className="text-white/80 leading-relaxed">
+                  <h3 className="text-xl font-semibold text-foreground mb-4">Cloud Integration</h3>
+                  <p className="text-muted-foreground leading-relaxed">
                     Seamless cloud-based platform enabling secure collaboration between specialists worldwide with enterprise-grade data protection.
                   </p>
                 </motion.div>
