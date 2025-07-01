@@ -12,6 +12,10 @@ import "@/app/globals.css";
 //   subsets: ["latin"],
 // });
 
+// UI Imports
+import Footer from "@/ui/footer/footer";
+import Header from "@/ui/header/header";
+
 import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
@@ -27,14 +31,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`bg-background`}>
+      <body className='flex bg-background flex-col justify-center items-center'>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
+          <Header />
           {children}
+          <Footer />
         </ThemeProvider>
       </body>
     </html>

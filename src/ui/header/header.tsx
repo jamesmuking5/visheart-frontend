@@ -11,13 +11,25 @@ import {
 } from "@/components/ui/navigation-menu";
 import { CircleUser, KeyRound, UserCog } from "lucide-react";
 import ThemeToggle from "../theme-toggle";
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import Image from 'next/image'
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 h-3.5 w-full bg-background backdrop-blur-2xl" suppressHydrationWarning>
+    <header className="sticky top-0 z-50 h-12 w-full bg-background flex justify-center items-center" suppressHydrationWarning>
       {/* Navigation Bar */}
       <div className="flex items-center justify-center bg-background">
-        <NavigationMenu viewport={false}>
+        <NavigationMenu>
           <NavigationMenuList>
             {/* Home Logo */}
             <HomeDropDown />
@@ -55,6 +67,8 @@ function ListItem({
   );
 }
 
+
+
 // HomeDropDown component for the home link
 function HomeDropDown() {
   return (
@@ -90,36 +104,48 @@ function HomeDropDown() {
 }
 
 // ProfileDropDown component for user profile and settings
+// Should change when 
 function ProfileDropDown() {
   return (
     <NavigationMenuItem>
-      <NavigationMenuTrigger>{getUserName()}</NavigationMenuTrigger>
+      <NavigationMenuTrigger>
+        Account
+      </NavigationMenuTrigger>
       <NavigationMenuContent>
-        <ul className="grid w-[200px] gap-4">
-          <li>
-            <NavigationMenuLink asChild>
-              <Link href="#" className="flex-row items-center gap-2">
-                <CircleUser />
-                Profile
-              </Link>
-            </NavigationMenuLink>
-            <NavigationMenuLink asChild>
-              <Link href="#" className="flex-row items-center gap-2">
-                <KeyRound />
-                Login
-              </Link>
-            </NavigationMenuLink>
-            <NavigationMenuLink asChild>
-              <Link href="#" className="flex-row items-center gap-2">
-                <UserCog />
-                User Settings
-              </Link>
-            </NavigationMenuLink>
-          </li>
-        </ul>
+        <LoginCard />
       </NavigationMenuContent>
     </NavigationMenuItem>
   );
+}
+
+// Within Profile Dropdown
+function LoginCard() {
+  return (
+    <Card className="z-10 w-[300px] select-none">
+      <CardHeader className="text-center">
+        <CardTitle>
+          Login
+        </CardTitle>
+        <CardDescription>
+          No Account? Click on the Register button!
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-6">
+        <div className="grid gap-3">
+          <Label htmlFor="username">Username</Label>
+          <Input id="username" defaultValue="Username" required />
+        </div>
+        <div className="grid gap-3">
+          <Label htmlFor="password">Password</Label>
+          <Input id="password" type="password" required />
+        </div>
+      </CardContent>
+      <CardFooter className="grid gap-2">
+        <Button>Login</Button>
+        <Button className="bg-red-500 hover:bg-red-700"><Link href='/register' >Register</Link></Button>
+      </CardFooter>
+    </Card>
+  )
 }
 
 // ToolsDropDown component for tools navigation

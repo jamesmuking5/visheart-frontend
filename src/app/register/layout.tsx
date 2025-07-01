@@ -12,9 +12,9 @@ import type { Metadata } from "next";
 // });
 
 export const metadata: Metadata = {
-  title: "VisHeart Frontend Login Page",
+  title: "VisHeart Frontend Register Page",
   description:
-    "VisHeart Frontend Application Login Page for Cardiac Component Segmentation",
+    "VisHeart Frontend Application Registration Page for Cardiac Component Segmentation",
 };
 
 export default function RootLayout({
