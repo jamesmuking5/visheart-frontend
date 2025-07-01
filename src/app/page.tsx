@@ -30,8 +30,8 @@ export default function Home() {
   // State for image slider
   const [currentSlide, setCurrentSlide] = useState(0);
   
-  // State for command dialog
-  const [commandOpen, setCommandOpen] = useState(false);
+  // State for command dropdown
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Images for slider
   const sliderImages = [
@@ -53,7 +53,7 @@ export default function Home() {
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
-      setCommandOpen(false);
+      setDropdownOpen(false);
     }
   };
 
@@ -115,12 +115,12 @@ export default function Home() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === 'k') {
         e.preventDefault();
-        setCommandOpen(!commandOpen);
+        setDropdownOpen(!dropdownOpen);
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [commandOpen]);
+  }, [dropdownOpen]);
 
   // Auto-slide functionality
   useEffect(() => {
@@ -134,7 +134,7 @@ export default function Home() {
     <>
       <main>
         {/* Hero/Intro Section - Main introduction with VisHeart branding and key features */}
-        <section aria-label="Hero introduction" className="hero-intro-section">
+        <section id="hero-intro-section" aria-label="Hero introduction" className="hero-intro-section">
           <motion.div
             style={{ opacity: 1, scale: 1 }}
             className="hero-section relative w-full h-screen overflow-hidden"
@@ -248,74 +248,7 @@ export default function Home() {
           </div>
         </motion.div>
 
-        {/* Command Navigation Dialog */}
-        <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
-          <CommandInput placeholder="Navigate to a section..." className="border-none" />
-          <CommandList>
-            <CommandEmpty>No section found.</CommandEmpty>
-            <CommandGroup heading="Main Sections">
-              <CommandItem 
-                className="cursor-pointer"
-                onSelect={() => navigateToSection('info-section')}
-              >
-                <span>About Us</span>
-                <CommandShortcut>Ctrl+1</CommandShortcut>
-              </CommandItem>
-              <CommandItem 
-                className="cursor-pointer"
-                onSelect={() => navigateToSection('services-section')}
-              >
-                <span>Services</span>
-                <CommandShortcut>Ctrl+2</CommandShortcut>
-              </CommandItem>
-              <CommandItem 
-                className="cursor-pointer"
-                onSelect={() => navigateToSection('faq-section')}
-              >
-                <span>FAQ</span>
-                <CommandShortcut>Ctrl+3</CommandShortcut>
-              </CommandItem>
-              <CommandItem 
-                className="cursor-pointer"
-                onSelect={() => navigateToSection('contact-section')}
-              >
-                <span>Contact</span>
-                <CommandShortcut>Ctrl+4</CommandShortcut>
-              </CommandItem>
-            </CommandGroup>
-            <CommandSeparator />
-            <CommandGroup heading="Quick Actions">
-              <CommandItem 
-                className="cursor-pointer"
-                onSelect={() => window.open('tel:+60123456789')}
-              >
-                <span>Call Us</span>
-                <CommandShortcut>📞</CommandShortcut>
-              </CommandItem>
-              <CommandItem 
-                className="cursor-pointer"
-                onSelect={() => window.open('mailto:support@visheart.com')}
-              >
-                <span>Email Support</span>
-                <CommandShortcut>✉️</CommandShortcut>
-              </CommandItem>
-            </CommandGroup>
-          </CommandList>
-        </CommandDialog>
 
-        {/* Floating Command Button */}
-        <motion.button
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 2, duration: 0.5 }}
-          onClick={() => setCommandOpen(true)}
-          className="fixed top-15 right-10 z-30 w-14 h-14 bg-black/80 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center hover:bg-black transition-all duration-300 text-white shadow-lg"
-          title="Open navigation (Cmd+K)"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </motion.button>
         </section>
 
         {/* About/Key Benefits Section - Detailed information and benefits */}
@@ -643,9 +576,9 @@ export default function Home() {
         </section>
 
         {/* Gallery Section */}
-        <section aria-label="VisHeart Gallery" className="gallery-section">
-          <div className="py-24 px-8 bg-gradient-to-br from-background to-muted">
-            <div className="max-w-7xl mx-auto">
+        <section id="gallery-section" aria-label="VisHeart Gallery" className="gallery-section">
+        <div className="py-24 px-8 bg-gradient-to-br from-background to-muted">
+          <div className="max-w-7xl mx-auto">
               {/* Section Header */}
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
