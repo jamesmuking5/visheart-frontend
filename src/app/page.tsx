@@ -5,6 +5,17 @@ import Link from 'next/link';
 import Image from "next/image";
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Command,
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+  CommandShortcut,
+} from "@/components/ui/command"
 
 // UI Imports
 import Footer from "@/ui/footer/footer";
@@ -13,6 +24,9 @@ import Header from "@/ui/header/header";
 export default function Home() {
   // State for image slider
   const [currentSlide, setCurrentSlide] = useState(0);
+  
+  // State for command dialog
+  const [commandOpen, setCommandOpen] = useState(false);
 
   // Images for slider
   const sliderImages = [
@@ -28,6 +42,27 @@ export default function Home() {
 
   // Feature hover animation
   const [activeFeature, setActiveFeature] = useState<number | null>(null);
+
+  // Navigation function
+  const navigateToSection = (sectionId: string) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+      setCommandOpen(false);
+    }
+  };
+
+  // Keyboard shortcut to open command
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.metaKey && e.key === 'k') {
+        e.preventDefault();
+        setCommandOpen(!commandOpen);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [commandOpen]);
 
   // Auto-slide functionality
   useEffect(() => {
@@ -151,6 +186,75 @@ export default function Home() {
             </motion.div>
           </div>
         </motion.div>
+
+        {/* Command Navigation Dialog */}
+        <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
+          <CommandInput placeholder="Navigate to a section..." className="border-none" />
+          <CommandList>
+            <CommandEmpty>No section found.</CommandEmpty>
+            <CommandGroup heading="Main Sections">
+              <CommandItem 
+                className="cursor-pointer"
+                onSelect={() => navigateToSection('info-section')}
+              >
+                <span>About Us</span>
+                <CommandShortcut>Ctrl+1</CommandShortcut>
+              </CommandItem>
+              <CommandItem 
+                className="cursor-pointer"
+                onSelect={() => navigateToSection('services-section')}
+              >
+                <span>Services</span>
+                <CommandShortcut>Ctrl+2</CommandShortcut>
+              </CommandItem>
+              <CommandItem 
+                className="cursor-pointer"
+                onSelect={() => navigateToSection('faq-section')}
+              >
+                <span>FAQ</span>
+                <CommandShortcut>Ctrl+3</CommandShortcut>
+              </CommandItem>
+              <CommandItem 
+                className="cursor-pointer"
+                onSelect={() => navigateToSection('contact-section')}
+              >
+                <span>Contact</span>
+                <CommandShortcut>Ctrl+4</CommandShortcut>
+              </CommandItem>
+            </CommandGroup>
+            <CommandSeparator />
+            <CommandGroup heading="Quick Actions">
+              <CommandItem 
+                className="cursor-pointer"
+                onSelect={() => window.open('tel:+60123456789')}
+              >
+                <span>Call Us</span>
+                <CommandShortcut>📞</CommandShortcut>
+              </CommandItem>
+              <CommandItem 
+                className="cursor-pointer"
+                onSelect={() => window.open('mailto:support@visheart.com')}
+              >
+                <span>Email Support</span>
+                <CommandShortcut>✉️</CommandShortcut>
+              </CommandItem>
+            </CommandGroup>
+          </CommandList>
+        </CommandDialog>
+
+        {/* Floating Command Button */}
+        <motion.button
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 2, duration: 0.5 }}
+          onClick={() => setCommandOpen(true)}
+          className="fixed top-15 right-10 z-30 w-14 h-14 bg-black/80 backdrop-blur-sm border border-white/20 rounded-full flex items-center justify-center hover:bg-black transition-all duration-300 text-white shadow-lg"
+          title="Open navigation (Cmd+K)"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </motion.button>
         </section>
 
         {/* About/Key Benefits Section - Detailed information and benefits */}
@@ -247,7 +351,7 @@ export default function Home() {
         </section>
 
         {/* Services Section - Our medical services and offerings */}
-        <section aria-label="VisHeart Services" className="services-section">
+        <section id="services-section" aria-label="VisHeart Services" className="services-section">
           <div className="py-24 px-8 bg-[#3A4454]">
             <div className="max-w-6xl mx-auto">
               <motion.div
@@ -330,7 +434,7 @@ export default function Home() {
         </section>
 
         {/* FAQ Section - Frequently Asked Questions */}
-        <section aria-label="Frequently Asked Questions" className="faq-section">
+        <section id="faq-section" aria-label="Frequently Asked Questions" className="faq-section">
           <div className="py-24 px-8 bg-[#FFFCF6]">
             <div className="max-w-4xl mx-auto">
               <motion.div
@@ -472,7 +576,7 @@ export default function Home() {
             </div>
           </div>
         </section>
-        {/* ... other sections from LandingPage.jsx can be added here ... */}
+
         {/* Contact Section */}
         <section id="contact-section" className="py-24 bg-gradient-to-br from-background to-muted">
         <div className="max-w-7xl mx-auto px-8">
