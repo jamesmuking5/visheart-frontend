@@ -472,7 +472,7 @@ export default function Home() {
             </div>
           </div>
         </section>
-        {/* ... other sections from LandingPage.jsx can be added here ... */}
+
         {/* Contact Section */}
         <section id="contact-section" className="py-24 bg-gradient-to-br from-background to-muted">
         <div className="max-w-7xl mx-auto px-8">
@@ -622,7 +622,7 @@ export default function Home() {
               </Tabs>
             </motion.div>
 
-            {/* Map Section - remains the same */}
+            {/* Map Section */}
             <motion.div
               initial={{ opacity: 0, x: 50 }}
               whileInView={{ opacity: 1, x: 0 }}
@@ -631,10 +631,11 @@ export default function Home() {
               className="relative"
             >
               <div className="bg-card p-4 rounded-xl shadow-lg h-full min-h-[600px] border border-border">
-                <div className="w-full h-full rounded-lg overflow-hidden">
-                  {/* Google Maps Embed */}
+                <div className="w-full h-full rounded-lg overflow-hidden relative">
+                  {/* Google Maps Embed with proper center and zoom */}
                   <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.6089548267394!2d110.40089737577631!3d1.4059746985999995!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x31fba7190df94e35%3A0x318e978ce8b73b!2sSwinburne%20University%20of%20Technology%20Sarawak%20Campus!5e0!3m2!1sen!2smy!4v1704067200000!5m2!1sen!2smy"
+                    id="swinburne-map"
+                    src="https://maps.google.com/maps?q=Swinburne%20University%20of%20Technology%20Sarawak%20Campus,%20Jalan%20Simpang%20Tiga,%2093350%20Kuching,%20Sarawak,%20Malaysia&t=&z=17&ie=UTF8&iwloc=&output=embed"
                     width="100%"
                     height="100%"
                     style={{ border: 0, minHeight: '500px' }}
@@ -643,6 +644,26 @@ export default function Home() {
                     referrerPolicy="no-referrer-when-downgrade"
                     className="rounded-lg"
                   ></iframe>
+                  
+                  {/* Recenter Button */}
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      // Reload the iframe to recenter
+                      const iframe = document.getElementById('swinburne-map') as HTMLIFrameElement;
+                      if (iframe) {
+                        iframe.src = iframe.src;
+                      }
+                    }}
+                    className="absolute bottom-4 right-4 bg-primary text-primary-foreground p-3 rounded-full shadow-lg hover:bg-primary/90 transition-all duration-300 z-10"
+                    title="Recenter Map"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </motion.button>
                 </div>
               </div>
 
@@ -652,15 +673,18 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
                 viewport={{ once: true }}
-                className="absolute top-8 left-8 bg-card p-4 rounded-lg shadow-xl max-w-xs border border-border"
+                className="absolute top-8 right-8 bg-card p-3 rounded-lg shadow-xl max-w-[200px] border border-border"
               >
-                <div className="flex items-center mb-2">
-                  <div className="w-3 h-3 bg-destructive rounded-full mr-2"></div>
-                  <span className="text-sm font-semibold text-foreground">VisHeart HQ</span>
+                <div className="flex items-center mb-1">
+                  <div className="w-2 h-2 bg-destructive rounded-full mr-2 animate-pulse"></div>
+                  <span className="text-xs font-semibold text-foreground">VisHeart HQ</span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Leading cardiac imaging innovation center
+                <p className="text-xs text-muted-foreground mb-1">
+                  Cardiac imaging innovation center
                 </p>
+                <div className="text-xs text-muted-foreground">
+                  <p>📍 Swinburne University</p>
+                </div>
               </motion.div>
             </motion.div>
           </div>
