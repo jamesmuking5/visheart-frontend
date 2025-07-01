@@ -90,29 +90,38 @@ function HomeDropDown() {
 }
 
 // ProfileDropDown component for user profile and settings
+// Should 
 function ProfileDropDown() {
   return (
     <NavigationMenuItem>
-      <NavigationMenuTrigger>{getUserName()}</NavigationMenuTrigger>
+      <NavigationMenuTrigger>
+        Account
+      </NavigationMenuTrigger>
       <NavigationMenuContent>
-        <ul className="grid w-[200px] gap-4">
-          <li>
+        <ul className="flex gap-2 md:w-[400px] lg:w-[500px] h-[150px]">
+          <li className="flex-1/2">
             <NavigationMenuLink asChild>
-              <Link href="#" className="flex-row items-center gap-2">
-                <CircleUser />
-                Profile
+              <Link
+                className="from-muted/50 to-muted flex h-full w-full flex-col justify-center bg-linear-to-b rounded-md p-6 no-underline outline-hidden select-none focus:shadow-md"
+                href="/register"
+              >
+                <div className="mt-4 mb-2 text-lg font-medium">Sign Up</div>
+                <p className="text-muted-foreground text-sm leading-tight">
+                  Having an account will allow you to save projects across devices.
+                </p>
               </Link>
             </NavigationMenuLink>
+          </li>
+          <li className="flex-1/3">
             <NavigationMenuLink asChild>
-              <Link href="#" className="flex-row items-center gap-2">
-                <KeyRound />
-                Login
-              </Link>
-            </NavigationMenuLink>
-            <NavigationMenuLink asChild>
-              <Link href="#" className="flex-row items-center gap-2">
-                <UserCog />
-                User Settings
+              <Link
+                className="from-muted/50 to-muted flex h-full w-full flex-col justify-center rounded-md p-6 no-underline outline-hidden select-none focus:shadow-md"
+                href="/sign-in"
+              >
+                <div className="mt-4 mb-2 text-lg font-medium">Sign In</div>
+                <p className="text-muted-foreground text-sm leading-tight">
+                  Have an account? Sign In now.
+                </p>
               </Link>
             </NavigationMenuLink>
           </li>
