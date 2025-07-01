@@ -69,6 +69,42 @@ export default function Home() {
     }
   };
 
+  // Function to handle Learn More button click with effects
+  const handleLearnMoreClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    
+    // Add visual feedback - brief scale effect
+    const button = e.currentTarget;
+    button.style.transform = 'scale(0.95)';
+    
+    setTimeout(() => {
+      button.style.transform = 'scale(1)';
+      
+      // Navigate to about section with smooth scroll
+      const aboutSection = document.getElementById('info-section');
+      if (aboutSection) {
+        aboutSection.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest'
+        });
+        
+        // Add highlight effect to the about section
+        setTimeout(() => {
+          aboutSection.style.transition = 'all 0.8s ease';
+          aboutSection.style.boxShadow = '0 0 30px rgba(88, 123, 154, 0.3)';
+          aboutSection.style.transform = 'scale(1.01)';
+          
+          // Remove highlight after animation
+          setTimeout(() => {
+            aboutSection.style.boxShadow = '';
+            aboutSection.style.transform = '';
+          }, 1500);
+        }, 800);
+      }
+    }, 150);
+  };
+
   // Keyboard shortcut to open command
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -154,13 +190,17 @@ export default function Home() {
                   <p className="text-base md:text-lg text-white/90 mb-6 leading-relaxed">
                     Because we combine cutting-edge AI technology with medical expertise to deliver the most accurate cardiac segmentation solutions, helping healthcare professionals make better decisions and save more lives.
                   </p>
-                  <a href="#info-section"
-                    className="hero-button px-8 py-4 bg-transparent border-2 border-white text-white rounded-full hover:bg-white hover:text-blue-900 transition-all duration-300 transform hover:-translate-y-1 scroll-smooth inline-flex items-center group"
+                  <a 
+                    href="#info-section"
+                    onClick={handleLearnMoreClick}
+                    className="hero-button px-8 py-4 bg-transparent border-2 border-white text-white rounded-full hover:bg-white hover:text-blue-900 transition-all duration-300 transform hover:-translate-y-1 active:scale-95 scroll-smooth inline-flex items-center group relative overflow-hidden"
                   >
-                    Learn More
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 transition-transform duration-300 group-hover:translate-y-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <span className="relative z-10">Learn More</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 transition-transform duration-300 group-hover:translate-y-1 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
                     </svg>
+                    {/* Ripple effect background */}
+                    <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-full"></span>
                   </a>
                 </motion.div>
 
