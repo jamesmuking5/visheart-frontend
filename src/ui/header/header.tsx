@@ -11,6 +11,18 @@ import {
 } from "@/components/ui/navigation-menu";
 import { CircleUser, KeyRound, UserCog } from "lucide-react";
 import ThemeToggle from "../theme-toggle";
+import { Button } from "@/components/ui/button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import Image from 'next/image'
 
 export default function Header() {
   return (
@@ -55,6 +67,8 @@ function ListItem({
   );
 }
 
+
+
 // HomeDropDown component for the home link
 function HomeDropDown() {
   return (
@@ -90,7 +104,7 @@ function HomeDropDown() {
 }
 
 // ProfileDropDown component for user profile and settings
-// Should 
+// Should change when 
 function ProfileDropDown() {
   return (
     <NavigationMenuItem>
@@ -98,37 +112,40 @@ function ProfileDropDown() {
         Account
       </NavigationMenuTrigger>
       <NavigationMenuContent>
-        <ul className="flex gap-2 md:w-[400px] lg:w-[500px] h-[150px]">
-          <li className="flex-1/2">
-            <NavigationMenuLink asChild>
-              <Link
-                className="from-muted/50 to-muted flex h-full w-full flex-col justify-center bg-linear-to-b rounded-md p-6 no-underline outline-hidden select-none focus:shadow-md"
-                href="/register"
-              >
-                <div className="mt-4 mb-2 text-lg font-medium">Sign Up</div>
-                <p className="text-muted-foreground text-sm leading-tight">
-                  Having an account will allow you to save projects across devices.
-                </p>
-              </Link>
-            </NavigationMenuLink>
-          </li>
-          <li className="flex-1/3">
-            <NavigationMenuLink asChild>
-              <Link
-                className="from-muted/50 to-muted flex h-full w-full flex-col justify-center rounded-md p-6 no-underline outline-hidden select-none focus:shadow-md"
-                href="/login"
-              >
-                <div className="mt-4 mb-2 text-lg font-medium">Sign In</div>
-                <p className="text-muted-foreground text-sm leading-tight">
-                  Have an account? Sign In now.
-                </p>
-              </Link>
-            </NavigationMenuLink>
-          </li>
-        </ul>
+        <LoginCard />
       </NavigationMenuContent>
     </NavigationMenuItem>
   );
+}
+
+// Within Profile Dropdown
+function LoginCard() {
+  return (
+    <Card className="z-10 w-[300px] select-none">
+      <CardHeader className="text-center">
+        <CardTitle>
+          Login
+        </CardTitle>
+        <CardDescription>
+          No Account? Click on the Register button!
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-6">
+        <div className="grid gap-3">
+          <Label htmlFor="username">Username</Label>
+          <Input id="username" defaultValue="Username" required />
+        </div>
+        <div className="grid gap-3">
+          <Label htmlFor="password">Password</Label>
+          <Input id="password" type="password" required />
+        </div>
+      </CardContent>
+      <CardFooter className="grid gap-2">
+        <Button>Login</Button>
+        <Button className="bg-red-500 hover:bg-red-700"><Link href='/register' >Register</Link></Button>
+      </CardFooter>
+    </Card>
+  )
 }
 
 // ToolsDropDown component for tools navigation
