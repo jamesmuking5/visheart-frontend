@@ -31,7 +31,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className='flex bg-background flex-col justify-center items-center'>
+      <body>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
