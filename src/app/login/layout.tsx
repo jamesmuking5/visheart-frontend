@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 // import { Geist, Geist_Mono } from "next/font/google";
-import "@/app/globals.css";
 
 // const geistSans = Geist({
 //   variable: "--font-geist-sans",
@@ -12,12 +11,10 @@ import "@/app/globals.css";
 //   subsets: ["latin"],
 // });
 
-import { ThemeProvider } from "@/components/theme-provider";
-
 export const metadata: Metadata = {
-  title: "VisHeart",
+  title: "VisHeart Frontend Login Page",
   description:
-    "VisHeart Web Application for Cardiac Component Segmentation",
+    "VisHeart Frontend Application Login Page for Cardiac Component Segmentation",
 };
 
 export default function RootLayout({
@@ -26,16 +23,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`flex bg-background`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+    <html lang="en">
+      <body
+      // className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        {children}
       </body>
     </html>
   );
