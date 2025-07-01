@@ -473,6 +473,241 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Gallery Section */}
+        <section aria-label="VisHeart Gallery" className="gallery-section">
+        <div className="py-24 px-8 bg-gradient-to-br from-background to-muted">
+          <div className="max-w-7xl mx-auto">
+              {/* Section Header */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8 }}
+                viewport={{ once: true }}
+                className="text-center mb-16"
+              >
+                <h2 className="text-4xl font-light mb-6 text-foreground">
+                  Gallery
+                </h2>
+                <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                  Explore our advanced cardiac imaging capabilities and see how VisHeart transforms medical visualization for better patient outcomes.
+                </p>
+              </motion.div>
+
+              {/* Gallery Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Gallery Item 1 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.1 }}
+                  viewport={{ once: true }}
+                  className="group relative overflow-hidden rounded-xl aspect-square bg-card backdrop-blur-sm border border-border hover:border-primary/40 transition-all duration-300"
+                >
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Image
+                      src="/image-1.png"
+                      alt="Cardiac MRI Segmentation"
+                      fill
+                      className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Cardiac MRI Segmentation</h3>
+                    <p className="text-muted-foreground text-sm">Advanced AI-powered segmentation of cardiac structures from MRI imaging</p>
+                  </div>
+                </motion.div>
+
+                {/* Gallery Item 2 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+                  viewport={{ once: true }}
+                  className="group relative overflow-hidden rounded-xl aspect-square bg-card backdrop-blur-sm border border-border hover:border-primary/40 transition-all duration-300"
+                >
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Image
+                      src="/image-2.png"
+                      alt="High-Resolution Cardiac Imaging"
+                      fill
+                      className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                    <h3 className="text-lg font-semibold text-foreground mb-2">High-Resolution Imaging</h3>
+                    <p className="text-muted-foreground text-sm">Crystal-clear cardiac visualization with enhanced detail and precision</p>
+                  </div>
+                </motion.div>
+
+                {/* Gallery Item 3 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.3 }}
+                  viewport={{ once: true }}
+                  className="group relative overflow-hidden rounded-xl aspect-square bg-card backdrop-blur-sm border border-border hover:border-primary/40 transition-all duration-300"
+                >
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Image
+                      src="/image-3.png"
+                      alt="Doctor Interface"
+                      fill
+                      className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-6 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                    <h3 className="text-lg font-semibold text-foreground mb-2">Specialist Interface</h3>
+                    <p className="text-muted-foreground text-sm">Intuitive user interface designed specifically for medical professionals</p>
+                  </div>
+                </motion.div>
+
+                {/* Gallery Item 4 - Larger card spanning 2 columns */}
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.4 }}
+                  viewport={{ once: true }}
+                  className="group relative overflow-hidden rounded-xl md:col-span-2 aspect-video bg-card backdrop-blur-sm border border-border hover:border-primary/40 transition-all duration-300"
+                >
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 via-secondary/20 to-accent/20 flex items-center justify-center">
+                      <div className="text-center p-8">
+                        <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                          <svg className="w-12 h-12 text-primary" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
+                          </svg>
+                        </div>
+                        <h3 className="text-2xl font-semibold text-foreground mb-4">AI-Powered Analytics</h3>
+                        <p className="text-muted-foreground text-lg leading-relaxed">
+                          Advanced machine learning algorithms provide real-time cardiac analysis and diagnostic support
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Gallery Item 5 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.5 }}
+                  viewport={{ once: true }}
+                  className="group relative overflow-hidden rounded-xl aspect-square bg-card backdrop-blur-sm border border-border hover:border-primary/40 transition-all duration-300"
+                >
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-full h-full bg-gradient-to-br from-secondary/30 to-primary/30 flex items-center justify-center">
+                      <div className="text-center p-6">
+                        <div className="w-16 h-16 bg-secondary/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                          <svg className="w-8 h-8 text-secondary" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M2 5a2 2 0 012-2h8a2 2 0 012 2v10a2 2 0 002 2H4a2 2 0 01-2-2V5zm3 1h6v4H5V6zm6 6H5v2h6v-2z" clipRule="evenodd"/>
+                            <path d="M15 7h1a2 2 0 012 2v5.5a1.5 1.5 0 01-3 0V9a1 1 0 00-1-1h-1v-1z"/>
+                          </svg>
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground mb-2">Cloud Integration</h3>
+                        <p className="text-muted-foreground text-sm">Seamless cloud-based collaboration platform</p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Gallery Item 6 */}
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.6 }}
+                  viewport={{ once: true }}
+                  className="group relative overflow-hidden rounded-xl aspect-square bg-card backdrop-blur-sm border border-border hover:border-primary/40 transition-all duration-300"
+                >
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-full h-full bg-gradient-to-br from-accent/30 to-secondary/30 flex items-center justify-center">
+                      <div className="text-center p-6">
+                        <div className="w-16 h-16 bg-accent/20 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                          <svg className="w-8 h-8 text-accent" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" clipRule="evenodd"/>
+                            <path fillRule="evenodd" d="M4 5a2 2 0 012-2v1a1 1 0 102 0V3h4v1a1 1 0 102 0V3a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm8 8a1 1 0 01-1-1V8a1 1 0 00-1-1H8a1 1 0 00-1 1v4a1 1 0 01-1 1h6z" clipRule="evenodd"/>
+                          </svg>
+                        </div>
+                        <h3 className="text-lg font-semibold text-foreground mb-2">Real-time Processing</h3>
+                        <p className="text-muted-foreground text-sm">Instant analysis and diagnostic insights</p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Gallery Item 7 - Stats Card */}
+                <motion.div
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.7 }}
+                  viewport={{ once: true }}
+                  className="group relative overflow-hidden rounded-xl md:col-span-2 lg:col-span-1 aspect-square bg-card backdrop-blur-sm border border-border hover:border-primary/40 transition-all duration-300"
+                >
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-full h-full bg-gradient-to-br from-destructive/20 to-primary/20 flex items-center justify-center p-8">
+                      <div className="text-center">
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          whileInView={{ scale: 1 }}
+                          transition={{ duration: 0.8, delay: 0.8 }}
+                          viewport={{ once: true }}
+                          className="text-4xl font-bold text-foreground mb-2"
+                        >
+                          95%+
+                        </motion.div>
+                        <h3 className="text-lg font-semibold text-foreground mb-2">Accuracy Rate</h3>
+                        <p className="text-muted-foreground text-sm">Clinically validated precision in cardiac segmentation</p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Gallery CTA */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.8 }}
+                viewport={{ once: true }}
+                className="text-center mt-16"
+              >
+                <div className="bg-card backdrop-blur-sm rounded-2xl p-8 border border-border">
+                  <h3 className="text-2xl font-semibold text-foreground mb-4">
+                    See VisHeart in Action
+                  </h3>
+                  <p className="text-muted-foreground mb-6 leading-relaxed max-w-2xl mx-auto">
+                    Experience the future of cardiac imaging with our interactive demo. Discover how VisHeart can transform your medical practice.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-8 py-4 bg-primary text-primary-foreground rounded-full font-semibold hover:bg-primary/90 transition-all duration-300 inline-flex items-center justify-center group"
+                    >
+                      Schedule Demo
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                    </motion.button>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="px-8 py-4 bg-transparent border-2 border-primary text-primary rounded-full font-semibold hover:bg-primary hover:text-primary-foreground transition-all duration-300 inline-flex items-center justify-center group"
+                    >
+                      View Documentation
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
         {/* Contact Section */}
         <section id="contact-section" className="py-24 bg-gradient-to-br from-background to-muted">
         <div className="max-w-7xl mx-auto px-8">
