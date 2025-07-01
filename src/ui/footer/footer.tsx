@@ -7,7 +7,7 @@ export default function Footer() {
   return (
     <footer className="absolute bottom-0 justify-center w-full h-16 bg-background mt-auto">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           
           {/* Logo / Brand */}
           <div>
@@ -23,6 +23,16 @@ export default function Footer() {
               <li><Link href="/about" className="hover:underline underline-offset-4 transition-all">About Us</Link></li>
               <li><Link href="/features" className="hover:underline underline-offset-4 transition-all">Features</Link></li>
               <li><Link href="/contact" className="hover:underline underline-offset-4 transition-all">Contact</Link></li>
+            </ul>
+          </div>
+          
+          {/* Our Services */}
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Our Services</h3>
+            <ul className="space-y-2 text-sm">
+              <li><Link href="/services/3d-visualization" className="hover:underline underline-offset-4 transition-all">2D Cardiac Segmentation</Link></li>
+              <li><Link href="/services/data-analysis" className="hover:underline underline-offset-4 transition-all">3D Cardiac Segmentation</Link></li>
+              <li><Link href="/services/support" className="hover:underline underline-offset-4 transition-all">Consultation & Support</Link></li>
             </ul>
           </div>
 
