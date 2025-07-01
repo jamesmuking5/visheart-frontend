@@ -73,7 +73,7 @@ export default function Home() {
                 initial={{ letterSpacing: "0.5em" }}
                 animate={{ letterSpacing: "0.2em" }}
                 transition={{ duration: 2, ease: "easeOut" }}
-                className="hero-header text-6xl md:text-7xl lg:text-8xl font-light tracking-wider text-white m-0 drop-shadow-lg text-left"
+                className="hero-header text-6xl md:text-7xl lg:text-8xl font-bold tracking-wider text-white m-0 drop-shadow-lg text-left"
               >
                 VisHeart
               </motion.h1>
