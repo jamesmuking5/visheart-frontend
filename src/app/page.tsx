@@ -52,6 +52,23 @@ export default function Home() {
     }
   };
 
+  // Function to navigate to contact form
+  const navigateToContactForm = () => {
+    // First scroll to contact section
+    const contactSection = document.getElementById('contact-section');
+    if (contactSection) {
+      contactSection.scrollIntoView({ behavior: 'smooth' });
+      
+      // Wait for scroll to complete, then switch to form tab
+      setTimeout(() => {
+        const formTab = document.querySelector('[value="form"]') as HTMLElement;
+        if (formTab) {
+          formTab.click();
+        }
+      }, 1000);
+    }
+  };
+
   // Keyboard shortcut to open command
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -565,7 +582,10 @@ export default function Home() {
                   <p className="text-white/80 mb-6 leading-relaxed">
                     Our team of experts is ready to help you understand how VisHeart can transform your cardiac imaging workflow.
                   </p>
-                  <button className="px-8 py-4 bg-white text-[#3A4454] rounded-full font-semibold hover:bg-white/90 transition-all duration-300 transform hover:-translate-y-1 inline-flex items-center group">
+                  <button 
+                    onClick={navigateToContactForm}
+                    className="px-8 py-4 bg-white text-[#3A4454] rounded-full font-semibold hover:bg-white/90 transition-all duration-300 transform hover:-translate-y-1 inline-flex items-center group"
+                  >
                     Contact Our Team
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 transition-transform duration-300 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
