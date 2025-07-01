@@ -5,8 +5,8 @@ import { FaFacebook, FaTwitter, FaLinkedin } from "react-icons/fa"
 
 export default function Footer() {
   return (
-    <footer className="absolute bottom-0 justify-center w-full h-16 bg-background mt-auto">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <footer className="w-full bg-gray-900 text-white mt-auto">
+      <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           
           {/* Logo / Brand */}
@@ -57,9 +57,9 @@ export default function Footer() {
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-gray-200 dark:border-gray-700">
-        <div className="flex justify-center items-center py-4">
-          <div className="text-sm text-center">
+      <div className="border-t border-gray-700 mt-8">
+        <div className="flex justify-center items-center py-6">
+          <div className="text-sm text-center text-gray-300">
             © {new Date().getFullYear()} VisHeart. All rights reserved.
           </div>
         </div>
