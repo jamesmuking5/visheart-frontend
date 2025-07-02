@@ -32,6 +32,7 @@ export default function Home() {
   
   // State for command dropdown
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showCommandDropdown, setShowCommandDropdown] = useState(false);
 
   // Images for slider
   const sliderImages = [
@@ -53,7 +54,7 @@ export default function Home() {
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
-      setDropdownOpen(false);
+      setShowCommandDropdown(false);
     }
   };
 
@@ -1230,6 +1231,63 @@ export default function Home() {
         </div>
       </section>
       </main>
+
+      {/* Floating Command Search Button */}
+      <div className="fixed top-20 right-15 z-50">
+        <div className="relative">
+          <button
+            onMouseEnter={() => setShowCommandDropdown(true)}
+            onMouseLeave={() => setShowCommandDropdown(false)}
+            className="bg-black dark:bg-white text-white dark:text-black border border-border hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors duration-200 rounded-full p-4 shadow-lg"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          
+          {/* Command Dropdown */}
+          <AnimatePresence>
+            {showCommandDropdown && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2 }}
+                className="absolute top-full right-0 mt-2 w-64 bg-background border border-border rounded-lg shadow-lg overflow-hidden"
+                onMouseEnter={() => setShowCommandDropdown(true)}
+                onMouseLeave={() => setShowCommandDropdown(false)}
+              >
+                <Command className="w-full">
+                  <CommandInput placeholder="Search sections..." className="border-0" />
+                  <CommandList>
+                    <CommandEmpty>No results found.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem onSelect={() => navigateToSection('hero-intro-section')}>
+                        <span>Home</span>
+                      </CommandItem>
+                      <CommandItem onSelect={() => navigateToSection('info-section')}>
+                        <span>About Us</span>
+                      </CommandItem>
+                      <CommandItem onSelect={() => navigateToSection('services-section')}>
+                        <span>Services</span>
+                      </CommandItem>
+                      <CommandItem onSelect={() => navigateToSection('faq-section')}>
+                        <span>FAQ</span>
+                      </CommandItem>
+                      <CommandItem onSelect={() => navigateToSection('gallery-section')}>
+                        <span>Gallery</span>
+                      </CommandItem>
+                      <CommandItem onSelect={() => navigateToSection('contact-section')}>
+                        <span>Contact</span>
+                      </CommandItem>
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
     </>
   );
 }
