@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import Image from "next/image";
 import { motion, AnimatePresence } from 'framer-motion';
+import { Canvas, useFrame, useLoader } from '@react-three/fiber';
+import { OrbitControls, useGLTF } from '@react-three/drei';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Command,
@@ -16,15 +18,7 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command"
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, CardAction } from "@/components/ui/card"
 
 export default function Home() {
   // State for image slider
@@ -33,6 +27,13 @@ export default function Home() {
   // State for command dropdown
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showCommandDropdown, setShowCommandDropdown] = useState(false);
+
+  // State for scroll-based 3D heart rotation
+  const [scrollY, setScrollY] = useState(0);
+
+  // State for hero section scroll lock
+  const [heroLocked, setHeroLocked] = useState(true);
+  const SCROLL_UNLOCK_THRESHOLD = 800; // Scroll length before unlocking
 
   // Images for slider
   const sliderImages = [
@@ -111,6 +112,145 @@ export default function Home() {
     }, 150);
   };
 
+  // 3D Heart Component with Cinematic Journey Animation
+  function Heart3D() {
+    const meshRef = useRef<any>(null);
+    const { scene } = useGLTF('/3dheart.glb');
+    
+    // Enhanced easing functions for smoother animations
+    const easeInOutCubic = (t: number): number => {
+      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    };
+    
+    const easeInOutQuart = (t: number): number => {
+      return t < 0.5 ? 8 * t * t * t * t : 1 - Math.pow(-2 * t + 2, 4) / 2;
+    };
+    
+    const easeOutElastic = (t: number): number => {
+      const c4 = (2 * Math.PI) / 3;
+      return t === 0 ? 0 : t === 1 ? 1 : Math.pow(2, -10 * t) * Math.sin((t * 10 - 0.75) * c4) + 1;
+    };
+    
+    // Define cinematic journey phases with smoother transitions
+    const getCinematicTransform = (scroll: number) => {
+      const maxScroll = 800;
+      const normalizedScroll = Math.min(scroll / maxScroll, 1);
+      
+      // Phase 1: Initial presentation (0-0.35) - Extended for smoother entry
+      if (normalizedScroll <= 0.35) {
+        const phase1Progress = normalizedScroll / 0.35;
+        const easedProgress = easeInOutCubic(phase1Progress);
+        
+        return {
+          zoom: 3.0 + easedProgress * 2.5, // 3.0 to 5.5 - smoother progression
+          rotationY: easedProgress * Math.PI * 0.6, // Slightly more rotation for fluidity
+          cameraZ: 8 - easedProgress * 2.5, // Smoother camera approach
+        };
+      }
+      
+      // Phase 2: Deep zoom into heart (0.35-0.65) - Adjusted timing
+      else if (normalizedScroll <= 0.65) {
+        const phase2Progress = (normalizedScroll - 0.35) / 0.3;
+        const easedProgress = easeInOutQuart(phase2Progress);
+        
+        return {
+          zoom: 5.5 + easedProgress * 14.5, // 5.5 to 20.0 - smoother zoom curve
+          rotationY: Math.PI * 0.6 + easedProgress * Math.PI * 1.2, // Smoother rotation continuation
+          cameraZ: 5.5 - easedProgress * 3.5, // More gradual camera movement
+        };
+      }
+      
+      // Phase 3: Zoom out with elegant twirl (0.65-1.0)
+      else {
+        const phase3Progress = (normalizedScroll - 0.65) / 0.35;
+        const easedProgress = easeInOutCubic(phase3Progress);
+        
+        return {
+          zoom: 20.0 - easedProgress * 16.0, // 20.0 back to 4.0
+          rotationY: Math.PI * 1.8 + easedProgress * Math.PI * 3.5, // Smoother, more elegant twirl
+          cameraZ: 2 + easedProgress * 6, // Gradual camera pullback
+        };
+      }
+    };
+    
+    // Calculate background darkness for deep zoom effect
+    const getBackgroundDarkness = (scroll: number) => {
+      const maxScroll = 800;
+      const normalizedScroll = Math.min(scroll / maxScroll, 1);
+      
+      if (normalizedScroll <= 0.3) return 0;
+      if (normalizedScroll <= 0.6) {
+        const darkProgress = (normalizedScroll - 0.3) / 0.3;
+        return darkProgress * 0.8; // Max 80% darkness
+      }
+      if (normalizedScroll <= 0.8) {
+        return 0.8; // Stay dark during transition
+      }
+      const lightProgress = (normalizedScroll - 0.8) / 0.2;
+      return 0.8 - lightProgress * 0.8; // Fade back to light
+    };
+    
+    useFrame(({ camera, clock }) => {
+      if (meshRef.current) {
+        // Get current transform directly from scroll position - no interpolation delays
+        const currentTransform = getCinematicTransform(scrollY);
+        
+        // CRITICAL: Keep heart absolutely anchored at world origin
+        meshRef.current.position.set(0, 0, 0);
+        
+        // Apply scale directly from scroll position for immediate response
+        meshRef.current.scale.set(currentTransform.zoom, currentTransform.zoom, currentTransform.zoom);
+        
+        // Apply rotation directly from scroll position for continuous progression
+        meshRef.current.rotation.set(0, currentTransform.rotationY, 0);
+        
+        // Camera movement directly responds to scroll position
+        camera.position.set(0, 0, currentTransform.cameraZ);
+        camera.lookAt(0, 0, 0); // Always look directly at heart center
+        
+        // Enhanced breathing effect with time-based smoothness
+        const time = clock.getElapsedTime();
+        const breathingEffect = Math.sin(time * 1.2) * 0.015; // Slower, more natural breathing
+        const pulseEffect = Math.sin(time * 0.5) * 0.008; // Subtle pulse for life-like motion
+        
+        // Apply breathing effects on top of scroll-based scaling
+        meshRef.current.scale.y = currentTransform.zoom + breathingEffect + pulseEffect;
+        meshRef.current.scale.x = currentTransform.zoom + pulseEffect * 0.5; // Subtle X breathing
+      }
+    });
+
+    return (
+      <primitive 
+        ref={meshRef}
+        object={scene} 
+        scale={[4, 4, 4]}
+        position={[0, 0, 0]}
+      />
+    );
+  }
+
+  // Optimized scroll tracking for immediate, continuous animation response
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      setScrollY(currentScrollY);
+      
+      // Check if we should unlock the hero section
+      if (currentScrollY >= SCROLL_UNLOCK_THRESHOLD && heroLocked) {
+        setHeroLocked(false);
+      } else if (currentScrollY < SCROLL_UNLOCK_THRESHOLD && !heroLocked) {
+        setHeroLocked(true);
+      }
+    };
+
+    // Use passive: true for better performance and immediate response
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [heroLocked, SCROLL_UNLOCK_THRESHOLD]);
+
   // Keyboard shortcut to open command
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -134,8 +274,147 @@ export default function Home() {
   return (
     <>
       <main>
+        {/* Spacer for when hero is unlocked to prevent content jumping */}
+        {!heroLocked && <div style={{ height: '100vh' }}></div>}
+        
+        {/* 3D Heart Interactive Section - Cinematic 3D heart animation with scroll controls */}
+        <section 
+          id="heart-3d-section" 
+          aria-label="Interactive 3D Heart Animation" 
+          className={`heart-3d-section ${heroLocked ? 'fixed inset-0 z-50' : 'relative'}`}
+          style={{ 
+            height: heroLocked ? '100vh' : 'auto',
+            minHeight: heroLocked ? '100vh' : 'auto'
+          }}
+        >
+          <div 
+            className="relative w-full h-screen overflow-hidden transition-all duration-300"
+            style={{
+              backgroundColor: `rgb(${255 - Math.min(scrollY / 800 * 200, 200)}, ${255 - Math.min(scrollY / 800 * 200, 200)}, ${255 - Math.min(scrollY / 800 * 200, 200)})`
+            }}
+          >
+            {/* Dynamic background overlay for depth effect */}
+            <div 
+              className="absolute inset-0 z-10 transition-all duration-500"
+              style={{
+                backgroundColor: `rgba(20, 20, 20, ${Math.min((scrollY - 240) / 240 * 0.8, 0.8)})`,
+                opacity: scrollY > 240 ? 1 : 0
+              }}
+            ></div>
+            
+            {/* 3D Heart Canvas - Full screen */}
+            <div className="absolute inset-0 z-20">
+              {/* Cinematic Progress Indicator */}
+              <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 w-80 z-30">
+                <div className="text-center text-gray-600 text-sm mb-3">Cinematic Heart Animation</div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 h-2 rounded-full transition-all duration-300"
+                    style={{ 
+                      width: `${Math.min((scrollY / 800) * 100, 100)}%` 
+                    }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-gray-400 text-xs mt-2">
+                  <span>Start</span>
+                  <span>200px</span>
+                  <span>400px</span>
+                  <span>600px</span>
+                  <span>Unlock</span>
+                </div>
+              </div>
+              
+              <Canvas
+                camera={{ 
+                  position: [0, 0, 8], 
+                  fov: 45,
+                  near: 0.1,
+                  far: 1000
+                }}
+                style={{ background: 'transparent' }}
+              >
+                <Suspense fallback={null}>
+                  {/* Dynamic cinematic lighting that responds to scroll */}
+                  <ambientLight intensity={Math.max(0.2, 0.6 - (scrollY / 800) * 0.4)} />
+                  
+                  {/* Main key light */}
+                  <pointLight 
+                    position={[10, 10, 10]} 
+                    intensity={1.2 + (scrollY / 800) * 0.8} 
+                    color="#ffffff"
+                    castShadow
+                  />
+                  
+                  {/* Warm fill light */}
+                  <pointLight 
+                    position={[-8, -5, 8]} 
+                    intensity={0.6 + (scrollY / 800) * 0.4} 
+                    color="#ff9999"
+                  />
+                  
+                  {/* Cool accent light */}
+                  <pointLight 
+                    position={[5, -10, -5]} 
+                    intensity={0.4 + (scrollY / 800) * 0.3} 
+                    color="#6699ff"
+                  />
+                  
+                  {/* Dramatic rim light for deep zoom */}
+                  <spotLight
+                    position={[0, 15, -10]}
+                    angle={0.4}
+                    penumbra={1}
+                    intensity={Math.max(0.3, (scrollY / 800) * 2)}
+                    color="#ffffff"
+                    castShadow
+                  />
+                  
+                  {/* Soft depth light */}
+                  <spotLight
+                    position={[15, 5, 15]}
+                    angle={0.6}
+                    penumbra={0.8}
+                    intensity={0.5 + (scrollY / 800) * 0.7}
+                    color="#ffeecc"
+                  />
+                  
+                  <Heart3D />
+                  
+                  <OrbitControls 
+                    enableZoom={false} 
+                    enablePan={false}
+                    autoRotate
+                    autoRotateSpeed={0.5}
+                    enableDamping
+                    dampingFactor={0.05}
+                  />
+                </Suspense>
+              </Canvas>
+            </div>
+
+            {/* Overlay content */}
+            <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 1, delay: 0.5 }}
+                className="text-center text-white"
+              >
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
         {/* Hero/Intro Section - Main introduction with VisHeart branding and key features */}
-        <section id="hero-intro-section" aria-label="Hero introduction" className="hero-intro-section">
+        <section 
+          id="hero-intro-section" 
+          aria-label="Hero introduction" 
+          className={`hero-intro-section ${heroLocked ? 'hidden' : 'relative'}`}
+          style={{ 
+            height: heroLocked ? '0' : 'auto',
+            minHeight: heroLocked ? '0' : 'auto'
+          }}
+        >
           <motion.div
             style={{ opacity: 1, scale: 1 }}
             className="hero-section relative w-full h-screen overflow-hidden"
@@ -248,7 +527,6 @@ export default function Home() {
             </motion.div>
           </div>
         </motion.div>
-
 
         </section>
 
