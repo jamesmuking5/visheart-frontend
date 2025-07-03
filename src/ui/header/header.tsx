@@ -11,16 +11,6 @@ import {
 } from "@/components/ui/navigation-menu";
 import ThemeToggle from "../theme-toggle";
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 
 export default function Header() {
   return (
@@ -102,7 +92,8 @@ function HomeDropDown() {
 }
 
 // ProfileDropDown component for user profile and settings
-// Should change when 
+import {LoginCard} from "@/components/Login";
+
 function ProfileDropDown() {
   return (
     <NavigationMenuItem>
@@ -116,35 +107,6 @@ function ProfileDropDown() {
   );
 }
 
-// Within Profile Dropdown
-function LoginCard() {
-  return (
-    <Card className="z-10 w-[300px] select-none">
-      <CardHeader className="text-center">
-        <CardTitle>
-          Login
-        </CardTitle>
-        <CardDescription>
-          No Account? Register Now!
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-6">
-        <div className="grid gap-3">
-          <Label htmlFor="username">Username</Label>
-          <Input id="username" defaultValue="Username" required />
-        </div>
-        <div className="grid gap-3">
-          <Label htmlFor="password">Password</Label>
-          <Input id="password" type="password" required />
-        </div>
-      </CardContent>
-      <CardFooter className="grid gap-2">
-        <Button>Login</Button>
-        <Button className="bg-red-500 hover:bg-red-700"><Link href='/register' >Register</Link></Button>
-      </CardFooter>
-    </Card>
-  )
-}
 
 // ToolsDropDown component for tools navigation
 function ToolsDropDown() {

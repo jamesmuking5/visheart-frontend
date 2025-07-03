@@ -16,12 +16,13 @@ import "@/app/globals.css";
 import Footer from "@/ui/footer/footer";
 import Header from "@/ui/header/header";
 
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/lib/theme-provider";
+
+import { AuthProvider } from "@/context/auth-context";
 
 export const metadata: Metadata = {
   title: "VisHeart",
-  description:
-    "VisHeart Web Application for Cardiac Component Segmentation",
+  description: "VisHeart Web Application for Cardiac Component Segmentation",
 };
 
 export default function RootLayout({
@@ -38,9 +39,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Header />
-          {children}
-          <Footer />
+          <AuthProvider>
+            <Header />
+            {children}
+            <Footer />
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
