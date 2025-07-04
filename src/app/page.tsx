@@ -115,9 +115,18 @@ export default function Home() {
     }, 150);
   };
 
-    // Function to advance to next animation segment
+    // Add state to track text animation completion
+  const [textAnimationsComplete, setTextAnimationsComplete] = useState(false);
+  
+  // Update the advanceAnimation function to check for text completion
   const advanceAnimation = () => {
     console.log('Current segment before advance:', currentAnimationSegment); // Debug log
+    
+    // Block advancement if we're in segment 0 and text animations aren't complete
+    if (currentAnimationSegment === 0 && !textAnimationsComplete) {
+      console.log('Text animations not complete yet - blocking advancement');
+      return;
+    }
     
     if (currentAnimationSegment < 4) { // 5 total segments (0-4)
       setCurrentAnimationSegment(prev => {
@@ -138,11 +147,19 @@ export default function Home() {
     }
   };
   
-  // Keyboard and click event listeners for animation advancement
+  // Update the keyboard and click event listeners
   useEffect(() => {
     const handleInteraction = (e: KeyboardEvent | MouseEvent) => {
       // Only handle interactions if we haven't completed the welcome animation
       if (hasPlayedWelcome) return;
+      
+      // Block interaction if we're in segment 0 and text animations aren't complete
+      if (currentAnimationSegment === 0 && !textAnimationsComplete) {
+        console.log('Blocking interaction - text animations still running');
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       
       e.preventDefault();
       e.stopPropagation();
@@ -170,7 +187,297 @@ export default function Home() {
       document.removeEventListener('keydown', handleInteraction);
       document.removeEventListener('click', handleInteraction);
     };
-  }, [currentAnimationSegment, hasPlayedWelcome]); // Removed showInteractionPrompt dependency
+  }, [currentAnimationSegment, hasPlayedWelcome, textAnimationsComplete]); // Added textAnimationsComplete dependency
+    
+  // Reset text animations state when component mounts
+  useEffect(() => {
+    // Reset text animation state when starting over
+    if (currentAnimationSegment === 0) {
+      setTextAnimationsComplete(false);
+    }
+  }, [currentAnimationSegment]);
+  
+  
+  // Update the Three.js lighting to maintain consistency
+    function DynamicLighting({ currentSegment }: { currentSegment: number }) {
+      const ambientRef = useRef<any>(null);
+      const keyLightRef = useRef<any>(null);
+      const fillLightRef = useRef<any>(null);
+      const accentLightRef = useRef<any>(null);
+    
+      useFrame(({ clock }) => {
+        const time = clock.getElapsedTime();
+        
+        // Breathing effect on ambient light
+        if (ambientRef.current) {
+          ambientRef.current.intensity = 0.4 + Math.sin(time * 1.2) * 0.05; // Reduced variation
+        }
+        
+        // Dynamic key light movement - more subtle
+        if (keyLightRef.current) {
+          keyLightRef.current.position.x = 10 + Math.sin(time * 0.3) * 1; // Slower, smaller movement
+          keyLightRef.current.position.y = 10 + Math.cos(time * 0.2) * 0.5; // Slower, smaller movement
+        }
+        
+        // Keep fill light consistent - NO segment-based changes
+        if (fillLightRef.current) {
+          fillLightRef.current.color.setHex(0x999999); // Consistent neutral gray
+        }
+      });
+    
+      return (
+        <>
+          {/* Consistent lighting throughout */}
+          <ambientLight ref={ambientRef} intensity={0.4} />
+          
+          {/* Dynamic key light with subtle movement */}
+          <pointLight 
+            ref={keyLightRef}
+            position={[10, 10, 10]} 
+            intensity={1.5} 
+            color="#ffffff"
+            castShadow
+            shadow-mapSize-width={2048}
+            shadow-mapSize-height={2048}
+          />
+          
+          {/* Consistent fill light */}
+          <pointLight 
+            ref={fillLightRef}
+            position={[-8, -5, 8]} 
+            intensity={0.8} 
+            color="#999999" // Consistent neutral gray
+          />
+          
+          {/* Consistent accent light */}
+          <pointLight 
+            ref={accentLightRef}
+            position={[5, -10, -5]} 
+            intensity={0.6} 
+            color="#999999" // Consistent neutral gray
+          />
+          
+          {/* Consistent rim light */}
+          <spotLight
+            position={[0, 15, -10]}
+            angle={0.4}
+            penumbra={1}
+            intensity={1.0}
+            color="#ffffff"
+            castShadow
+          />
+          
+          {/* Consistent depth light */}
+          <spotLight
+            position={[15, 5, 15]}
+            angle={0.6}
+            penumbra={0.8}
+            intensity={0.8}
+            color="#f5f5f5"
+          />
+        </>
+      );
+    }
+
+  function DynamicBackground({ currentSegment, hasPlayedWelcome }: { 
+    currentSegment: number; 
+    hasPlayedWelcome: boolean; 
+  }) {
+    const [particles, setParticles] = useState<Array<{ id: number; x: number; y: number; size: number; speed: number; opacity: number }>>([]);
+    
+    // Generate particles
+    useEffect(() => {
+      const generateParticles = () => {
+        const newParticles = [];
+        for (let i = 0; i < 50; i++) {
+          newParticles.push({
+            id: i,
+            x: Math.random() * 100,
+            y: Math.random() * 100,
+            size: Math.random() * 3 + 1,
+            speed: Math.random() * 0.5 + 0.1,
+            opacity: Math.random() * 0.6 + 0.2
+          });
+        }
+        setParticles(newParticles);
+      };
+      
+      generateParticles();
+    }, []);
+  
+    return (
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Light Grey Background */}
+        <div className="absolute inset-0 bg-gray-300" />
+        
+        {/* Grid Overlay with White Square Outlines */}
+        <div 
+          className="absolute inset-0 opacity-30"
+          style={{
+            backgroundImage: `
+              linear-gradient(to right, white 1px, transparent 1px),
+              linear-gradient(to bottom, white 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px'
+          }}
+        />
+        
+        {/* Pulsing Overlay that syncs with heart breathing */}
+        <motion.div
+          animate={{
+            opacity: [0.1, 0.2, 0.1],
+            scale: [1, 1.02, 1]
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute inset-0 bg-gradient-radial from-transparent via-white/10 to-transparent"
+        />
+  
+        {/* Floating Medical Particles */}
+        {!hasPlayedWelcome && (
+          <div className="absolute inset-0">
+            {particles.map((particle) => (
+              <motion.div
+                key={particle.id}
+                className="absolute w-1 h-1 bg-gray-600 rounded-full" // Darker particles for contrast
+                style={{
+                  left: `${particle.x}%`,
+                  top: `${particle.y}%`,
+                  opacity: particle.opacity * 0.4, // Reduced opacity
+                  width: `${particle.size}px`,
+                  height: `${particle.size}px`,
+                }}
+                animate={{
+                  opacity: [particle.opacity * 0.4, particle.opacity * 0.1, particle.opacity * 0.4],
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{
+                  duration: 2 + Math.random() * 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+            ))}
+          </div>
+        )}
+  
+        {/* Segment-specific Light Rays - More subtle */}
+        {currentSegment >= 1 && (
+          <>
+            <motion.div
+              initial={{ opacity: 0, rotate: -45 }}
+              animate={{ opacity: 0.08, rotate: 45 }}
+              transition={{ duration: 8, repeat: Infinity, repeatType: "reverse" }}
+              className="absolute top-0 left-1/4 w-0.5 h-full bg-gradient-to-b from-transparent via-gray-500/40 to-transparent transform origin-top"
+            />
+            <motion.div
+              initial={{ opacity: 0, rotate: 45 }}
+              animate={{ opacity: 0.08, rotate: -45 }}
+              transition={{ duration: 10, repeat: Infinity, repeatType: "reverse" }}
+              className="absolute top-0 right-1/4 w-0.5 h-full bg-gradient-to-b from-transparent via-gray-600/40 to-transparent transform origin-top"
+            />
+          </>
+        )}
+  
+        {/* Atmospheric Depth Circles - More subtle */}
+        {currentSegment >= 2 && (
+          <>
+            <motion.div
+              animate={{
+                scale: [1, 1.5, 1],
+                opacity: [0.06, 0.12, 0.06]
+              }}
+              transition={{
+                duration: 12,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 border border-gray-500/20 rounded-full"
+            />
+            <motion.div
+              animate={{
+                scale: [1.5, 1, 1.5],
+                opacity: [0.04, 0.08, 0.04]
+              }}
+              transition={{
+                duration: 15,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-128 h-128 border border-gray-600/15 rounded-full"
+            />
+          </>
+        )}
+  
+        {/* Final Segment Celebration Effect - More subtle */}
+        {currentSegment === 4 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 2 }}
+            className="absolute inset-0"
+          >
+            {/* Radial burst effect */}
+            <motion.div
+              animate={{
+                scale: [0, 2],
+                opacity: [0.3, 0]
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                repeatDelay: 2
+              }}
+              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4 h-4 border-2 border-gray-600/60 rounded-full"
+            />
+            
+            {/* Sparkle particles */}
+            {[...Array(20)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-1 h-1 bg-gray-600/80 rounded-full"
+                style={{
+                  left: `${50 + Math.cos(i * 18 * Math.PI / 180) * 20}%`,
+                  top: `${50 + Math.sin(i * 18 * Math.PI / 180) * 20}%`,
+                }}
+                animate={{
+                  scale: [0, 1, 0],
+                  opacity: [0, 0.6, 0]
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  delay: i * 0.2,
+                  repeatDelay: 2
+                }}
+              />
+            ))}
+          </motion.div>
+        )}
+  
+        {/* Ambient Lighting Overlay - More subtle */}
+        <motion.div
+          animate={{
+            background: [
+              'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.06) 0%, transparent 50%)',
+              'radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 0.06) 0%, transparent 50%)',
+              'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.06) 0%, transparent 50%)'
+            ]
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute inset-0 pointer-events-none"
+        />
+      </div>
+    );
+  }
+
 
     // 3D Heart Component with Segmented Animation
   function Heart3D({ hasPlayedWelcome, setHasPlayedWelcome }: { 
@@ -186,8 +493,6 @@ export default function Home() {
     // Single unified animation effect - REMOVE THE DUPLICATE useEffect
     useEffect(() => {
       if (meshRef.current && !hasPlayedWelcome) {
-        console.log('Running animation segment:', currentAnimationSegment); // Debug log
-        
         import('gsap').then((gsap) => {
           const { default: GSAP } = gsap;
           
@@ -238,28 +543,134 @@ export default function Home() {
             setCurrentTimeline(tl);
   
             switch (segment) {
+                            // Update case 0 to position texts at corners and keep them permanently visible
               case 0: 
-                tl.to({}, { duration: 2 }); // Just wait, don't change anything
-                break;
+                // Set initial states for text elements to prevent re-animation
+                tl.set("#dramatic-text-1", { opacity: 0, y: 30, scale: 1, display: "block" })
+                .set("#dramatic-text-2", { opacity: 0, y: 30, scale: 1, display: "block" })
+                .set("#dramatic-text-1 h1", { scale: 0.8, rotationY: -15 })
+                .set("#dramatic-text-2 h1", { scale: 0.8, rotationY: 15 })
                 
+                // First text animation - plays once only, stays visible
+                .to("#dramatic-text-1", {
+                  opacity: 1,
+                  y: 0,
+                  duration: 1.2,
+                  ease: "power2.out",
+                  delay: 0.5
+                })
+                .to("#dramatic-text-1 h1", {
+                  scale: 1,
+                  rotationY: 0,
+                  duration: 1,
+                  ease: "back.out(1.4)",
+                }, "-=1.2")
+                
+                // Second text animation - plays once only after 2 seconds, stays visible
+                .to("#dramatic-text-2", {
+                  opacity: 1,
+                  y: 0,
+                  duration: 1.2,
+                  ease: "power2.out",
+                  delay: 2 // Wait exactly 2 seconds after first text starts
+                })
+                .to("#dramatic-text-2 h1", {
+                  scale: 1,
+                  rotationY: 0,
+                  duration: 1,
+                  ease: "back.out(1.4)",
+                }, "-=1.2")
+                
+                // Mark BOTH text animations as complete - BOTH texts remain visible
+                .call(() => {
+                  console.log('Both text animations completed - texts remain visible permanently');
+                  setTextAnimationsComplete(true); // Enable user interaction
+                  if (meshRef.current) {
+                    meshRef.current.userData.textAnimationsComplete = true;
+                  }
+                });
+                break;
+               
+              // Update case 1 to remove the corner texts from case 0
               case 1:
-                tl.to(meshRef.current.scale, {
+                // Remove both corner texts from case 0
+                tl.to("#dramatic-text-1", {
+                  opacity: 0,
+                  y: -20,
+                  scale: 1.1,
+                  duration: 0.8,
+                  ease: "power2.in",
+                })
+                .to("#dramatic-text-2", {
+                  opacity: 0,
+                  y: -20,
+                  scale: 1.1,
+                  duration: 0.8,
+                  ease: "power2.in",
+                }, "-=0.8") // Start at same time as first text removal
+                .set("#dramatic-text-1", { display: "none" }) // Completely hide first text
+                .set("#dramatic-text-2", { display: "none" }) // Completely hide second text
+                
+                // Now animate in the new case 1 text at center
+                .to("#case1-text", {
+                  opacity: 1,
+                  y: 0,
+                  duration: 1.2,
+                  ease: "power2.out",
+                  delay: 0.3 // Brief pause after corner texts disappear
+                })
+                .to("#case1-text h1", {
+                  scale: 1,
+                  rotationY: 0,
+                  duration: 1,
+                  ease: "back.out(1.4)",
+                }, "-=1.2")
+                
+                // Heart scaling animation
+                .to(meshRef.current.scale, {
                   x: 4,
                   y: 4,
                   z: 4,
                   duration: 1.5,
                   ease: "power2.out",
-                });
+                }, "-=1.5"); // Start heart animation with text
                 break;
-                
+                              
+              // Update case 2 to remove case 1 text and add case 2 text
               case 2: 
-                tl.to(meshRef.current.scale, {
+                // Remove case 1 text
+                tl.to("#case1-text", {
+                  opacity: 0,
+                  y: -20,
+                  scale: 1.1,
+                  duration: 0.8,
+                  ease: "power2.in",
+                })
+                .set("#case1-text", { display: "none" }) // Completely hide case 1 text
+                
+                // Animate in case 2 text
+                .to("#case2-text", {
+                  opacity: 1,
+                  y: 0,
+                  duration: 1.2,
+                  ease: "power2.out",
+                  delay: 0.3
+                })
+                .to("#case2-text h1", {
+                  scale: 1,
+                  rotationY: 0,
+                  duration: 1,
+                  ease: "back.out(1.4)",
+                }, "-=1.2")
+                
+                // Heart animations start with text
+                .to(meshRef.current.scale, {
                   x: 4.5,
                   y: 4.5,
                   z: 4.5,
                   duration: 1.5,
                   ease: "power2.out",
-                })
+                }, "-=1.5") // Start heart animation with text
                 .to(meshRef.current.rotation, {
                   y: "+=3.14159", // Add π to current rotation (RELATIVE)
                   duration: 1.5,
@@ -269,13 +680,40 @@ export default function Home() {
                 
               case 3: // Segment 4: Final scale from (4.5) to (2.0) with more rotation
                 console.log('Segment 3: Final scale from 4.5 to 2.0 with more rotation'); // Debug log
-                tl.to(meshRef.current.scale, {
+                
+                // Remove case 2 text
+                tl.to("#case2-text", {
+                  opacity: 0,
+                  y: -20,
+                  scale: 1.1,
+                  duration: 0.8,
+                  ease: "power2.in",
+                })
+                .set("#case2-text", { display: "none" }) // Completely hide case 2 text
+                
+                // Animate in case 3 text
+                .to("#case3-text", {
+                  opacity: 1,
+                  y: 0,
+                  duration: 1.2,
+                  ease: "power2.out",
+                  delay: 0.3
+                })
+                .to("#case3-text h1", {
+                  scale: 1,
+                  rotationY: 0,
+                  duration: 1,
+                  ease: "back.out(1.4)",
+                }, "-=1.2")
+                
+                // Heart animations start with text
+                .to(meshRef.current.scale, {
                   x: 2.0, // Reduced from 2.5 to 2.0
                   y: 2.0,
                   z: 2.0,
                   duration: 1.5,
                   ease: "back.out(1.7)",
-                })
+                }, "-=1.5") // Start heart animation with text
                 .to(meshRef.current.rotation, {
                   y: "+=3.14159", // Add another π to current rotation (RELATIVE)
                   duration: 1.5,
@@ -287,30 +725,46 @@ export default function Home() {
                   ease: "sine.inOut",
                   yoyo: true,
                   repeat: 1,
-                }, "-=0.8");
+                }, "-=0.8")
+                
+                // After exactly 2 seconds, fade out case 3 text and show VisHeart
+                .to("#case3-text", {
+                  opacity: 0,
+                  y: -20,
+                  scale: 1.1,
+                  duration: 0.8,
+                  ease: "power2.in",
+                  delay: 2 // Wait exactly 2 seconds
+                })
+                .set("#case3-text", { display: "none" }) // Completely hide case 3 text
+                
+                // Show VisHeart text
+                .to("#welcome-text", {
+                  opacity: 1,
+                  y: 0,
+                  duration: 1.2,
+                  ease: "power2.out",
+                  delay: 0.3
+                })
+                .to("#welcome-text h1", {
+                  scale: 1,
+                  rotationY: 0,
+                  duration: 1,
+                  ease: "back.out(1.4)",
+                }, "-=1.2");
                 break;
                 
               case 4:
+                // Just fade out VisHeart after 2 seconds
                 tl.to("#welcome-text", {
-                  opacity: 1,
-                  y: 0,
-                  duration: 0.8,
-                  ease: "power2.out",
-                })
-                .fromTo("#welcome-text h1", {
-                  scale: 0.8,
-                }, {
-                  scale: 1,
-                  duration: 0.6,
-                  ease: "back.out(1.4)",
-                }, "-=0.6")
-                .to("#welcome-text", {
                   opacity: 0,
                   y: -30,
                   duration: 0.6,
                   ease: "power2.in",
-                  delay: 2,
-                });
+                  delay: 2, // Show VisHeart for 2 seconds
+                })
+                // Just wait without moving anything
+                .to({}, { duration: 0.5 }); 
                 break;
             }
           };
@@ -379,15 +833,20 @@ export default function Home() {
     <>
       <main>
         {/* 3D Heart Interactive Section - Initial welcome animation */}
-        <section 
+         <section 
           id="heart-3d-section" 
           aria-label="Interactive 3D Heart Animation" 
           className="relative w-full h-screen"
         >
           <div className="relative w-full h-screen overflow-hidden">
-            {/* 3D Heart Canvas - Full screen */}
+            {/* Dynamic Background Effects */}
+            <DynamicBackground 
+              currentSegment={currentAnimationSegment} 
+              hasPlayedWelcome={hasPlayedWelcome}
+            />
+            
+            {/* Enhanced 3D Heart Canvas */}
             <div className="absolute inset-0 z-20">
-              
               <Canvas
                 camera={{ 
                   position: [0, 0, 3], 
@@ -398,49 +857,8 @@ export default function Home() {
                 style={{ background: 'transparent' }}
               >
                 <Suspense fallback={null}>
-                  {/* Static cinematic lighting */}
-                  <ambientLight intensity={0.4} />
-                  
-                  {/* Main key light */}
-                  <pointLight 
-                    position={[10, 10, 10]} 
-                    intensity={1.5} 
-                    color="#ffffff"
-                    castShadow
-                  />
-                  
-                  {/* Warm fill light */}
-                  <pointLight 
-                    position={[-8, -5, 8]} 
-                    intensity={0.8} 
-                    color="#ff9999"
-                  />
-                  
-                  {/* Cool accent light */}
-                  <pointLight 
-                    position={[5, -10, -5]} 
-                    intensity={0.6} 
-                    color="#6699ff"
-                  />
-                  
-                  {/* Dramatic rim light */}
-                  <spotLight
-                    position={[0, 15, -10]}
-                    angle={0.4}
-                    penumbra={1}
-                    intensity={1.0}
-                    color="#ffffff"
-                    castShadow
-                  />
-                  
-                  {/* Soft depth light */}
-                  <spotLight
-                    position={[15, 5, 15]}
-                    angle={0.6}
-                    penumbra={0.8}
-                    intensity={0.8}
-                    color="#ffeecc"
-                  />
+                  {/* Dynamic Lighting that changes with segments */}
+                  <DynamicLighting currentSegment={currentAnimationSegment} />
                   
                   <Heart3D 
                     hasPlayedWelcome={hasPlayedWelcome}
@@ -457,63 +875,178 @@ export default function Home() {
                 </Suspense>
               </Canvas>
             </div>
-
-            {/* Overlay content */}
-            <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
-              {/* Initial Welcome Animation */}
+        
+            {/* Rest of the overlay content remains the same */}
+            <div className="absolute inset-0 z-30 pointer-events-none">
+              {/* Dramatic Text 1 - Case 0 - TOP LEFT CORNER */}
               <div 
-                id="welcome-text"
-                className="text-center text-white opacity-0"
+                id="dramatic-text-1"
+                className="absolute top-8 left-8 text-white opacity-0"
                 style={{ transform: 'translateY(30px)' }}
               >
-                <h1 className="text-7xl md:text-8xl lg:text-9xl font-bold tracking-wider drop-shadow-2xl">
-                  VisHeart
+                <h1 
+                  className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-wider drop-shadow-2xl leading-tight"
+                  style={{ 
+                    fontFamily: 'RetroFloral, serif',
+                    background: 'linear-gradient(to right, white, black)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                  }}
+                >
+                  Inside the Beating Core<br />
+                  <span 
+                    className="text-gray-700" 
+                    style={{ 
+                      fontFamily: 'RetroFloral, serif',
+                      background: 'linear-gradient(to right, white, black)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text'
+                    }}
+                  >
+                    of Innovation.
+                  </span>
                 </h1>
               </div>
               
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 1, delay: 0.5 }}
-                className="text-center text-white"
+              {/* Dramatic Text 2 - Case 0 - BOTTOM RIGHT CORNER */}
+              <div 
+                id="dramatic-text-2"
+                className="absolute bottom-8 right-8 text-white opacity-0 text-right"
+                style={{ transform: 'translateY(30px)' }}
               >
-              </motion.div>
-            </div>
-
-            {/* Interactive Prompt Overlay */}
-            {showInteractionPrompt && (
-              <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 1, delay: 1 }}
-                  className="text-center text-white"
+                <h1 
+                  className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-wider drop-shadow-2xl leading-tight"
+                  style={{ 
+                    fontFamily: 'RetroFloral, serif',
+                    background: 'linear-gradient(to right, white, black)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text'
+                  }}
                 >
-                  <div className="bg-black/50 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-                    <h2 className="text-2xl md:text-3xl font-semibold mb-4">Welcome</h2>
-                    <p className="text-lg text-white/90 mb-6">
-                      Press <span className="bg-white/20 px-2 py-1 rounded">ENTER</span>, <span className="bg-white/20 px-2 py-1 rounded">SPACE</span>, or <span className="bg-white/20 px-2 py-1 rounded">CLICK</span> to advance
-                    </p>
-                  </div>
-                </motion.div>
+                  Where AI Meets<br />
+                  <span 
+                    className="text-gray-700" 
+                    style={{ 
+                      fontFamily: 'RetroFloral, serif',
+                      background: 'linear-gradient(to right, white, black)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text'
+                    }}
+                  >
+                    the Human Heart.
+                  </span>
+                </h1>
               </div>
-            )}
+                        
+              {/* Center container for other texts - Case 1, 2, 3, 4 */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                {/* Case 1 Text */}
+                <div 
+                  id="case1-text"
+                  className="text-center text-white opacity-0 absolute"
+                  style={{ transform: 'translateY(30px)' }}
+                >
+                  <h1 
+                    className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-wider drop-shadow-2xl leading-tight"
+                    style={{ fontFamily: 'RetroFloral, serif' }}
+                  >
+                    Your MRI.<br />
+                    <span className="text-gray-300" style={{ fontFamily: 'RetroFloral, serif' }}>Now Intelligent.</span>
+                  </h1>
+                </div>
+            
+                {/* Case 2 Text */}
+                <div 
+                  id="case2-text"
+                  className="text-center text-white opacity-0 absolute"
+                  style={{ transform: 'translateY(30px)' }}
+                >
+                  <h1 
+                    className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-wider drop-shadow-2xl leading-tight"
+                    style={{ fontFamily: 'RetroFloral, serif' }}
+                  >
+                    The Future of Cardiac Imaging<br />
+                    <span className="text-gray-300" style={{ fontFamily: 'RetroFloral, serif' }}>— In Your Browser.</span>
+                  </h1>
+                </div>
 
-            {/* Animation Progress Indicator */}
+                {/* Case 3 Text */}
+                <div 
+                  id="case3-text"
+                  className="text-center text-white opacity-0 absolute"
+                  style={{ transform: 'translateY(30px)' }}
+                >
+                  <h1 
+                    className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-wider drop-shadow-2xl leading-tight"
+                    style={{ fontFamily: 'RetroFloral, serif' }}
+                  >
+                    Clarity That Could<br />
+                    <span className="text-gray-300" style={{ fontFamily: 'RetroFloral, serif' }}>Save Lives.</span>
+                  </h1>
+                </div>
+            
+                {/* VisHeart Welcome Text */}
+                <div 
+                  id="welcome-text"
+                  className="text-center text-white opacity-0 absolute"
+                  style={{ transform: 'translateY(30px)' }}
+                >
+                  <h1 
+                    className="text-7xl md:text-8xl lg:text-9xl font-bold tracking-wider drop-shadow-2xl"
+                    style={{ fontFamily: 'RetroFloral, serif' }}
+                  >
+                    VisHeart
+                  </h1>
+                </div>
+              </div>
+            </div>
+            
             {!hasPlayedWelcome && (
               <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-40">
-                <div className="flex space-x-2">
+                <div className="flex space-x-3 bg-black/30 backdrop-blur-md rounded-full px-6 py-3">
                   {[0, 1, 2, 3, 4].map((segment) => (
-                    <div
+                    <motion.div
                       key={segment}
-                      className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                      className={`w-3 h-3 rounded-full transition-all duration-500 ${
                         segment <= currentAnimationSegment 
-                          ? 'bg-white' 
+                          ? 'bg-white shadow-lg' 
                           : 'bg-white/30'
                       }`}
+                      animate={{
+                        scale: segment === currentAnimationSegment ? [1, 1.3, 1] : 1,
+                        opacity: segment <= currentAnimationSegment ? 1 : 0.3
+                      }}
+                      transition={{
+                        duration: 0.5,
+                        repeat: segment === currentAnimationSegment ? Infinity : 0,
+                        repeatDelay: 1
+                      }}
                     />
                   ))}
                 </div>
+                
+                {/* Interaction Status Indicator */}
+                {currentAnimationSegment === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="text-center mt-4"
+                  >
+                    <div className={`text-sm px-4 py-2 rounded-full transition-all duration-300 ${
+                      textAnimationsComplete 
+                        ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
+                        : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+                    }`}>
+                      {textAnimationsComplete 
+                        ? '✓ Click, Enter, or Space to continue' 
+                        : '⏳ Please wait for text animations to complete...'}
+                    </div>
+                  </motion.div>
+                )}
               </div>
             )}
           </div>
