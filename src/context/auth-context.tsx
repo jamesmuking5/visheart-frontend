@@ -57,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   // Check auth status on mount
+  // If no session, automatically log in as guest
   useEffect(() => {
     checkAuthStatus();
   }, []);

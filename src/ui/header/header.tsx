@@ -10,11 +10,14 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import ThemeToggle from "../theme-toggle";
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 h-12 w-full bg-background flex justify-center items-center" suppressHydrationWarning>
+    <header
+      className="sticky top-0 z-50 h-12 w-full bg-background flex justify-center items-center"
+      suppressHydrationWarning
+    >
       {/* Navigation Bar */}
       <div className="flex items-center justify-center bg-background">
         <NavigationMenu>
@@ -55,8 +58,6 @@ function ListItem({
   );
 }
 
-
-
 // HomeDropDown component for the home link
 function HomeDropDown() {
   return (
@@ -92,21 +93,18 @@ function HomeDropDown() {
 }
 
 // ProfileDropDown component for user profile and settings
-import {LoginCard} from "@/components/Login";
+import { LoginCard } from "@/components/Login";
 
 function ProfileDropDown() {
   return (
     <NavigationMenuItem>
-      <NavigationMenuTrigger>
-        Account
-      </NavigationMenuTrigger>
+      <NavigationMenuTrigger>Account</NavigationMenuTrigger>
       <NavigationMenuContent>
         <LoginCard />
       </NavigationMenuContent>
     </NavigationMenuItem>
   );
 }
-
 
 // ToolsDropDown component for tools navigation
 function ToolsDropDown() {
