@@ -1,3 +1,5 @@
+// Login component (located in the navbar dropdown menu) for user authentication
+
 "use client";
 
 import {
@@ -44,7 +46,7 @@ export function LoginCard() {
   if (user) {
     return (
       <div className="w-[300px] select-none">
-        <CardHeader>Logged in as {user.username}</CardHeader>
+        <CardHeader>Welcome, {user.username}.</CardHeader>
         <CardFooter></CardFooter>
       </div>
     );
@@ -116,14 +118,14 @@ export function LoginCard() {
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Guest Login</AlertDialogTitle>
-                <div className="flex items-center gap-2">
-                  <AlertCircleIcon className="h-full w-auto align-middle" />
-                  <AlertDialogDescription className="p-0 m-0">
-                    Guest login gives access to tools, but your data and
-                    projects won't be saved. Register now to save your work.
-                  </AlertDialogDescription>
-                </div>
+                <AlertDialogTitle className="flex flex-row items-center gap-2">
+                  <AlertCircleIcon className="h-4 w-4" />
+                  Guest Login
+                </AlertDialogTitle>
+                <AlertDialogDescription className="p-0 m-0 flex">
+                  Guest login gives access to tools, but your data and projects
+                  won't be saved. Register now to save your work.
+                </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel className="hover:cursor-pointer">

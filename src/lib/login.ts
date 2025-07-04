@@ -1,3 +1,6 @@
+// This is a library for react hooks related to the login functionality
+// Most of the functions are used in the Login.tsx file
+
 import { useState } from "react";
 import { authApi } from "@/lib/api";
 

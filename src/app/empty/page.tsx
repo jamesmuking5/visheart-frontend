@@ -19,7 +19,12 @@ function getUser() {
       <p>Role: {user.role}</p>
       <p>Member since: {new Date(user.createdAt).toLocaleDateString()}</p>
 
-      <button onClick={logout} className="border bg-muted-foreground m-4 rounded p-4">Logout</button>
+      <button
+        onClick={logout}
+        className="border bg-muted-foreground m-4 rounded p-4"
+      >
+        Logout
+      </button>
     </div>
   );
 }
