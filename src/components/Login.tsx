@@ -30,8 +30,16 @@ import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { useLogin } from "@/lib/login";
 
+// TEST
+import { LogOut, Settings, Shield, User, UserCheck } from "lucide-react";
+import {
+  ShowForAdmin,
+  ShowForUser,
+  ShowForGuest,
+} from "@/components/RoleGuard";
+
 export function LoginCard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const {
     username,
     setUsername,
@@ -44,16 +52,131 @@ export function LoginCard() {
   } = useLogin();
 
   if (user) {
+    const getRoleIcon = () => {
+      switch (user.role) {
+        case "admin":
+          return <Shield className="h-4 w-4 text-blue-600" />;
+        case "user":
+          return <UserCheck className="h-4 w-4 text-green-600" />;
+        case "guest":
+          return <User className="h-4 w-4 text-gray-500" />;
+        default:
+          return <User className="h-4 w-4" />;
+      }
+    };
+
+    const getRoleBadge = () => {
+      const roleColors = {
+        admin: "bg-blue-100 text-blue-800 border-blue-200",
+        user: "bg-green-100 text-green-800 border-green-200",
+        guest: "bg-gray-100 text-gray-800 border-gray-200",
+      };
+
+      return (
+        <span
+          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
+            roleColors[user.role as keyof typeof roleColors] || roleColors.guest
+          }`}
+        >
+          {getRoleIcon()}
+          <span className="ml-1 capitalize">{user.role}</span>
+        </span>
+      );
+    };
+
     return (
       <div className="w-[300px] select-none">
-        <CardHeader>Welcome, {user.username}.</CardHeader>
-        <CardFooter></CardFooter>
+        <CardHeader className="text-center pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <CardTitle className="text-left text-lg">Welcome back!</CardTitle>
+              <p className="text-sm text-muted-foreground text-left">
+                {user.username}
+              </p>
+            </div>
+            {getRoleBadge()}
+          </div>
+        </CardHeader>
+
+        <CardContent className="grid gap-3">
+          {/* Role-specific content */}
+          <ShowForGuest fallback={null}>
+            <Alert className="py-2 border-orange-200 bg-orange-50">
+              <AlertCircleIcon className="h-4 w-4 text-orange-600" />
+              <AlertDescription className="text-orange-800">
+                You're in guest mode. Your work won't be saved.
+                <Link href="/register" className="ml-1 underline font-medium">
+                  Create account
+                </Link>
+              </AlertDescription>
+            </Alert>
+          </ShowForGuest>
+
+          <ShowForAdmin fallback={null}>
+            <Alert className="py-2 border-blue-200 bg-blue-50">
+              <Shield className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                Admin privileges active
+              </AlertDescription>
+            </Alert>
+          </ShowForAdmin>
+
+          {/* Action buttons */}
+          <div className="grid gap-2">
+            <ShowForUser fallback={null}>
+              <Link href="/dashboard">
+                <Button variant="outline" className="w-full justify-start">
+                  <Settings className="h-4 w-4 mr-2" />
+                  My Dashboard
+                </Button>
+              </Link>
+            </ShowForUser>
+
+            <ShowForAdmin fallback={null}>
+              <Link href="/admin">
+                <Button variant="outline" className="w-full justify-start">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Admin Panel
+                </Button>
+              </Link>
+            </ShowForAdmin>
+
+            <ShowForUser fallback={null}>
+              <Link href="/profile">
+                <Button variant="outline" className="w-full justify-start">
+                  <User className="h-4 w-4 mr-2" />
+                  Profile Settings
+                </Button>
+              </Link>
+            </ShowForUser>
+
+            <ShowForGuest>
+              <Link href="/register">
+                <Button className="w-full bg-green-600 hover:bg-green-700">
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  Upgrade Account
+                </Button>
+              </Link>
+            </ShowForGuest>
+          </div>
+        </CardContent>
+
+        <CardFooter className="pt-4">
+          <Button
+            variant="outline"
+            className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50"
+            onClick={logout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sign Out
+          </Button>
+        </CardFooter>
       </div>
     );
   }
 
   return (
-    <div className="z-10 w-[300px] select-none py-8">
+    <div className="z-10 w-[300px] select-none ">
       <CardHeader className="text-center">
         <CardTitle>Login</CardTitle>
         <CardDescription>No Account? Register Now!</CardDescription>
