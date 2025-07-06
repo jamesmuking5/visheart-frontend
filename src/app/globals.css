@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /* * {
-  border: 1px solid red;
+  border: 0.5px solid red;
 } */
 
 @theme inline {

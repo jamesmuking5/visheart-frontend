@@ -17,13 +17,13 @@ import visheartLogo from "@/../public/visheart_logo.svg";
 export default function Header() {
   return (
     <header
-      className="sticky top-0 z-50 h-12 w-full bg-background flex justify-center items-center"
+      className="sticky top-0 z-50 h-16 bg-background/50 backdrop-blur-sm border-b border-border/40 flex"
       suppressHydrationWarning
     >
       {/* Navigation Bar */}
-      <div className="flex items-center justify-center bg-background">
-        <NavigationMenu>
-          <NavigationMenuList>
+      <div className="flex h-16 w-full ml-1">
+        <NavigationMenu className="">
+          <NavigationMenuList className="">
             {/* Home Logo */}
             <HomeDropDown />
             {/* Tools */}
@@ -33,7 +33,9 @@ export default function Header() {
           </NavigationMenuList>
         </NavigationMenu>
         {/* Theme Toggle */}
-        <ThemeToggle />
+      </div>
+      <div className="mr-1">
+        <ThemeToggle iconSize={1.75} />
       </div>
     </header>
   );
@@ -65,11 +67,11 @@ function HomeDropDown() {
   return (
     <NavigationMenuItem>
       <Link href="/">
-        <NavigationMenuTrigger className="hover:cursor-pointer">
+        <NavigationMenuTrigger className="hover:cursor-pointer h-14 w-full text-xl !bg-transparent hover:!bg-background/20 hover:backdrop-blur-sm transition-all duration-200">
           <Image
             src={visheartLogo}
-            width={24}
-            height={24}
+            width={36}
+            height={36}
             alt="VisHeart Logo"
             className="mr-2"
           />
@@ -111,7 +113,9 @@ import { LoginCard } from "@/components/Login";
 function ProfileDropDown() {
   return (
     <NavigationMenuItem>
-      <NavigationMenuTrigger>Account</NavigationMenuTrigger>
+      <NavigationMenuTrigger className="w-full h-14 text-xl !bg-transparent hover:!bg-background/20 hover:backdrop-blur-sm transition-all duration-200">
+        Account
+      </NavigationMenuTrigger>
       <NavigationMenuContent>
         <LoginCard />
       </NavigationMenuContent>
@@ -122,8 +126,10 @@ function ProfileDropDown() {
 // ToolsDropDown component for tools navigation
 function ToolsDropDown() {
   return (
-    <NavigationMenuItem>
-      <NavigationMenuTrigger>Tools</NavigationMenuTrigger>
+    <NavigationMenuItem className="">
+      <NavigationMenuTrigger className="w-full h-14 text-xl !bg-transparent hover:!bg-background/20 hover:backdrop-blur-sm transition-all duration-200">
+        Tools
+      </NavigationMenuTrigger>
       <NavigationMenuContent>
         <ul className="grid w-[300px] gap-4">
           <li>

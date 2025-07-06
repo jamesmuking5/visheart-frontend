@@ -1,3 +1,9 @@
+// This component toggles between light and dark themes using Next.js's `next-themes` package.
+// To choose the size of the icons, you can pass an `iconSize` prop in rem units.
+// Example: 
+// <ThemeToggle iconSize={0.75} />  // 0.75rem icons
+// <ThemeToggle iconSize={1.5} />   // 1.5rem icons
+
 "use client";
 
 import * as React from "react";
@@ -17,7 +23,14 @@ import {
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
 
-export default function ThemeToggle() {
+// Define the props for the ThemeToggle component
+interface ThemeToggleProps {
+  iconSize?: number; // size in rem units
+}
+
+// ThemeToggle component that allows users to switch between light and dark themes
+// Default icon size is set to 1rem, but can be customized via the `iconSize` prop
+export default function ThemeToggle({ iconSize = 1 }: ThemeToggleProps) {
   const { setTheme, theme } = useTheme();
 
   // Get opposite theme
@@ -36,11 +49,22 @@ export default function ThemeToggle() {
           }
           className="h-9 w-9 text-foreground hover:bg-accent hover:text-accent-foreground hover:cursor-pointer"
           suppressHydrationWarning
+          style={
+            {
+              "--icon-size": `${iconSize}rem`,
+              width: `${iconSize * 2.25}rem`,
+              height: `${iconSize * 2.25}rem`,
+            } as React.CSSProperties
+          }
         >
           {theme === "light" ? (
-            <Sun className="h-4 w-4" />
+            <Sun
+              style={{ width: `${iconSize}rem`, height: `${iconSize}rem` }}
+            />
           ) : (
-            <Moon className="h-4 w-4" />
+            <Moon
+              style={{ width: `${iconSize}rem`, height: `${iconSize}rem` }}
+            />
           )}
           <span className="sr-only">Toggle theme</span>
         </Button>
