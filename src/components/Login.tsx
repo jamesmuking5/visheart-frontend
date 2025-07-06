@@ -85,7 +85,7 @@ export function LoginCard() {
     };
 
     return (
-      <div className="w-[300px] select-none">
+      <div className="w-[400px] select-none pb-5">
         <CardHeader className="text-center pb-4">
           <div className="flex items-center justify-between">
             <div className="flex-1">

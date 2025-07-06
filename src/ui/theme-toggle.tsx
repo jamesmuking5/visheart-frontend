@@ -1,6 +1,6 @@
 // This component toggles between light and dark themes using Next.js's `next-themes` package.
 // To choose the size of the icons, you can pass an `iconSize` prop in rem units.
-// Example: 
+// Example:
 // <ThemeToggle iconSize={0.75} />  // 0.75rem icons
 // <ThemeToggle iconSize={1.5} />   // 1.5rem icons
 
@@ -47,7 +47,7 @@ export default function ThemeToggle({ iconSize = 1 }: ThemeToggleProps) {
           onClick={() =>
             setTheme(theme === Theme.Light ? Theme.Dark : Theme.Light)
           }
-          className="h-9 w-9 text-foreground hover:bg-accent hover:text-accent-foreground hover:cursor-pointer"
+          className="h-9 w-9 text-foreground !bg-transparent hover:!bg-background/20 hover:backdrop-blur-sm transition-all duration-200"
           suppressHydrationWarning
           style={
             {

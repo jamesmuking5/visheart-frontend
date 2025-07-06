@@ -34,8 +34,8 @@ export default function Header() {
         </NavigationMenu>
         {/* Theme Toggle */}
       </div>
-      <div className="mr-1">
-        <ThemeToggle iconSize={1.75} />
+      <div className="mr-1 ">
+        <ThemeToggle iconSize={1.75}/>
       </div>
     </header>
   );
