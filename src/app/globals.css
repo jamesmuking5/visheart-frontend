@@ -121,6 +121,11 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    overflow-y: scroll;
+    /* Always show vertical scrollbar space */
+  }
+
   body {
     @apply bg-background text-foreground;
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -11,6 +12,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import ThemeToggle from "../theme-toggle";
 import { Button } from "@/components/ui/button";
+import visheartLogo from "@/../public/visheart_logo.svg";
 
 export default function Header() {
   return (
@@ -62,9 +64,20 @@ function ListItem({
 function HomeDropDown() {
   return (
     <NavigationMenuItem>
-      <NavigationMenuTrigger>
-        <span className="text-red-500">VisHeart</span>
-      </NavigationMenuTrigger>
+      <Link href="/">
+        <NavigationMenuTrigger className="hover:cursor-pointer">
+          <Image
+            src={visheartLogo}
+            width={24}
+            height={24}
+            alt="VisHeart Logo"
+            className="mr-2"
+          />
+          <div className="flex flex-row">
+            <span className="text-red-500">VisHeart</span>
+          </div>
+        </NavigationMenuTrigger>
+      </Link>
       <NavigationMenuContent>
         <ul className="grid gap-2 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
           <li className="row-span-3">
