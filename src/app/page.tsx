@@ -9,14 +9,11 @@ import { OrbitControls, useGLTF } from '@react-three/drei';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Command,
-  CommandDialog,
   CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
-  CommandSeparator,
-  CommandShortcut,
 } from "@/components/ui/command"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle, CardAction } from "@/components/ui/card"
 
@@ -118,35 +115,38 @@ export default function Home() {
     // Add state to track text animation completion
   const [textAnimationsComplete, setTextAnimationsComplete] = useState(false);
   
-  // Update the advanceAnimation function to check for text completion
+    // In the advanceAnimation function, modify the completion logic
   const advanceAnimation = () => {
-    console.log('Current segment before advance:', currentAnimationSegment); // Debug log
+    console.log('Current segment before advance:', currentAnimationSegment);
     
-    // Block advancement if we're in segment 0 and text animations aren't complete
     if (currentAnimationSegment === 0 && !textAnimationsComplete) {
       console.log('Text animations not complete yet - blocking advancement');
       return;
     }
     
-    if (currentAnimationSegment < 4) { // 5 total segments (0-4)
+    if (currentAnimationSegment < 4) {
       setCurrentAnimationSegment(prev => {
         const newSegment = prev + 1;
-        console.log('Advancing to segment:', newSegment); // Debug log
+        console.log('Advancing to segment:', newSegment);
         return newSegment;
       });
       setAnimationPaused(false);
       
-      // Hide prompt after first interaction
       if (currentAnimationSegment === 0) {
         setShowInteractionPrompt(false);
       }
     } else {
-      console.log('Animation complete, setting hasPlayedWelcome to true'); // Debug log
-      setHasPlayedWelcome(true);
+      console.log('Animation complete, but keeping ECG visible');
+      // Don't immediately set hasPlayedWelcome to true
+      // Let case 4 handle the transition
       setShowInteractionPrompt(false);
+      
+      // Set hasPlayedWelcome to true after a delay to keep ECG visible longer
+      setTimeout(() => {
+        setHasPlayedWelcome(true);
+      }, 5000); // Keep ECG visible for 5 more seconds after VisHeart
     }
   };
-  
   // Update the keyboard and click event listeners
   useEffect(() => {
     const handleInteraction = (e: KeyboardEvent | MouseEvent) => {
@@ -197,7 +197,195 @@ export default function Home() {
     }
   }, [currentAnimationSegment]);
   
-  
+        function GSAPAnimatedECG() {
+          const ecgRef = useRef<HTMLDivElement>(null);
+          const timelineRef = useRef<any>(null);
+        
+          useEffect(() => {
+            if (!ecgRef.current) return;
+        
+            import('gsap').then((gsap) => {
+              const { default: GSAP } = gsap;
+        
+              // Create the main timeline with MUCH shorter delay for faster cycling
+              const tl = GSAP.timeline({ repeat: -1, repeatDelay: 0.3 });
+              timelineRef.current = tl;
+        
+              // Animate multiple ECG lines with different speeds and delays
+              [1, 2, 3].forEach((lineNum) => {
+                const line = ecgRef.current?.querySelector(`#ecg-line-${lineNum}`) as SVGPathElement;
+                const mask = ecgRef.current?.querySelector(`#ecg-mask-${lineNum}`) as SVGRectElement;
+                
+                if (line && mask) {
+                  // Set initial path length for drawing animation
+                  const pathLength = line.getTotalLength();
+                  GSAP.set(line, {
+                    strokeDasharray: pathLength,
+                    strokeDashoffset: pathLength
+                  });
+        
+                  // Set initial mask position
+                  GSAP.set(mask, { x: -250 });
+        
+                  // Create individual timeline for this line with MUCH FASTER durations
+                  const lineTl = GSAP.timeline({ 
+                    repeat: -1, 
+                    repeatDelay: 0.8 + lineNum * 0.3
+                  });
+                  
+                  // Step 1: Draw the ECG line - MUCH FASTER DURATION
+                  lineTl.to(line, {
+                    strokeDashoffset: 0,
+                    duration: 3,
+                    ease: "none"
+                  })
+                  // Step 2: Move the mask to create trailing effect - FASTER
+                  .to(mask, {
+                    x: 800,
+                    duration: 3,
+                    ease: "none"
+                  }, 0)
+                  
+                  // Step 3: Much shorter hold duration
+                  .to({}, { duration: 0.3 })
+                  
+                  // Step 4: Reset for next cycle
+                  .set([line, mask], {
+                    strokeDashoffset: pathLength,
+                    x: -250
+                  });
+        
+                  // Add to main timeline with much shorter stagger
+                  tl.add(lineTl, lineNum * 0.8);
+                }
+              });
+        
+              // Add faster grid line animation
+              const gridLines = ecgRef.current?.querySelectorAll('.grid-line');
+              if (gridLines) {
+                GSAP.to(gridLines, {
+                  duration: 2,
+                  repeat: -1,
+                  stagger: 0.1,
+                  ease: "sine.inOut"
+                });
+              }
+            });
+        
+            return () => {
+              if (timelineRef.current) {
+                timelineRef.current.kill();
+              }
+            };
+          }, []);
+        
+          return (
+            <div 
+              ref={ecgRef}
+              className="absolute inset-0 z-10 pointer-events-none overflow-hidden"
+              style={{ 
+                background: 'transparent',
+                filter: 'contrast(1.2) brightness(1.1)'
+              }}
+            >
+              {/* ECG Grid Background */}
+              <svg
+                className="absolute inset-0 w-full h-full"
+                viewBox="0 0 500 300"
+                preserveAspectRatio="none"
+              >
+                <defs>
+                  {/* Grid pattern */}
+                  <pattern id="ecgGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <path 
+                      d="M 20 0 L 0 0 0 20" 
+                      fill="none" 
+                      stroke="#ef4444" 
+                      strokeWidth="0.4"
+                      opacity="0.4"
+                      className="grid-line"
+                    />
+                  </pattern>
+                  
+                  {/* Masks for trailing effect - WIDER MASKS for longer sweep */}
+                  <mask id="ecgMask1">
+                    <rect id="ecg-mask-1" x="-250" y="0" width="250" height="300" fill="white"/>
+                  </mask>
+                  <mask id="ecgMask2">
+                    <rect id="ecg-mask-2" x="-250" y="0" width="250" height="300" fill="white"/>
+                  </mask>
+                  <mask id="ecgMask3">
+                    <rect id="ecg-mask-3" x="-250" y="0" width="250" height="300" fill="white"/>
+                  </mask>
+                </defs>
+        
+                {/* Grid background */}
+                <rect width="100%" height="100%" fill="url(#ecgGrid)" opacity="0.5"/>
+        
+                {/* ECG Line 1 - Top - MOVED HIGHER (from y=75 to y=30) */}
+                <g transform="translate(0, 30)">
+                  <path
+                    id="ecg-line-1"
+                    d="M0,50 L40,50 L45,25 L50,75 L55,50 L60,50 L65,45 L70,55 L75,50 L80,50 L120,50 L160,50 L165,20 L170,80 L175,50 L180,50 L220,50 L260,50 L265,30 L270,70 L275,50 L280,50 L320,50 L360,50 L365,25 L370,75 L375,50 L380,50 L420,50 L460,50 L465,30 L470,70 L475,50 L480,50 L520,50 L560,50 L565,20 L570,80 L575,50 L580,50 L620,50 L660,50 L665,25 L670,75 L675,50 L680,50 L720,50"
+                    fill="none"
+                    stroke="#ef4444"
+                    strokeWidth="2.5"
+                    mask="url(#ecgMask1)"
+                    style={{
+                      filter: 'drop-shadow(0 0 4px #ef4444)',
+                    }}
+                  />
+                </g>
+        
+                {/* ECG Line 2 - Middle - MOVED HIGHER (from y=150 to y=80) */}
+                <g transform="translate(0, 80)">
+                  <path
+                    id="ecg-line-2"
+                    d="M0,50 L35,50 L38,30 L43,70 L48,50 L52,50 L57,40 L62,60 L67,50 L72,50 L110,50 L155,50 L160,15 L165,85 L170,50 L175,50 L215,50 L255,50 L260,35 L265,65 L270,50 L275,50 L315,50 L355,50 L360,20 L365,80 L370,50 L375,50 L415,50 L455,50 L460,35 L465,65 L470,50 L475,50 L515,50 L555,50 L560,15 L565,85 L570,50 L575,50 L615,50 L655,50 L660,30 L665,70 L670,50 L675,50 L715,50"
+                    fill="none"
+                    stroke="#ef4444"
+                    strokeWidth="2.5"
+                    mask="url(#ecgMask2)"
+                    style={{
+                      filter: 'drop-shadow(0 0 4px #ef4444)',
+                    }}
+                  />
+                </g>
+        
+                {/* ECG Line 3 - Bottom - MOVED HIGHER (from y=225 to y=130) */}
+                <g transform="translate(0, 130)">
+                  <path
+                    id="ecg-line-3"
+                    d="M0,50 L45,50 L50,35 L55,65 L60,50 L65,50 L70,42 L75,58 L80,50 L85,50 L125,50 L170,50 L175,25 L180,75 L185,50 L190,50 L230,50 L270,50 L275,30 L280,70 L285,50 L290,50 L330,50 L370,50 L375,20 L380,80 L385,50 L390,50 L430,50 L470,50 L475,30 L480,70 L485,50 L490,50 L530,50 L570,50 L575,25 L580,75 L585,50 L590,50 L630,50 L670,50 L675,35 L680,65 L685,50 L690,50 L730,50"
+                    fill="none"
+                    stroke="#ef4444"
+                    strokeWidth="2.5"
+                    mask="url(#ecgMask3)"
+                    style={{
+                      filter: 'drop-shadow(0 0 4px #ef4444)',
+                    }}
+                  />
+                </g>
+              </svg>
+        
+              {/* Heart rate indicator with faster update - MOVED TO TOP LEFT */}
+              <motion.div 
+                className="absolute top-4 left-4 text-red-500 font-mono text-sm bg-black/20 backdrop-blur-sm px-2 py-1 rounded"
+                animate={{
+                  opacity: [0.7, 1, 0.7],
+                }}
+                transition={{
+                  duration: 1,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                }}
+              >
+              </motion.div>
+            </div>
+          );
+        }
+
+
   // Update the Three.js lighting to maintain consistency
     function DynamicLighting({ currentSegment }: { currentSegment: number }) {
       const ambientRef = useRef<any>(null);
@@ -315,25 +503,11 @@ export default function Home() {
           className="absolute inset-0 opacity-30"
           style={{
             backgroundImage: `
-              linear-gradient(to right, white 1px, transparent 1px),
-              linear-gradient(to bottom, white 1px, transparent 1px)
+              linear-gradient(to right,rgb(113, 117, 123) 1px, transparent 1px),
+              linear-gradient(to bottom, rgb(113, 117, 123) 1px, transparent 1px)
             `,
             backgroundSize: '40px 40px'
           }}
-        />
-        
-        {/* Pulsing Overlay that syncs with heart breathing */}
-        <motion.div
-          animate={{
-            opacity: [0.1, 0.2, 0.1],
-            scale: [1, 1.02, 1]
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-          className="absolute inset-0 bg-gradient-radial from-transparent via-white/10 to-transparent"
         />
   
         {/* Floating Medical Particles */}
@@ -342,7 +516,7 @@ export default function Home() {
             {particles.map((particle) => (
               <motion.div
                 key={particle.id}
-                className="absolute w-1 h-1 bg-gray-600 rounded-full" // Darker particles for contrast
+                className="absolute w-1 h-1 bg-gray-900 rounded-full" // Darker particles for contrast
                 style={{
                   left: `${particle.x}%`,
                   top: `${particle.y}%`,
@@ -542,16 +716,22 @@ export default function Home() {
             // Store the timeline reference
             setCurrentTimeline(tl);
   
-            switch (segment) {
-                            // Update case 0 to position texts at corners and keep them permanently visible
+            switch (segment) {      
               case 0: 
+                // Skip animation if already completed
+                if (case0AnimationCompleted) {
+                  console.log('Case 0 already animated - skipping');
+                  setTextAnimationsComplete(true);
+                  return;
+                }
+                
                 // Set initial states for text elements to prevent re-animation
                 tl.set("#dramatic-text-1", { opacity: 0, y: 30, scale: 1, display: "block" })
                 .set("#dramatic-text-2", { opacity: 0, y: 30, scale: 1, display: "block" })
                 .set("#dramatic-text-1 h1", { scale: 0.8, rotationY: -15 })
                 .set("#dramatic-text-2 h1", { scale: 0.8, rotationY: 15 })
                 
-                // First text animation - plays once only, stays visible
+                // Both texts animate in simultaneously
                 .to("#dramatic-text-1", {
                   opacity: 1,
                   y: 0,
@@ -566,14 +746,12 @@ export default function Home() {
                   ease: "back.out(1.4)",
                 }, "-=1.2")
                 
-                // Second text animation - plays once only after 2 seconds, stays visible
                 .to("#dramatic-text-2", {
                   opacity: 1,
                   y: 0,
                   duration: 1.2,
                   ease: "power2.out",
-                  delay: 2 // Wait exactly 2 seconds after first text starts
-                })
+                }, "-=1.7")
                 .to("#dramatic-text-2 h1", {
                   scale: 1,
                   rotationY: 0,
@@ -581,17 +759,17 @@ export default function Home() {
                   ease: "back.out(1.4)",
                 }, "-=1.2")
                 
-                // Mark BOTH text animations as complete - BOTH texts remain visible
+                // Mark BOTH text animations as complete AND set flag
                 .call(() => {
-                  console.log('Both text animations completed - texts remain visible permanently');
-                  setTextAnimationsComplete(true); // Enable user interaction
+                  console.log('Both text animations completed - marking as permanently done');
+                  setTextAnimationsComplete(true);
+                  setCase0AnimationCompleted(true); // Prevent future re-animations
                   if (meshRef.current) {
                     meshRef.current.userData.textAnimationsComplete = true;
                   }
                 });
                 break;
-               
-              // Update case 1 to remove the corner texts from case 0
+                            
               case 1:
                 // Remove both corner texts from case 0
                 tl.to("#dramatic-text-1", {
@@ -626,17 +804,16 @@ export default function Home() {
                   ease: "back.out(1.4)",
                 }, "-=1.2")
                 
-                // Heart scaling animation
+                // Heart scaling animation - ZOOMED OUT MORE
                 .to(meshRef.current.scale, {
-                  x: 4,
-                  y: 4,
-                  z: 4,
+                  x: 2.8, // Reduced from 4.0 to 2.8 (30% smaller)
+                  y: 2.8, // Reduced from 4.0 to 2.8 (30% smaller)
+                  z: 2.8, // Reduced from 4.0 to 2.8 (30% smaller)
                   duration: 1.5,
                   ease: "power2.out",
                 }, "-=1.5"); // Start heart animation with text
                 break;
                               
-              // Update case 2 to remove case 1 text and add case 2 text
               case 2: 
                 // Remove case 1 text
                 tl.to("#case1-text", {
@@ -663,11 +840,11 @@ export default function Home() {
                   ease: "back.out(1.4)",
                 }, "-=1.2")
                 
-                // Heart animations start with text
+                // Heart animations start with text - ZOOMED OUT MORE
                 .to(meshRef.current.scale, {
-                  x: 4.5,
-                  y: 4.5,
-                  z: 4.5,
+                  x: 3.2, // Reduced from 4.5 to 3.2 (29% smaller)
+                  y: 3.2, // Reduced from 4.5 to 3.2 (29% smaller)
+                  z: 3.2, // Reduced from 4.5 to 3.2 (29% smaller)
                   duration: 1.5,
                   ease: "power2.out",
                 }, "-=1.5") // Start heart animation with text
@@ -727,44 +904,219 @@ export default function Home() {
                   repeat: 1,
                 }, "-=0.8")
                 
-                // After exactly 2 seconds, fade out case 3 text and show VisHeart
+                // === CINEMATIC TRANSITION SEQUENCE ===
+                // Stage 1: Build tension (2 seconds after text appears)
+                .to("#case3-text", {
+                  textShadow: "0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(255,255,255,0.4)",
+                  duration: 0.8,
+                  ease: "power2.out",
+                  delay: 2
+                })
+                
+                // Stage 2: Dramatic pause with pulsing intensity
+                .to("#case3-text", {
+                  duration: 1.5,
+                  ease: "power2.inOut",
+                })
+                
+                // Stage 3: Heart dramatic focus with slow zoom
+                .to(meshRef.current.scale, {
+                  x: 1.8,
+                  y: 1.8, 
+                  z: 1.8,
+                  duration: 1.2,
+                  ease: "power2.inOut",
+                }, "-=0.8")
+                .to(meshRef.current.rotation, {
+                  y: "+=1.57", // Add π/2 for cinematic slow rotation
+                  duration: 1.2,
+                  ease: "power1.inOut",
+                }, "-=1.2")
+                
+                // Stage 4: Environmental cinematic effects
+                .call(() => {
+                  // Add cinematic particle burst effect
+                  const cinematicParticles = [];
+                  for (let i = 0; i < 15; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'cinematic-particle';
+                    particle.style.cssText = `
+                      position: fixed;
+                      width: 3px;
+                      height: 3px;
+                      background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
+                      border-radius: 50%;
+                      pointer-events: none;
+                      z-index: 35;
+                      left: ${50 + (Math.random() - 0.5) * 60}%;
+                      top: ${50 + (Math.random() - 0.5) * 60}%;
+                      opacity: 0;
+                    `;
+                    document.body.appendChild(particle);
+                    
+                    // Animate particle
+                    GSAP.to(particle, {
+                      x: (Math.random() - 0.5) * 200,
+                      y: (Math.random() - 0.5) * 200,
+                      duration: 2,
+                      ease: "power2.out",
+                      onComplete: () => particle.remove()
+                    });
+                  }
+                })
+                
+                // Stage 5: Dramatic text exit with cinematic flair
                 .to("#case3-text", {
                   opacity: 0,
-                  y: -20,
-                  scale: 1.1,
-                  duration: 0.8,
-                  ease: "power2.in",
-                  delay: 2 // Wait exactly 2 seconds
+                  scale: 0.8,
+                  y: -30,
+                  textShadow: "0 0 50px rgba(255,255,255,1), 0 0 100px rgba(255,255,255,0.8)",
+                  duration: 1.2,
+                  ease: "power3.in",
+                  delay: 0.8
                 })
+                
+                // Stage 6: Environmental blackout effect
+                .call(() => {
+                  // Create dramatic overlay
+                  const overlay = document.createElement('div');
+                  overlay.id = 'cinematic-overlay';
+                  overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.7) 100%);
+                    pointer-events: none;
+                    z-index: 25;
+                    opacity: 0;
+                  `;
+                  document.body.appendChild(overlay);
+                  
+                  GSAP.to(overlay, {
+                    opacity: 1,
+                    duration: 1,
+                    ease: "power2.out"
+                  });
+                  
+                  // Remove after VisHeart appears
+                  setTimeout(() => {
+                    GSAP.to(overlay, {
+                      opacity: 0,
+                      duration: 1.5,
+                      ease: "power2.out",
+                      onComplete: () => overlay.remove()
+                    });
+                  }, 3000);
+                })
+                
                 .set("#case3-text", { display: "none" }) // Completely hide case 3 text
                 
-                // Show VisHeart text
-                .to("#welcome-text", {
-                  opacity: 1,
+                // Stage 8: Heart repositioning for final reveal
+                .to(meshRef.current.position, {
                   y: 0,
-                  duration: 1.2,
+                  duration: 0.6,
                   ease: "power2.out",
-                  delay: 0.3
                 })
-                .to("#welcome-text h1", {
-                  scale: 1,
-                  rotationY: 0,
-                  duration: 1,
-                  ease: "back.out(1.4)",
-                }, "-=1.2");
+                .to(meshRef.current.scale, {
+                  x: 2.2,
+                  y: 2.2,
+                  z: 2.2,
+                  duration: 0.8,
+                  ease: "back.out(1.2)",
+                }, "-=0.4")
+                
+                // Stage 9: VisHeart dramatic entrance with NO blurring effects
+                  .set("#welcome-text", { 
+                    scale: 0.3, 
+                    opacity: 0,
+                    rotationY: 0,
+                    textShadow: "none", // Remove all text shadow
+                    filter: "none !important", // Force remove blur
+                    backdropFilter: "none !important" // Remove backdrop blur
+                  })
+                  .to("#welcome-text", {
+                    opacity: 1,
+                    scale: 0.7,
+                    duration: 0.8,
+                    ease: "power2.out",
+                    delay: 0.3,
+                    filter: "none !important", // Ensure no blur during animation
+                    backdropFilter: "none !important",
+                    textShadow: "none" // Keep text shadow off
+                  })
+                  .to("#welcome-text", {
+                    scale: 1,
+                    textShadow: "none", // NO glow/shine effects at all
+                    duration: 1,
+                    ease: "elastic.out(1, 0.6)",
+                    filter: "none !important", // Keep filter clear
+                    backdropFilter: "none !important"
+                  })
+                
+                // Stage 10: Final environmental cleanup
+                .call(() => {
+                  // Add final sparkle effects around VisHeart
+                  for (let i = 0; i < 8; i++) {
+                    const sparkle = document.createElement('div');
+                    sparkle.style.cssText = `
+                      position: fixed;
+                      width: 2px;
+                      height: 2px;
+                      background: white;
+                      border-radius: 50%;
+                      pointer-events: none;
+                      z-index: 35;
+                      left: ${45 + Math.random() * 10}%;
+                      top: ${45 + Math.random() * 10}%;
+                      opacity: 0;
+                      box-shadow: 0 0 6px rgba(255,255,255,0.8);
+                    `;
+                    document.body.appendChild(sparkle);
+                    
+                    GSAP.to(sparkle, {
+                      duration: 1.5,
+                      delay: i * 0.2,
+                      ease: "power2.out",
+                      onComplete: () => sparkle.remove()
+                    });
+                  }
+                });
                 break;
                 
-              case 4:
+                            case 4:
+                // Ensure ECG lines stay visible during VisHeart display
+                tl.call(() => {
+                  // Force ECG visibility if it was hidden
+                  const ecgContainer = document.querySelector('.absolute.inset-0.z-10.pointer-events-none.overflow-hidden');
+                  if (ecgContainer) {
+                    (ecgContainer as HTMLElement).style.display = 'block';
+                    (ecgContainer as HTMLElement).style.opacity = '1';
+                  }
+                })
+                
                 // Just fade out VisHeart after 2 seconds
-                tl.to("#welcome-text", {
+                .to("#welcome-text", {
                   opacity: 0,
                   y: -30,
                   duration: 0.6,
                   ease: "power2.in",
                   delay: 2, // Show VisHeart for 2 seconds
                 })
-                // Just wait without moving anything
-                .to({}, { duration: 0.5 }); 
+                
+                // Keep ECG lines active during and after VisHeart
+                .call(() => {
+                  // Ensure ECG continues running
+                  const ecgContainer = document.querySelector('.absolute.inset-0.z-10.pointer-events-none.overflow-hidden');
+                  if (ecgContainer) {
+                    (ecgContainer as HTMLElement).style.display = 'block';
+                    (ecgContainer as HTMLElement).style.opacity = '1';
+                  }
+                })
+                
+                // Wait without moving anything else, keeping ECG active
+                .to({}, { duration: 2 }); 
                 break;
             }
           };
@@ -809,6 +1161,29 @@ export default function Home() {
       />
     );
   }
+// Add this state at the top of your component
+const [case0AnimationCompleted, setCase0AnimationCompleted] = useState(false);
+    // Add this useEffect after case 0 completes
+  useEffect(() => {
+    if (case0AnimationCompleted) {
+      // Force final static state via CSS
+      const text1 = document.getElementById('dramatic-text-1');
+      const text2 = document.getElementById('dramatic-text-2');
+      
+      if (text1) {
+        text1.style.opacity = '1';
+        text1.style.transform = 'translateY(0px)';
+        text1.style.pointerEvents = 'none';
+      }
+      
+      if (text2) {
+        text2.style.opacity = '1';
+        text2.style.transform = 'translateY(0px)';
+        text2.style.pointerEvents = 'none';
+      }
+    }
+  }, [case0AnimationCompleted]);
+
   // Keyboard shortcut to open command
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -820,14 +1195,6 @@ export default function Home() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [dropdownOpen]);
-  
-  // Auto-slide functionality
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      goToSlide((currentSlide + 1) % sliderImages.length);
-    }, 5000); // Change slide every 5 seconds
-    return () => clearTimeout(timer);
-  }, [currentSlide, sliderImages.length]);
 
   return (
     <>
@@ -844,6 +1211,9 @@ export default function Home() {
               currentSegment={currentAnimationSegment} 
               hasPlayedWelcome={hasPlayedWelcome}
             />
+
+            {/* Animated ECG Lines - Show during welcome animation OR case 4 */}
+            {(!hasPlayedWelcome || currentAnimationSegment === 4) && <GSAPAnimatedECG />}
             
             {/* Enhanced 3D Heart Canvas */}
             <div className="absolute inset-0 z-20">
@@ -878,88 +1248,77 @@ export default function Home() {
         
             {/* Rest of the overlay content remains the same */}
             <div className="absolute inset-0 z-30 pointer-events-none">
-              {/* Dramatic Text 1 - Case 0 - TOP LEFT CORNER */}
+              {/* Top left corner text - Case 0 */}              {/* Dramatic Text 1 - Case 0 - TOP LEFT CORNER - BIGGER */}
               <div 
                 id="dramatic-text-1"
                 className="absolute top-8 left-8 text-white opacity-0"
                 style={{ transform: 'translateY(30px)' }}
               >
                 <h1 
-                  className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-wider drop-shadow-2xl leading-tight"
+                  className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-wider drop-shadow-2xl leading-tight"
                   style={{ 
                     fontFamily: 'RetroFloral, serif',
-                    background: 'linear-gradient(to right, white, black)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text'
+                    color: '#000000' // Full black color
                   }}
                 >
                   Inside the Beating Core<br />
                   <span 
-                    className="text-gray-700" 
                     style={{ 
                       fontFamily: 'RetroFloral, serif',
-                      background: 'linear-gradient(to right, white, black)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text'
+                      color: '#000000' // Full black color
                     }}
                   >
-                    of Innovation.
+                    of Innovation..
                   </span>
                 </h1>
               </div>
               
-              {/* Dramatic Text 2 - Case 0 - BOTTOM RIGHT CORNER */}
+              {/* Dramatic Text 2 - Case 0 - BOTTOM RIGHT CORNER - BIGGER */}
               <div 
                 id="dramatic-text-2"
-                className="absolute bottom-8 right-8 text-white opacity-0 text-right"
+                className="absolute bottom-22 right-8 text-white opacity-0 text-right"
                 style={{ transform: 'translateY(30px)' }}
               >
                 <h1 
-                  className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-wider drop-shadow-2xl leading-tight"
+                  className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-wider drop-shadow-2xl leading-tight"
                   style={{ 
                     fontFamily: 'RetroFloral, serif',
-                    background: 'linear-gradient(to right, white, black)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text'
+                    color: '#000000' // Full black color
                   }}
                 >
                   Where AI Meets<br />
                   <span 
-                    className="text-gray-700" 
                     style={{ 
                       fontFamily: 'RetroFloral, serif',
-                      background: 'linear-gradient(to right, white, black)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text'
+                      color: '#000000' // Full black color
                     }}
                   >
                     the Human Heart.
                   </span>
                 </h1>
-              </div>
+              </div>           
                         
               {/* Center container for other texts - Case 1, 2, 3, 4 */}
               <div className="absolute inset-0 flex items-center justify-center">
-                {/* Case 1 Text */}
+                                {/* Case 1 Text */}
                 <div 
                   id="case1-text"
-                  className="text-center text-white opacity-0 absolute"
+                  className="text-center text-black opacity-0 absolute"
                   style={{ transform: 'translateY(30px)' }}
                 >
                   <h1 
                     className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-wider drop-shadow-2xl leading-tight"
                     style={{ fontFamily: 'RetroFloral, serif' }}
                   >
-                    Your MRI.<br />
-                    <span className="text-gray-300" style={{ fontFamily: 'RetroFloral, serif' }}>Now Intelligent.</span>
+                    Your MRI<br />
+                    <span style={{ fontFamily: 'RetroFloral, serif' }}>
+                      Now Intelligent
+                    </span>
                   </h1>
                 </div>
-            
-                {/* Case 2 Text */}
+
+              
+              {/* Case 2 Text */}
                 <div 
                   id="case2-text"
                   className="text-center text-white opacity-0 absolute"
@@ -967,13 +1326,23 @@ export default function Home() {
                 >
                   <h1 
                     className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-wider drop-shadow-2xl leading-tight"
-                    style={{ fontFamily: 'RetroFloral, serif' }}
+                    style={{ 
+                      fontFamily: 'RetroFloral, serif',
+                      color: '#000000' // Changed to solid black
+                    }}
                   >
-                    The Future of Cardiac Imaging<br />
-                    <span className="text-gray-300" style={{ fontFamily: 'RetroFloral, serif' }}>— In Your Browser.</span>
+                    The Future of Cardiac<br />
+                    <span 
+                      style={{ 
+                        fontFamily: 'RetroFloral, serif',
+                        color: '#000000' // Changed to solid black
+                      }}
+                    >
+                      Imaging In Your Browser
+                    </span>
                   </h1>
                 </div>
-
+              
                 {/* Case 3 Text */}
                 <div 
                   id="case3-text"
@@ -982,13 +1351,29 @@ export default function Home() {
                 >
                   <h1 
                     className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-wider drop-shadow-2xl leading-tight"
-                    style={{ fontFamily: 'RetroFloral, serif' }}
+                    style={{ 
+                      fontFamily: 'RetroFloral, serif',
+                      background: 'linear-gradient(to bottom, #d1d5db, #000000)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text'
+                    }}
                   >
                     Clarity That Could<br />
-                    <span className="text-gray-300" style={{ fontFamily: 'RetroFloral, serif' }}>Save Lives.</span>
+                    <span 
+                      style={{ 
+                        fontFamily: 'RetroFloral, serif',
+                        background: 'linear-gradient(to bottom, #d1d5db, #000000)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text'
+                      }}
+                    >
+                      Save Lives.
+                    </span>
                   </h1>
                 </div>
-            
+              
                 {/* VisHeart Welcome Text */}
                 <div 
                   id="welcome-text"
@@ -997,7 +1382,13 @@ export default function Home() {
                 >
                   <h1 
                     className="text-7xl md:text-8xl lg:text-9xl font-bold tracking-wider drop-shadow-2xl"
-                    style={{ fontFamily: 'RetroFloral, serif' }}
+                    style={{ 
+                      fontFamily: 'RetroFloral, serif',
+                      background: 'linear-gradient(to bottom, #d1d5db, #000000)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text'
+                    }}
                   >
                     VisHeart
                   </h1>
@@ -1036,15 +1427,6 @@ export default function Home() {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-center mt-4"
                   >
-                    <div className={`text-sm px-4 py-2 rounded-full transition-all duration-300 ${
-                      textAnimationsComplete 
-                        ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
-                        : 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
-                    }`}>
-                      {textAnimationsComplete 
-                        ? '✓ Click, Enter, or Space to continue' 
-                        : '⏳ Please wait for text animations to complete...'}
-                    </div>
                   </motion.div>
                 )}
               </div>
