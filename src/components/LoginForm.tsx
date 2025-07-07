@@ -27,16 +27,25 @@ import {
 import { AlertCircleIcon } from "lucide-react";
 
 export const LoginForm = () => {
-  const { username, setUsername, password, setPassword, error, loading, handleLogin, handleGuestLogin } = useLogin();
+  const {
+    username,
+    setUsername,
+    password,
+    setPassword,
+    error,
+    loading,
+    handleLogin,
+    handleGuestLogin,
+  } = useLogin();
 
   return (
-    <div className="z-10 w-[300px] select-none ">
+    <div className="z-10 sm:w-[300px] select-none">
       <CardHeader className="text-center">
         <CardTitle>Login</CardTitle>
         <CardDescription>No Account? Register Now!</CardDescription>
       </CardHeader>
       <form onSubmit={handleLogin}>
-        <CardContent className="grid gap-6 mt-5">
+        <CardContent className="mt-5 grid gap-6">
           {error && (
             <Alert variant="destructive" className="py-2">
               <AlertCircleIcon className="h-4 w-4" />
@@ -65,7 +74,7 @@ export const LoginForm = () => {
             />
           </div>
         </CardContent>
-        <CardFooter className="grid gap-2 mt-5">
+        <CardFooter className="mt-5 grid gap-2">
           <Button
             type="submit"
             disabled={loading}
@@ -78,7 +87,7 @@ export const LoginForm = () => {
             <Button
               type="button"
               variant="outline"
-              className="border-gray-500 w-full hover:cursor-pointer"
+              className="w-full border-gray-500 hover:cursor-pointer"
             >
               Register
             </Button>
@@ -88,7 +97,7 @@ export const LoginForm = () => {
             <AlertDialogTrigger asChild>
               <Button
                 type="button"
-                className="bg-red-500 hover:bg-red-700 hover:cursor-pointer"
+                className="bg-red-500 hover:cursor-pointer hover:bg-red-700"
               >
                 Continue as Guest
               </Button>
@@ -99,7 +108,7 @@ export const LoginForm = () => {
                   <AlertCircleIcon className="h-4 w-4" />
                   Guest Login
                 </AlertDialogTitle>
-                <AlertDialogDescription className="p-0 m-0 flex">
+                <AlertDialogDescription className="m-0 flex p-0">
                   Guest login gives access to tools, but your data and projects
                   won't be saved. Register now to save your work.
                 </AlertDialogDescription>
@@ -112,7 +121,7 @@ export const LoginForm = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    className="border-gray-500 w-full hover:cursor-pointer"
+                    className="w-full border-gray-500 hover:cursor-pointer"
                   >
                     Register
                   </Button>
@@ -121,7 +130,7 @@ export const LoginForm = () => {
                   type="button"
                   onClick={handleGuestLogin}
                   disabled={loading}
-                  className="bg-red-500 hover:bg-red-700 hover:cursor-pointer"
+                  className="bg-red-500 hover:cursor-pointer hover:bg-red-700"
                 >
                   <strong>Proceed</strong>
                 </Button>

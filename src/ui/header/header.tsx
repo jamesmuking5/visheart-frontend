@@ -56,11 +56,11 @@ const ListItem = React.memo(function ListItem({
       <NavigationMenuLink asChild>
         <Link
           href={href}
-          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+          className="hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground block space-y-1 rounded-md p-3 leading-none no-underline transition-colors outline-none select-none"
           {...props}
         >
-          <div className="text-lg font-medium leading-none">{title}</div>
-          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+          <div className="text-lg leading-none font-medium">{title}</div>
+          <p className="text-muted-foreground line-clamp-2 text-sm leading-snug">
             {children}
           </p>
         </Link>
@@ -87,15 +87,15 @@ const HomeDropDown = React.memo(function HomeDropDown() {
           </div>
         </NavigationMenuTrigger>
       </Link>
-      <NavigationMenuContent className="!bg-background/80 backdrop-blur-md border-border/40">
+      <NavigationMenuContent className="!bg-background/80 border-border/40 backdrop-blur-md">
         <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
           <li className="row-span-3">
             <NavigationMenuLink asChild>
               <Link
-                className="from-muted/50 to-muted flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline outline-none focus:shadow-md"
+                className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline outline-none select-none focus:shadow-md"
                 href="/"
               >
-                <div className="mb-2 mt-4 text-lg font-bold">VisHeart</div>
+                <div className="mt-4 mb-2 text-lg font-bold">VisHeart</div>
                 <p className="text-muted-foreground text-sm leading-tight">
                   A Cardiac Component Segmentation Web Application
                 </p>
@@ -122,7 +122,7 @@ const ProfileDropDown = React.memo(function ProfileDropDown() {
       <NavigationMenuTrigger className="hover:!bg-background/20 h-14 w-full !bg-transparent text-lg transition-all duration-200 hover:backdrop-blur-sm">
         Account
       </NavigationMenuTrigger>
-      <NavigationMenuContent className="!bg-background/80 backdrop-blur-md border-border/40 py-5">
+      <NavigationMenuContent>
         {user ? <AuthenticatedUserView /> : <LoginForm />}
       </NavigationMenuContent>
     </NavigationMenuItem>
@@ -136,9 +136,12 @@ const ToolsDropDown = React.memo(function ToolsDropDown() {
       <NavigationMenuTrigger className="hover:!bg-background/20 h-14 w-full !bg-transparent text-lg transition-all duration-200 hover:backdrop-blur-sm">
         Tools
       </NavigationMenuTrigger>
-      <NavigationMenuContent className="!bg-background/80 backdrop-blur-md border-border/40">
-        <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
-          <ListItem href="/cardiac-segmentation" title="2D Cardiac Segmentation">
+      <NavigationMenuContent className="!bg-background/80 border-border/40 backdrop-blur-md">
+        <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+          <ListItem
+            href="/cardiac-segmentation"
+            title="2D Cardiac Segmentation"
+          >
             Start a new project to segment Cardiac Components using YOLO &
             MedSAM.
           </ListItem>

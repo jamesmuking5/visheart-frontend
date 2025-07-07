@@ -16,6 +16,8 @@ import "@/app/globals.css";
 import Footer from "@/ui/footer/footer";
 import Header from "@/ui/header/header";
 
+import type { ViewPort } from "next";
+
 import { ThemeProvider } from "@/lib/theme-provider";
 
 import { AuthProvider } from "@/context/auth-context";
@@ -23,6 +25,11 @@ import { AuthProvider } from "@/context/auth-context";
 export const metadata: Metadata = {
   title: "VisHeart",
   description: "VisHeart Web Application for Cardiac Component Segmentation",
+};
+
+export const viewport: Viewport = {
+  initialScale: 1,
+  width: "device-width",
 };
 
 export default function RootLayout({

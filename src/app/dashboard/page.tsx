@@ -207,9 +207,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto space-y-6 p-6">
+    <div className="container mx-auto space-y-6 p-4 md:p-6">
       {/* Header Section */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div className="space-y-1">
           <div className="flex items-center gap-3">
             <Heart className="h-8 w-8 text-red-500" />
@@ -227,7 +227,7 @@ export default function DashboardPage() {
         </div>
 
         {/* GPU Status Indicator */}
-        <div className="flex items-center gap-4">
+        <div className="flex w-full items-center justify-between gap-4 sm:w-auto sm:justify-end">
           <Button
             variant="outline"
             size="sm"
@@ -276,7 +276,7 @@ export default function DashboardPage() {
 
       {/* Main Dashboard Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="projects">Projects</TabsTrigger>
           <TabsTrigger value="segmentation">Segmentation</TabsTrigger>
@@ -294,7 +294,7 @@ export default function DashboardPage() {
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
           {/* Stats Cards */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -370,7 +370,7 @@ export default function DashboardPage() {
               <CardTitle>Quick Actions</CardTitle>
               <CardDescription>Common tasks and shortcuts</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
+            <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
               <ShowForUser fallback={null}>
                 <Link href="/upload">
                   <Button className="w-full justify-start">
@@ -428,7 +428,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Recent Activity */}
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 lg:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>Recent Projects</CardTitle>
@@ -511,7 +511,7 @@ export default function DashboardPage() {
 
         {/* Projects Tab */}
         <TabsContent value="projects" className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-2xl font-bold">My Projects</h2>
               <p className="text-muted-foreground">
@@ -526,7 +526,7 @@ export default function DashboardPage() {
             </ShowForUser>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
               <Card key={project.projectId}>
                 <CardHeader>
@@ -647,7 +647,7 @@ export default function DashboardPage() {
             </div>
 
             {/* System Stats */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">
@@ -713,7 +713,7 @@ export default function DashboardPage() {
                   Administrative tools and controls
                 </CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
+              <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <Button variant="outline" className="w-full justify-start">
                   <Users className="mr-2 h-4 w-4" />
                   Manage Users
