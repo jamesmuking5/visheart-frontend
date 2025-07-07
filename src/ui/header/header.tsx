@@ -122,7 +122,7 @@ const ProfileDropDown = React.memo(function ProfileDropDown() {
       <NavigationMenuTrigger className="hover:!bg-background/20 h-14 w-full !bg-transparent text-lg transition-all duration-200 hover:backdrop-blur-sm">
         Account
       </NavigationMenuTrigger>
-      <NavigationMenuContent>
+      <NavigationMenuContent className="px-3 py-7">
         {user ? <AuthenticatedUserView /> : <LoginForm />}
       </NavigationMenuContent>
     </NavigationMenuItem>

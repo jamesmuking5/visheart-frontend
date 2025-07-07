@@ -4,7 +4,7 @@ import axios from "axios";
 // This is a best practice for managing API calls in a structured way.
 if (!process.env.NEXT_PUBLIC_API_URL) {
   console.error(
-    "NEXT_PUBLIC_API_URL is not defined in your environment variables."
+    "NEXT_PUBLIC_API_URL is not defined in your environment variables.",
   );
   throw new Error("Missing NEXT_PUBLIC_API_URL environment variable");
 }
@@ -63,6 +63,43 @@ export const authApi = {
       throw error;
     }
   },
+
+  // Update user information
+  updateUser: async (data: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+  }) => {
+    try {
+      const response = await api.post("/auth/update", data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Update user password
+  updatePassword: async (data: {
+    currentPassword?: string;
+    newPassword?: string;
+  }) => {
+    try {
+      const response = await api.post("/auth/update-password", data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Delete user account
+  deleteUser: async () => {
+    try {
+      const response = await api.delete("/auth/delete-account");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 // Project management functions
@@ -92,7 +129,7 @@ export const projectApi = {
     try {
       const response = await api.put("/project/upload-new-project", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
+          "Content-Type": "multipart/form-data",
         },
       });
       return response.data;
@@ -102,7 +139,11 @@ export const projectApi = {
   },
 
   // Update project details
-  updateProject: async (projectId: string, name?: string, description?: string) => {
+  updateProject: async (
+    projectId: string,
+    name?: string,
+    description?: string,
+  ) => {
     try {
       const response = await api.patch("/project/update-project", {
         projectId,
@@ -134,7 +175,9 @@ export const segmentationApi = {
   // Start segmentation for a project
   startSegmentation: async (projectId: string) => {
     try {
-      const response = await api.post(`/segmentation/start-segmentation/${projectId}`);
+      const response = await api.post(
+        `/segmentation/start-segmentation/${projectId}`,
+      );
       return response.data;
     } catch (error) {
       throw error;
@@ -144,7 +187,9 @@ export const segmentationApi = {
   // Get segmentation results for a project
   getSegmentationResults: async (projectId: string) => {
     try {
-      const response = await api.get(`/segmentation/segmentation-results/${projectId}`);
+      const response = await api.get(
+        `/segmentation/segmentation-results/${projectId}`,
+      );
       return response.data;
     } catch (error) {
       throw error;
@@ -152,14 +197,20 @@ export const segmentationApi = {
   },
 
   // Start manual segmentation
-  startManualSegmentation: async (projectId: string, data: {
-    image_name: string;
-    bbox: number[];
-    segmentationName?: string;
-    segmentationDescription?: string;
-  }) => {
+  startManualSegmentation: async (
+    projectId: string,
+    data: {
+      image_name: string;
+      bbox: number[];
+      segmentationName?: string;
+      segmentationDescription?: string;
+    },
+  ) => {
     try {
-      const response = await api.post(`/segmentation/start-manual-segmentation/${projectId}`, data);
+      const response = await api.post(
+        `/segmentation/start-manual-segmentation/${projectId}`,
+        data,
+      );
       return response.data;
     } catch (error) {
       throw error;
@@ -167,13 +218,19 @@ export const segmentationApi = {
   },
 
   // Save manual segmentation
-  saveManualSegmentation: async (projectId: string, data: {
-    name?: string;
-    description?: string;
-    frames?: any[];
-  }) => {
+  saveManualSegmentation: async (
+    projectId: string,
+    data: {
+      name?: string;
+      description?: string;
+      frames?: any[];
+    },
+  ) => {
     try {
-      const response = await api.put(`/segmentation/save-manual-segmentation/${projectId}`, data);
+      const response = await api.put(
+        `/segmentation/save-manual-segmentation/${projectId}`,
+        data,
+      );
       return response.data;
     } catch (error) {
       throw error;
@@ -205,9 +262,12 @@ export const segmentationApi = {
   // Export project data
   exportProjectData: async (projectId: string) => {
     try {
-      const response = await api.get(`/segmentation/export-project-data/${projectId}`, {
-        responseType: 'blob',
-      });
+      const response = await api.get(
+        `/segmentation/export-project-data/${projectId}`,
+        {
+          responseType: "blob",
+        },
+      );
       return response.data;
     } catch (error) {
       throw error;
@@ -230,7 +290,9 @@ export const adminApi = {
   // Get all jobs status (admin only)
   getAllJobsStatus: async (page: number = 1, limit: number = 50) => {
     try {
-      const response = await api.get(`/segmentation/admin-check-all-jobs-status?page=${page}&limit=${limit}`);
+      const response = await api.get(
+        `/segmentation/admin-check-all-jobs-status?page=${page}&limit=${limit}`,
+      );
       return response.data;
     } catch (error) {
       throw error;
