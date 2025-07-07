@@ -280,7 +280,7 @@ export default function ProfilePage() {
                     name="phone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Phone (Optional)</FormLabel>
+                        <FormLabel>Phone</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="Your phone number"
@@ -292,6 +292,32 @@ export default function ProfilePage() {
                       </FormItem>
                     )}
                   />
+                  <FormItem>
+                    <FormLabel>Account Created</FormLabel>
+                    <FormControl>
+                      <Input
+                        value={
+                          userData?.createdAt
+                            ? new Date(userData.createdAt).toLocaleString()
+                            : "N/A"
+                        }
+                        disabled
+                      />
+                    </FormControl>
+                  </FormItem>
+                  <FormItem>
+                    <FormLabel>Last Updated</FormLabel>
+                    <FormControl>
+                      <Input
+                        value={
+                          userData?.updatedAt
+                            ? new Date(userData.updatedAt).toLocaleString()
+                            : "N/A"
+                        }
+                        disabled
+                      />
+                    </FormControl>
+                  </FormItem>
                   <Button
                     type="submit"
                     disabled={isGuest || isSubmitting}
