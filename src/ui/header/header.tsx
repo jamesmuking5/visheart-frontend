@@ -17,11 +17,11 @@ import visheartLogo from "@/../public/visheart_logo.svg";
 export default function Header() {
   return (
     <header
-      className="sticky top-0 z-50 h-16 bg-background/50 backdrop-blur-sm border-b border-border/40 flex"
+      className="bg-background/50 border-border/40 sticky top-0 z-50 flex h-16 border-b backdrop-blur-sm"
       suppressHydrationWarning
     >
       {/* Navigation Bar */}
-      <div className="flex h-16 w-full ml-1">
+      <div className="ml-1 flex h-16 w-full">
         <NavigationMenu className="">
           <NavigationMenuList className="">
             {/* Home Logo */}
@@ -34,8 +34,8 @@ export default function Header() {
         </NavigationMenu>
         {/* Theme Toggle */}
       </div>
-      <div className="mr-1 ">
-        <ThemeToggle iconSize={1.75}/>
+      <div className="mr-1">
+        <ThemeToggle iconSize={1.75} />
       </div>
     </header>
   );
@@ -52,7 +52,7 @@ function ListItem({
     <li {...props}>
       <NavigationMenuLink asChild>
         <Link href={href}>
-          <div className="text-sm leading-none font-medium">{title}</div>
+          <div className="text-lg leading-none font-medium">{title}</div>
           <p className="text-muted-foreground line-clamp-2 text-sm leading-snug">
             {children}
           </p>
@@ -67,7 +67,7 @@ function HomeDropDown() {
   return (
     <NavigationMenuItem>
       <Link href="/">
-        <NavigationMenuTrigger className="hover:cursor-pointer h-14 w-full text-xl !bg-transparent hover:!bg-background/20 hover:backdrop-blur-sm transition-all duration-200">
+        <NavigationMenuTrigger className="hover:!bg-background/20 h-14 w-full !bg-transparent text-lg transition-all duration-200 hover:cursor-pointer hover:backdrop-blur-sm">
           <Image
             src={visheartLogo}
             width={36}
@@ -88,7 +88,7 @@ function HomeDropDown() {
                 className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-6 no-underline outline-hidden select-none focus:shadow-md"
                 href="/"
               >
-                <div className="mt-4 mb-2 text-lg font-medium">VisHeart</div>
+                <div className="mt-4 mb-2 text-lg font-bold">VisHeart</div>
                 <p className="text-muted-foreground text-sm leading-tight">
                   A Cardiac Component Segmentation Web Application
                 </p>
@@ -113,7 +113,7 @@ import { LoginCard } from "@/components/Login";
 function ProfileDropDown() {
   return (
     <NavigationMenuItem>
-      <NavigationMenuTrigger className="w-full h-14 text-xl !bg-transparent hover:!bg-background/20 hover:backdrop-blur-sm transition-all duration-200">
+      <NavigationMenuTrigger className="hover:!bg-background/20 h-14 w-full !bg-transparent text-lg transition-all duration-200 hover:backdrop-blur-sm">
         Account
       </NavigationMenuTrigger>
       <NavigationMenuContent>
@@ -127,7 +127,7 @@ function ProfileDropDown() {
 function ToolsDropDown() {
   return (
     <NavigationMenuItem className="">
-      <NavigationMenuTrigger className="w-full h-14 text-xl !bg-transparent hover:!bg-background/20 hover:backdrop-blur-sm transition-all duration-200">
+      <NavigationMenuTrigger className="hover:!bg-background/20 h-14 w-full !bg-transparent text-lg transition-all duration-200 hover:backdrop-blur-sm">
         Tools
       </NavigationMenuTrigger>
       <NavigationMenuContent>
