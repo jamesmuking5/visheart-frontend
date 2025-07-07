@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import React from "react";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -11,8 +12,10 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import ThemeToggle from "../theme-toggle";
-import { Button } from "@/components/ui/button";
 import visheartLogo from "@/../public/visheart_logo.svg";
+import { useAuth } from "@/context/auth-context";
+import { AuthenticatedUserView } from "@/components/AuthenticatedUserView";
+import { LoginForm } from "@/components/LoginForm";
 
 export default function Header() {
   return (
@@ -34,36 +37,40 @@ export default function Header() {
         </NavigationMenu>
         {/* Theme Toggle */}
       </div>
-      <div className="mr-1">
+      <div className="mr-1 flex items-center">
         <ThemeToggle iconSize={1.75} />
       </div>
     </header>
   );
 }
 
-// ListItem component for Navigation Menu taken from shadcn/ui example
-function ListItem({
+// ListItem component for Navigation Menu
+const ListItem = React.memo(function ListItem({
   title,
   children,
   href,
   ...props
-}: React.ComponentPropsWithoutRef<"li"> & { href: string }) {
+}: React.ComponentPropsWithoutRef<"a"> & { href: string; title: string }) {
   return (
-    <li {...props}>
+    <li>
       <NavigationMenuLink asChild>
-        <Link href={href}>
-          <div className="text-lg leading-none font-medium">{title}</div>
-          <p className="text-muted-foreground line-clamp-2 text-sm leading-snug">
+        <Link
+          href={href}
+          className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+          {...props}
+        >
+          <div className="text-lg font-medium leading-none">{title}</div>
+          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
             {children}
           </p>
         </Link>
       </NavigationMenuLink>
     </li>
   );
-}
+});
 
 // HomeDropDown component for the home link
-function HomeDropDown() {
+const HomeDropDown = React.memo(function HomeDropDown() {
   return (
     <NavigationMenuItem>
       <Link href="/">
@@ -80,15 +87,15 @@ function HomeDropDown() {
           </div>
         </NavigationMenuTrigger>
       </Link>
-      <NavigationMenuContent>
-        <ul className="grid gap-2 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
+      <NavigationMenuContent className="!bg-background/80 backdrop-blur-md border-border/40">
+        <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
           <li className="row-span-3">
             <NavigationMenuLink asChild>
               <Link
-                className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-6 no-underline outline-hidden select-none focus:shadow-md"
+                className="from-muted/50 to-muted flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b p-6 no-underline outline-none focus:shadow-md"
                 href="/"
               >
-                <div className="mt-4 mb-2 text-lg font-bold">VisHeart</div>
+                <div className="mb-2 mt-4 text-lg font-bold">VisHeart</div>
                 <p className="text-muted-foreground text-sm leading-tight">
                   A Cardiac Component Segmentation Web Application
                 </p>
@@ -105,60 +112,44 @@ function HomeDropDown() {
       </NavigationMenuContent>
     </NavigationMenuItem>
   );
-}
+});
 
 // ProfileDropDown component for user profile and settings
-import { LoginCard } from "@/components/Login";
-
-function ProfileDropDown() {
+const ProfileDropDown = React.memo(function ProfileDropDown() {
+  const { user } = useAuth();
   return (
     <NavigationMenuItem>
       <NavigationMenuTrigger className="hover:!bg-background/20 h-14 w-full !bg-transparent text-lg transition-all duration-200 hover:backdrop-blur-sm">
         Account
       </NavigationMenuTrigger>
-      <NavigationMenuContent>
-        <LoginCard />
+      <NavigationMenuContent className="!bg-background/80 backdrop-blur-md border-border/40 py-5">
+        {user ? <AuthenticatedUserView /> : <LoginForm />}
       </NavigationMenuContent>
     </NavigationMenuItem>
   );
-}
+});
 
 // ToolsDropDown component for tools navigation
-function ToolsDropDown() {
+const ToolsDropDown = React.memo(function ToolsDropDown() {
   return (
-    <NavigationMenuItem className="">
+    <NavigationMenuItem>
       <NavigationMenuTrigger className="hover:!bg-background/20 h-14 w-full !bg-transparent text-lg transition-all duration-200 hover:backdrop-blur-sm">
         Tools
       </NavigationMenuTrigger>
-      <NavigationMenuContent>
-        <ul className="grid w-[300px] gap-4">
-          <li>
-            <NavigationMenuLink asChild>
-              <Link href="/cardiac-segmentation">
-                <div className="font-medium">
-                  <span className="text-green-500">2D</span> Cardiac
-                  Segmentation
-                </div>
-                <div className="text-muted-foreground">
-                  Start a new project to segment Cardiac Components using YOLO &
-                  MedSAM.
-                </div>
-              </Link>
-            </NavigationMenuLink>
-            <NavigationMenuLink asChild>
-              <Link href="#">
-                <div className="font-medium">
-                  <span className="text-red-500">3D</span> Cardiac Segmentation
-                </div>
-                <div className="text-muted-foreground">Coming soon.</div>
-              </Link>
-            </NavigationMenuLink>
-          </li>
+      <NavigationMenuContent className="!bg-background/80 backdrop-blur-md border-border/40">
+        <ul className="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px] ">
+          <ListItem href="/cardiac-segmentation" title="2D Cardiac Segmentation">
+            Start a new project to segment Cardiac Components using YOLO &
+            MedSAM.
+          </ListItem>
+          <ListItem href="#" title="3D Cardiac Segmentation">
+            Coming soon.
+          </ListItem>
         </ul>
       </NavigationMenuContent>
     </NavigationMenuItem>
   );
-}
+});
 
 // Check if user is logged in and return name if true
 export function getUserName() {

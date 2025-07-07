@@ -1,7 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useAuth } from "@/context/auth-context";
+import {
+  useGpuStatus,
+  useUserProjects,
+  useUserJobs,
+  useSystemStats,
+  useUserStats,
+} from "@/lib/dashboard-hooks";
 import {
   ShowForUser,
   ShowForAdmin,
@@ -44,139 +51,101 @@ import {
   UserCheck,
 } from "lucide-react";
 import Link from "next/link";
-import { projectApi, segmentationApi, adminApi, statusApi } from "@/lib/api";
+import { projectApi, segmentationApi } from "@/lib/api";
 
-interface Project {
-  projectId: string;
-  name: string;
-  description: string;
-  isSaved: boolean;
-  filesize: number;
-  filetype: string;
-  dimensions: {
-    width: number;
-    height: number;
-    depth: number;
-  };
-  createdAt: string;
-  updatedAt: string;
-}
+// Helper function to format file size
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+};
 
-interface Job {
-  jobId: string;
-  projectId: string;
-  status: string;
-  message: string;
-  createdAt: string;
-}
+// Helper function to get status icon and color
+const getStatusDisplay = (status: string) => {
+  switch (status.toLowerCase()) {
+    case "completed":
+      return {
+        icon: CheckCircle,
+        color: "text-green-600",
+        bg: "bg-green-100",
+      };
+    case "pending":
+      return { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-100" };
+    case "processing":
+    case "in_progress":
+      return { icon: RefreshCw, color: "text-blue-600", bg: "bg-blue-100" };
+    case "failed":
+      return { icon: XCircle, color: "text-red-600", bg: "bg-red-100" };
+    default:
+      return { icon: AlertCircle, color: "text-gray-600", bg: "bg-gray-100" };
+  }
+};
 
-interface UserStats {
-  projectCount: number;
-  totalFileSize: number;
-  completedSegmentations: number;
-  pendingJobs: number;
-}
-
-interface SystemStats {
-  totalUsers: number;
-  totalProjects: number;
-  pendingJobs: number;
-  completedJobs: number;
-  failedJobs: number;
-}
+// Helper function to get role icon
+const getRoleIcon = (role: string | undefined) => {
+  switch (role) {
+    case "admin":
+      return <Shield className="h-4 w-4 text-blue-600" />;
+    case "user":
+      return <UserCheck className="h-4 w-4 text-green-600" />;
+    case "guest":
+      return <User className="h-4 w-4 text-gray-500" />;
+    default:
+      return <User className="h-4 w-4" />;
+  }
+};
 
 export default function DashboardPage() {
-  const { user, loading, error } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [recentJobs, setRecentJobs] = useState<Job[]>([]);
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-  const [gpuStatus, setGpuStatus] = useState<"online" | "offline" | "unknown">(
-    "unknown"
-  );
+  const { user, loading: authLoading, error: authError } = useAuth();
+  const {
+    projects,
+    isLoading: projectsLoading,
+    refresh: refreshProjects,
+  } = useUserProjects();
+  const {
+    recentJobs,
+    isLoading: jobsLoading,
+    refresh: refreshJobs,
+  } = useUserJobs();
+  const {
+    gpuStatus,
+    isLoading: gpuLoading,
+    refresh: refreshGpuStatus,
+  } = useGpuStatus();
+  const {
+    systemStats,
+    isLoading: systemStatsLoading,
+    refresh: refreshSystemStats,
+  } = useSystemStats(user?.role === "admin");
+  const userStats = useUserStats(projects, recentJobs);
 
-  // Fetch user projects
-  const fetchProjects = async () => {
-    try {
-      const response = await projectApi.getProjects();
-      setProjects(response.projects || []);
-    } catch (error) {
-      console.error("Error fetching projects:", error);
+  const isLoadingData =
+    projectsLoading ||
+    jobsLoading ||
+    gpuLoading ||
+    (user?.role === "admin" && systemStatsLoading);
+
+  const refreshDashboard = async () => {
+    if (user) {
+      await Promise.all([
+        refreshProjects(),
+        refreshJobs(),
+        refreshGpuStatus(),
+        user.role === "admin" && refreshSystemStats(),
+      ]);
     }
   };
-
-  // Fetch user jobs
-  const fetchJobs = async () => {
-    try {
-      const response = await segmentationApi.getUserJobs();
-      setRecentJobs(response.jobs?.slice(0, 5) || []);
-    } catch (error) {
-      console.error("Error fetching jobs:", error);
-    }
-  };
-
-  // Fetch GPU status
-  const fetchGpuStatus = async () => {
-    try {
-      const response = await statusApi.getGpuStatus();
-      setGpuStatus(response.status === "online" ? "online" : "offline");
-    } catch (error) {
-      setGpuStatus("offline");
-    }
-  };
-
-  // Fetch system stats (admin only)
-  const fetchSystemStats = async () => {
-    try {
-      const response = await adminApi.getAllJobsStatus();
-      setSystemStats({
-        totalUsers: 0, // You may need to add this endpoint
-        totalProjects: 0, // You may need to add this endpoint
-        pendingJobs: response.stats.pending,
-        completedJobs: response.stats.completed,
-        failedJobs: response.stats.failed,
-      });
-    } catch (error) {
-      console.error("Error fetching system stats:", error);
-    }
-  };
-
-  // Calculate user stats
-  useEffect(() => {
-    if (projects.length > 0 || recentJobs.length > 0) {
-      const completedSegmentations = recentJobs.filter(
-        (job) => job.status === "completed"
-      ).length;
-      const pendingJobsCount = recentJobs.filter(
-        (job) => job.status === "pending"
-      ).length;
-      const totalFileSize = projects.reduce(
-        (sum, project) => sum + project.filesize,
-        0
-      );
-
-      setUserStats({
-        projectCount: projects.length,
-        totalFileSize,
-        completedSegmentations,
-        pendingJobs: pendingJobsCount,
-      });
-    }
-  }, [projects, recentJobs]);
 
   // Handle project actions
   const handleStartSegmentation = async (projectId: string) => {
     try {
-      setIsLoadingData(true);
       const response = await segmentationApi.startSegmentation(projectId);
       console.log("Segmentation started:", response);
-      // Refresh jobs after starting segmentation
-      await fetchJobs();
+      await refreshJobs();
     } catch (error) {
       console.error("Error starting segmentation:", error);
-    } finally {
-      setIsLoadingData(false);
     }
   };
 
@@ -199,103 +168,26 @@ export default function DashboardPage() {
   const handleSaveProject = async (projectId: string, isSaved: boolean) => {
     try {
       await projectApi.saveProject(projectId, isSaved);
-      // Refresh projects after saving
-      await fetchProjects();
+      await refreshProjects();
     } catch (error) {
       console.error("Error saving project:", error);
     }
   };
 
-  // Refresh all data
-  const refreshDashboard = async () => {
-    if (user) {
-      setIsLoadingData(true);
-      await Promise.all([fetchProjects(), fetchJobs(), fetchGpuStatus()]);
-
-      if (user.role === "admin") {
-        await fetchSystemStats();
-      }
-
-      setIsLoadingData(false);
-    }
-  };
-
-  // Load data on component mount
-  useEffect(() => {
-    const loadData = async () => {
-      if (user) {
-        setIsLoadingData(true);
-        await Promise.all([fetchProjects(), fetchJobs(), fetchGpuStatus()]);
-
-        if (user.role === "admin") {
-          await fetchSystemStats();
-        }
-
-        setIsLoadingData(false);
-      }
-    };
-
-    loadData();
-  }, [user]);
-
-  // Format file size
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  };
-
-  // Get status icon and color
-  const getStatusDisplay = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "completed":
-        return {
-          icon: CheckCircle,
-          color: "text-green-600",
-          bg: "bg-green-100",
-        };
-      case "pending":
-        return { icon: Clock, color: "text-yellow-600", bg: "bg-yellow-100" };
-      case "processing":
-      case "in_progress":
-        return { icon: RefreshCw, color: "text-blue-600", bg: "bg-blue-100" };
-      case "failed":
-        return { icon: XCircle, color: "text-red-600", bg: "bg-red-100" };
-      default:
-        return { icon: AlertCircle, color: "text-gray-600", bg: "bg-gray-100" };
-    }
-  };
-
-  // Get role icon
-  const getRoleIcon = () => {
-    switch (user?.role) {
-      case "admin":
-        return <Shield className="h-4 w-4 text-blue-600" />;
-      case "user":
-        return <UserCheck className="h-4 w-4 text-green-600" />;
-      case "guest":
-        return <User className="h-4 w-4 text-gray-500" />;
-      default:
-        return <User className="h-4 w-4" />;
-    }
-  };
-
-  if (loading) {
+  if (authLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <RefreshCw className="h-8 w-8 animate-spin" />
       </div>
     );
   }
 
-  if (error) {
+  if (authError) {
     return (
       <div className="container mx-auto p-6">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
-          <AlertDescription>Error: {error}</AlertDescription>
+          <AlertDescription>Error: {authError}</AlertDescription>
         </Alert>
       </div>
     );
@@ -315,7 +207,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto space-y-6 p-6">
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div className="space-y-1">
@@ -325,8 +217,8 @@ export default function DashboardPage() {
               VisHeart Dashboard
             </h1>
           </div>
-          <div className="flex items-center gap-2 text-muted-foreground">
-            {getRoleIcon()}
+          <div className="text-muted-foreground flex items-center gap-2">
+            {getRoleIcon(user.role)}
             <span>Welcome back, {user.username}</span>
             <Badge variant="outline" className="ml-2">
               {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
@@ -343,7 +235,7 @@ export default function DashboardPage() {
             disabled={isLoadingData}
           >
             <RefreshCw
-              className={`h-4 w-4 mr-2 ${isLoadingData ? "animate-spin" : ""}`}
+              className={`mr-2 h-4 w-4 ${isLoadingData ? "animate-spin" : ""}`}
             />
             Refresh
           </Button>
@@ -354,11 +246,11 @@ export default function DashboardPage() {
                 gpuStatus === "online"
                   ? "bg-green-500"
                   : gpuStatus === "offline"
-                  ? "bg-red-500"
-                  : "bg-yellow-500"
+                    ? "bg-red-500"
+                    : "bg-yellow-500"
               }`}
             />
-            <span className="text-sm text-muted-foreground">
+            <span className="text-muted-foreground text-sm">
               GPU {gpuStatus === "unknown" ? "Checking..." : gpuStatus}
             </span>
           </div>
@@ -374,7 +266,7 @@ export default function DashboardPage() {
             saved.
             <Button
               variant="link"
-              className="p-0 ml-2 h-auto text-orange-800 underline"
+              className="ml-2 h-auto p-0 text-orange-800 underline"
             >
               Upgrade to full account
             </Button>
@@ -408,13 +300,13 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-medium">
                   Total Projects
                 </CardTitle>
-                <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                <FolderOpen className="text-muted-foreground h-4 w-4" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {userStats?.projectCount || 0}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   {formatFileSize(userStats?.totalFileSize || 0)} total
                 </p>
               </CardContent>
@@ -423,13 +315,13 @@ export default function DashboardPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Completed</CardTitle>
-                <Brain className="h-4 w-4 text-muted-foreground" />
+                <Brain className="text-muted-foreground h-4 w-4" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {userStats?.completedSegmentations || 0}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Segmentations done
                 </p>
               </CardContent>
@@ -440,13 +332,13 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-medium">
                   Pending Jobs
                 </CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
+                <Clock className="text-muted-foreground h-4 w-4" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
                   {userStats?.pendingJobs || 0}
                 </div>
-                <p className="text-xs text-muted-foreground">In queue</p>
+                <p className="text-muted-foreground text-xs">In queue</p>
               </CardContent>
             </Card>
 
@@ -455,7 +347,7 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-medium">
                   GPU Status
                 </CardTitle>
-                <Cpu className="h-4 w-4 text-muted-foreground" />
+                <Cpu className="text-muted-foreground h-4 w-4" />
               </CardHeader>
               <CardContent>
                 <div
@@ -465,7 +357,7 @@ export default function DashboardPage() {
                 >
                   {gpuStatus.charAt(0).toUpperCase() + gpuStatus.slice(1)}
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-muted-foreground text-xs">
                   Processing server
                 </p>
               </CardContent>
@@ -482,7 +374,7 @@ export default function DashboardPage() {
               <ShowForUser fallback={null}>
                 <Link href="/upload">
                   <Button className="w-full justify-start">
-                    <Upload className="h-4 w-4 mr-2" />
+                    <Upload className="mr-2 h-4 w-4" />
                     Upload Project
                   </Button>
                 </Link>
@@ -495,14 +387,14 @@ export default function DashboardPage() {
                   onClick={() => {
                     // Navigate to projects tab
                     const tabsElement = document.querySelector(
-                      '[data-state="active"][value="projects"]'
+                      '[data-state="active"][value="projects"]',
                     );
                     if (tabsElement) {
                       (tabsElement as HTMLElement).click();
                     }
                   }}
                 >
-                  <Brain className="h-4 w-4 mr-2" />
+                  <Brain className="mr-2 h-4 w-4" />
                   Start Segmentation
                 </Button>
               </ShowForUser>
@@ -514,21 +406,21 @@ export default function DashboardPage() {
                   onClick={() => {
                     // Navigate to segmentation tab
                     const tabsElement = document.querySelector(
-                      '[data-state="active"][value="segmentation"]'
+                      '[data-state="active"][value="segmentation"]',
                     );
                     if (tabsElement) {
                       (tabsElement as HTMLElement).click();
                     }
                   }}
                 >
-                  <Download className="h-4 w-4 mr-2" />
+                  <Download className="mr-2 h-4 w-4" />
                   Export Results
                 </Button>
               </ShowForUser>
 
               <Link href="/profile">
                 <Button variant="outline" className="w-full justify-start">
-                  <Settings className="h-4 w-4 mr-2" />
+                  <Settings className="mr-2 h-4 w-4" />
                   Settings
                 </Button>
               </Link>
@@ -546,13 +438,13 @@ export default function DashboardPage() {
                 {projects.slice(0, 3).map((project) => (
                   <div
                     key={project.projectId}
-                    className="flex items-center justify-between p-2 rounded-lg border"
+                    className="flex items-center justify-between rounded-lg border p-2"
                   >
                     <div className="flex items-center gap-3">
-                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <FileText className="text-muted-foreground h-4 w-4" />
                       <div>
                         <p className="text-sm font-medium">{project.name}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                           {formatFileSize(project.filesize)} •{" "}
                           {project.filetype}
                         </p>
@@ -564,7 +456,7 @@ export default function DashboardPage() {
                   </div>
                 ))}
                 {projects.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
+                  <p className="text-muted-foreground py-4 text-center text-sm">
                     No projects yet. Upload your first project to get started.
                   </p>
                 )}
@@ -584,10 +476,10 @@ export default function DashboardPage() {
                   return (
                     <div
                       key={job.jobId}
-                      className="flex items-center justify-between p-2 rounded-lg border"
+                      className="flex items-center justify-between rounded-lg border p-2"
                     >
                       <div className="flex items-center gap-3">
-                        <div className={`p-1 rounded-full ${statusDisplay.bg}`}>
+                        <div className={`rounded-full p-1 ${statusDisplay.bg}`}>
                           <StatusIcon
                             className={`h-3 w-3 ${statusDisplay.color}`}
                           />
@@ -596,7 +488,7 @@ export default function DashboardPage() {
                           <p className="text-sm font-medium">
                             Job {job.jobId.slice(-8)}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-muted-foreground text-xs">
                             {job.message}
                           </p>
                         </div>
@@ -608,7 +500,7 @@ export default function DashboardPage() {
                   );
                 })}
                 {recentJobs.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
+                  <p className="text-muted-foreground py-4 text-center text-sm">
                     No segmentation jobs yet.
                   </p>
                 )}
@@ -628,7 +520,7 @@ export default function DashboardPage() {
             </div>
             <ShowForUser fallback={null}>
               <Button>
-                <Upload className="h-4 w-4 mr-2" />
+                <Upload className="mr-2 h-4 w-4" />
                 Upload New Project
               </Button>
             </ShowForUser>
@@ -703,7 +595,7 @@ export default function DashboardPage() {
                       onClick={() => handleStartSegmentation(project.projectId)}
                       disabled={isLoadingData}
                     >
-                      <Play className="h-3 w-3 mr-1" />
+                      <Play className="mr-1 h-3 w-3" />
                       Segment
                     </Button>
                     <Button
@@ -712,7 +604,7 @@ export default function DashboardPage() {
                       className="flex-1"
                       onClick={() => handleExportProject(project.projectId)}
                     >
-                      <Download className="h-3 w-3 mr-1" />
+                      <Download className="mr-1 h-3 w-3" />
                       Export
                     </Button>
                   </div>
@@ -761,7 +653,7 @@ export default function DashboardPage() {
                   <CardTitle className="text-sm font-medium">
                     Total Users
                   </CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <Users className="text-muted-foreground h-4 w-4" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -775,7 +667,7 @@ export default function DashboardPage() {
                   <CardTitle className="text-sm font-medium">
                     System Projects
                   </CardTitle>
-                  <Database className="h-4 w-4 text-muted-foreground" />
+                  <Database className="text-muted-foreground h-4 w-4" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -789,7 +681,7 @@ export default function DashboardPage() {
                   <CardTitle className="text-sm font-medium">
                     Pending Jobs
                   </CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <Clock className="text-muted-foreground h-4 w-4" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">
@@ -803,7 +695,7 @@ export default function DashboardPage() {
                   <CardTitle className="text-sm font-medium">
                     Failed Jobs
                   </CardTitle>
-                  <XCircle className="h-4 w-4 text-muted-foreground" />
+                  <XCircle className="text-muted-foreground h-4 w-4" />
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-red-600">
@@ -823,19 +715,19 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="grid gap-2 md:grid-cols-2 lg:grid-cols-4">
                 <Button variant="outline" className="w-full justify-start">
-                  <Users className="h-4 w-4 mr-2" />
+                  <Users className="mr-2 h-4 w-4" />
                   Manage Users
                 </Button>
                 <Button variant="outline" className="w-full justify-start">
-                  <Database className="h-4 w-4 mr-2" />
+                  <Database className="mr-2 h-4 w-4" />
                   System Projects
                 </Button>
                 <Button variant="outline" className="w-full justify-start">
-                  <Activity className="h-4 w-4 mr-2" />
+                  <Activity className="mr-2 h-4 w-4" />
                   Job Queue
                 </Button>
                 <Button variant="outline" className="w-full justify-start">
-                  <BarChart3 className="h-4 w-4 mr-2" />
+                  <BarChart3 className="mr-2 h-4 w-4" />
                   Analytics
                 </Button>
               </CardContent>

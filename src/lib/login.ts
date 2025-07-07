@@ -2,54 +2,20 @@
 // Most of the functions are used in the Login.tsx file
 
 import { useState } from "react";
-import { authApi } from "@/lib/api";
+import { useAuth } from "@/context/auth-context";
 
 export function useLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const { login, guestLogin, error, loading } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      const result = await authApi.login(username, password);
-      console.log("Login successful:", result);
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
-    } catch (err: any) {
-      console.error("Login error:", err);
-
-      if (err.response) {
-        setError(err.response.data.message || "Invalid username or password.");
-      } else {
-        setError("An error occurred. Please try again.");
-      }
-    } finally {
-      setLoading(false);
-    }
+    await login(username, password);
   };
 
   const handleGuestLogin = async () => {
-    setLoading(true);
-    try {
-      const result = await authApi.guestLogin();
-      console.log("Guest login successful:", result);
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
-    } catch (err: any) {
-      console.error("Guest login error:", err);
-      setError("An error occurred while logging in as guest.");
-    } finally {
-      setLoading(false);
-    }
+    await guestLogin();
   };
 
   return {
