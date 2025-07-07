@@ -67,9 +67,9 @@ export const AuthenticatedUserView = () => {
       <CardHeader className="pb-4 text-center">
         <div className="flex items-center justify-between">
           <div className="flex-1">
-            <CardTitle className="text-left text-lg">Welcome back!</CardTitle>
+            <CardTitle className="text-left text-lg">Welcome back,</CardTitle>
             <p className="text-muted-foreground text-left text-sm">
-              {user.username}
+              {user.role === "guest" ? "Guest User" : user.username}
             </p>
           </div>
           <RoleBadge />
@@ -79,11 +79,11 @@ export const AuthenticatedUserView = () => {
       <CardContent className="grid gap-3">
         <ShowForGuest fallback={null}>
           <Alert className="border-orange-200 bg-orange-50 py-2">
-            <AlertCircleIcon className="h-4 w-4 text-black" />
+            <AlertCircleIcon className="h-4 w-4 stroke-black" />
             <AlertDescription className="text-orange-800">
               You're in guest mode. Your work won't be saved.
-              <Link href="/register" className="ml-1 font-medium underline">
-                Create account
+              <Link href="/register" className="font-medium underline">
+                Create an account now.
               </Link>
             </AlertDescription>
           </Alert>

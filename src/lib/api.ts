@@ -275,17 +275,41 @@ export const segmentationApi = {
   },
 };
 
+// Define interfaces for the admin-specific responses
+export interface Project {
+  _id: string;
+  name: string;
+  description: string;
+  // Add other project fields as necessary
+}
+
+export interface UserWithProjects {
+  userId: string;
+  username: string;
+  projectCount: number;
+  projects: Project[];
+}
+
+export interface GetAllUsersWithProjectsResponse {
+  fetch: boolean;
+  totalUsers: number;
+  data: UserWithProjects[];
+}
+
 // Admin functions
 export const adminApi = {
   // Get all users with projects (admin only)
-  getAllUsersWithProjects: async () => {
-    try {
-      const response = await api.get("/project/get-allusers-with-projects");
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
-  },
+  getAllUsersWithProjects:
+    async (): Promise<GetAllUsersWithProjectsResponse> => {
+      try {
+        const response = await api.get("/project/get-allusers-with-projects");
+        console.log("Fetched users with projects:", response.data);
+        return response.data;
+      } catch (error) {
+        console.error("Error fetching users with projects:", error);
+        throw error;
+      }
+    },
 
   // Get all jobs status (admin only)
   getAllJobsStatus: async (page: number = 1, limit: number = 50) => {
@@ -312,10 +336,36 @@ export const adminApi = {
     }
   },
 
+  // Admin route to update any user's information
+  adminUpdateUser: async (targetUsername: string, updates: any) => {
+    try {
+      const response = await api.post("/auth/admin-update-user", {
+        targetUsername,
+        updates,
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Admin-only route to delete a user by username
+  adminDeleteUser: async (usernameToDelete: string) => {
+    try {
+      const response = await api.post("/auth/admin-delete-user", {
+        usernameToDelete,
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   // Get all users (admin only)
   getAllUsers: async () => {
     try {
-      const response = await api.get("/auth/fetch-all-users");
+      // This endpoint is now GET /auth/users as per the new routes
+      const response = await api.get("/auth/users");
       return response.data;
     } catch (error) {
       throw error;

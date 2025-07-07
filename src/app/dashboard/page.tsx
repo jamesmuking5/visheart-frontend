@@ -219,7 +219,9 @@ export default function DashboardPage() {
           </div>
           <div className="text-muted-foreground flex items-center gap-2">
             {getRoleIcon(user.role)}
-            <span>Welcome back, {user.username}</span>
+            <span>
+              Welcome back, {user.role === "guest" ? "Guest User" : user.username}.
+            </span>
             <Badge variant="outline" className="ml-2">
               {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
             </Badge>
