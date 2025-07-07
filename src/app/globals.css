@@ -122,8 +122,10 @@
   }
 
   html {
+    /* Modern approach to prevent layout shifts from scrollbar */
+    scrollbar-gutter: stable;
+    /* Fallback for older browsers */
     overflow-y: scroll;
-    /* Always show vertical scrollbar space */
   }
 
   body {

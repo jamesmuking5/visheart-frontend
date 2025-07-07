@@ -557,7 +557,7 @@ export default function AdminPage() {
                       : ""
                   }`}
                 >
-                  <Filter className="mr-2 h-4 w-4" />
+                  <Filter className="mr-2 w-4" />
                   Filters
                   {(debouncedSearchTerm || roleFilter !== "all") && (
                     <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
@@ -582,59 +582,74 @@ export default function AdminPage() {
           </CardHeader>
           <CardContent>
             {/* Filter Controls */}
-            {showFilters && (
-              <div className="mb-4 space-y-4 rounded-lg border p-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">Filters</h3>
-                  <Button variant="ghost" size="sm" onClick={clearFilters}>
-                    <X className="mr-1 h-3 w-3" />
-                    Clear All
-                  </Button>
-                </div>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="search">
-                      Search{" "}
-                      <kbd className="bg-muted ml-1 rounded px-1.5 py-0.5 text-xs">
-                        Ctrl+K
-                      </kbd>
-                    </Label>
-                    <div className="relative">
-                      <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
-                      <Input
-                        id="search"
-                        placeholder="Search by username, email, or phone..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                      />
-                      {searchTerm && searchTerm !== debouncedSearchTerm && (
-                        <div className="absolute top-1/2 right-3 -translate-y-1/2">
-                          <RefreshCw className="text-muted-foreground h-3 w-3 animate-spin" />
-                        </div>
-                      )}
-                    </div>
+            <div className="mb-4">
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  showFilters ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
+                <div className="mb-4 space-y-4 rounded-lg border p-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium">Filters</h3>
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      <X className="mr-1 h-3 w-3" />
+                      Clear All
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role-filter">Role</Label>
-                    <Select
-                      value={roleFilter}
-                      onValueChange={(value: any) => setRoleFilter(value)}
-                    >
-                      <SelectTrigger id="role-filter">
-                        <SelectValue placeholder="Filter by role" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Roles</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="guest">Guest</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <div className="flex items-baseline">
+                        <Label htmlFor="search" className="text-sm font-medium">
+                          Search
+                        </Label>
+                        <kbd className="bg-muted ml-2 rounded px-1.5 py-0.5 text-xs">
+                          Ctrl+K
+                        </kbd>
+                      </div>
+                      <div className="relative">
+                        <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
+                        <Input
+                          id="search"
+                          placeholder="Search by username, email, or phone..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="h-10 pl-10"
+                          disabled={!showFilters}
+                        />
+                        {searchTerm && searchTerm !== debouncedSearchTerm && (
+                          <div className="absolute top-1/2 right-3 -translate-y-1/2">
+                            <RefreshCw className="text-muted-foreground h-3 w-3 animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="role-filter"
+                        className="block text-sm font-medium"
+                      >
+                        Role
+                      </Label>
+                      <Select
+                        value={roleFilter}
+                        onValueChange={(value: any) => setRoleFilter(value)}
+                        disabled={!showFilters}
+                      >
+                        <SelectTrigger id="role-filter" className="h-10 w-full">
+                          <SelectValue placeholder="Filter by role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Roles</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="user">User</SelectItem>
+                          <SelectItem value="guest">Guest</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Table */}
             <div className="overflow-hidden rounded-md border">
