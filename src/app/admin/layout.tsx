@@ -1,16 +1,23 @@
 "use client";
 
 import type { Metadata } from "next";
-import { Shield, Users, BarChart3, Settings, Database, Activity } from "lucide-react";
+import {
+  Shield,
+  Users,
+  BarChart3,
+  Settings,
+  Database,
+  Activity,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  Breadcrumb, 
-  BreadcrumbItem, 
-  BreadcrumbLink, 
-  BreadcrumbList, 
-  BreadcrumbPage, 
-  BreadcrumbSeparator 
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -26,7 +33,7 @@ const adminNavigation = [
   },
   {
     title: "Analytics",
-    href: "/admin/analytics", 
+    href: "/admin/analytics",
     icon: BarChart3,
     description: "View system analytics and reports",
     status: "coming-soon" as const,
@@ -34,7 +41,7 @@ const adminNavigation = [
   {
     title: "System Settings",
     href: "/admin/settings",
-    icon: Settings, 
+    icon: Settings,
     description: "Configure system-wide settings",
     status: "coming-soon" as const,
   },
@@ -56,76 +63,79 @@ const adminNavigation = [
 
 // Generate breadcrumb items based on current path
 function generateBreadcrumbs(pathname: string) {
-  const paths = pathname.split('/').filter(Boolean);
+  const paths = pathname.split("/").filter(Boolean);
   const breadcrumbs = [];
-  
+
   // Always start with Admin root
   breadcrumbs.push({
     label: "Admin",
     href: "/admin",
-    isActive: pathname === "/admin"
+    isActive: pathname === "/admin",
   });
-  
+
   // Add sub-paths
   if (paths.length > 1) {
     const subPath = paths[1];
-    const navItem = adminNavigation.find(item => 
-      item.href.includes(subPath)
-    );
-    
+    const navItem = adminNavigation.find((item) => item.href.includes(subPath));
+
     if (navItem) {
       breadcrumbs.push({
         label: navItem.title,
         href: navItem.href,
-        isActive: pathname === navItem.href
+        isActive: pathname === navItem.href,
       });
     }
   }
-  
+
   return breadcrumbs;
 }
 
 // Admin navigation card component for the dashboard
-function AdminNavigationCard({ 
-  item, 
-  isActive 
-}: { 
-  item: typeof adminNavigation[0]; 
+function AdminNavigationCard({
+  item,
+  isActive,
+}: {
+  item: (typeof adminNavigation)[0];
   isActive: boolean;
 }) {
   const Icon = item.icon;
   const isComingSoon = item.status === "coming-soon";
-  
+
   const cardContent = (
-    <Card className={cn(
-      "group relative overflow-hidden transition-all duration-200",
-      isActive && "ring-2 ring-blue-500 bg-blue-50/50 dark:bg-blue-950/20",
-      !isComingSoon && "hover:shadow-md hover:scale-[1.02] cursor-pointer",
-      isComingSoon && "opacity-60 cursor-not-allowed"
-    )}>
+    <Card
+      className={cn(
+        "group relative overflow-hidden transition-all duration-200",
+        isActive && "bg-blue-50/50 ring-2 ring-blue-500 dark:bg-blue-950/20",
+        !isComingSoon && "cursor-pointer hover:scale-[1.02] hover:shadow-md",
+        isComingSoon && "cursor-not-allowed opacity-60",
+      )}
+    >
       {/* Coming soon badge */}
       {isComingSoon && (
         <div className="absolute top-2 right-2 z-10">
-          <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full">
+          <span className="rounded-full bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800">
             Coming Soon
           </span>
         </div>
       )}
-      
+
       <CardContent className="p-6">
         <div className="flex items-start gap-4">
-          <div className={cn(
-            "p-3 rounded-lg transition-colors",
-            isActive 
-              ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400"
-              : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-            !isComingSoon && "group-hover:bg-blue-100 group-hover:text-blue-600"
-          )}>
+          <div
+            className={cn(
+              "rounded-lg p-3 transition-colors",
+              isActive
+                ? "bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400"
+                : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+              !isComingSoon &&
+                "group-hover:bg-blue-100 group-hover:text-blue-600",
+            )}
+          >
             <Icon className="h-6 w-6" />
           </div>
-          
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-lg mb-1 group-hover:text-blue-600 transition-colors">
+
+          <div className="min-w-0 flex-1">
+            <h3 className="mb-1 text-lg font-semibold transition-colors group-hover:text-blue-600">
               {item.title}
             </h3>
             <p className="text-muted-foreground text-sm leading-relaxed">
@@ -136,12 +146,12 @@ function AdminNavigationCard({
       </CardContent>
     </Card>
   );
-  
+
   // Wrap with Link only if not coming soon
   if (isComingSoon) {
     return cardContent;
   }
-  
+
   return (
     <Link href={item.href} className="block">
       {cardContent}
@@ -157,70 +167,67 @@ export default function AdminLayout({
   const pathname = usePathname();
   const breadcrumbs = generateBreadcrumbs(pathname);
   const isAdminRoot = pathname === "/admin";
-  
+
   return (
     <div className="min-h-screen bg-gray-50/30 dark:bg-gray-950/30">
-      {/* Admin Panel Header - Sticky for consistent navigation */}
-      <div className="sticky top-16 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border">
-        <div className="container mx-auto px-6 py-4">
-          {/* Header with title and breadcrumbs */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+      {/* Admin Panel Header - Compact and non-sticky */}
+      <div className="bg-background border-border border-b">
+        <div className="container mx-auto px-6 py-3">
+          {/* Compact header with title and breadcrumbs */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="rounded-md bg-blue-100 p-1.5 dark:bg-blue-900/20">
+                <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
-                <p className="text-sm text-muted-foreground">
-                  System administration and management
-                </p>
-              </div>
+              <h1 className="text-foreground text-lg font-semibold">
+                Admin Panel
+              </h1>
             </div>
-          </div>
-          
-          {/* Breadcrumb navigation for better UX */}
-          <Breadcrumb>
-            <BreadcrumbList>
-              {breadcrumbs.map((crumb, index) => (
-                <BreadcrumbItem key={crumb.href}>
-                  {crumb.isActive ? (
-                    <BreadcrumbPage className="font-medium">
-                      {crumb.label}
-                    </BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink asChild>
-                      <Link 
-                        href={crumb.href}
-                        className="hover:text-foreground transition-colors"
-                      >
+
+            {/* Breadcrumb navigation inline with header */}
+            <Breadcrumb>
+              <BreadcrumbList>
+                {breadcrumbs.map((crumb, index) => (
+                  <BreadcrumbItem key={crumb.href}>
+                    {crumb.isActive ? (
+                      <BreadcrumbPage className="text-sm font-medium">
                         {crumb.label}
-                      </Link>
-                    </BreadcrumbLink>
-                  )}
-                  {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
-                </BreadcrumbItem>
-              ))}
-            </BreadcrumbList>
-          </Breadcrumb>
+                      </BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink asChild>
+                        <Link
+                          href={crumb.href}
+                          className="hover:text-foreground text-sm transition-colors"
+                        >
+                          {crumb.label}
+                        </Link>
+                      </BreadcrumbLink>
+                    )}
+                    {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
+                  </BreadcrumbItem>
+                ))}
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
         </div>
       </div>
-      
+
       {/* Main content area with proper spacing and responsive design */}
       <main className="container mx-auto px-6 py-8">
         {isAdminRoot ? (
           // Admin dashboard with navigation cards
           <div className="space-y-8">
             {/* Welcome section */}
-            <div className="text-center space-y-2">
+            <div className="space-y-2 text-center">
               <h2 className="text-3xl font-bold tracking-tight">
                 Welcome to the Admin Dashboard
               </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Manage your VisHeart system efficiently with our comprehensive admin tools. 
-                Select a module below to get started.
+              <p className="text-muted-foreground mx-auto max-w-2xl">
+                Manage your VisHeart system efficiently with our comprehensive
+                admin tools. Select a module below to get started.
               </p>
             </div>
-            
+
             {/* Navigation grid - responsive layout */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {adminNavigation.map((item) => (
@@ -231,22 +238,21 @@ export default function AdminLayout({
                 />
               ))}
             </div>
-            
+
             {/* Quick stats or additional info could go here */}
-            <div className="mt-12 p-6 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-              <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
+            <div className="mt-12 rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-950/20">
+              <h3 className="mb-2 font-semibold text-blue-900 dark:text-blue-100">
                 🚀 System Status
               </h3>
-              <p className="text-blue-700 dark:text-blue-300 text-sm">
-                All admin modules are operational. New features are being developed and will be available soon.
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                All admin modules are operational. New features are being
+                developed and will be available soon.
               </p>
             </div>
           </div>
         ) : (
           // Render child pages (like user-management)
-          <div className="space-y-6">
-            {children}
-          </div>
+          <div className="space-y-6">{children}</div>
         )}
       </main>
     </div>
