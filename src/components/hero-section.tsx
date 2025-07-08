@@ -7,7 +7,7 @@ interface HeroSectionProps {
   handleLearnMoreClick: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 }
 
-export default function HeroSection({ handleLearnMoreClick }: HeroSectionProps) {
+export function HeroSection({ handleLearnMoreClick }: HeroSectionProps) {
   return (
     <section 
       id="hero-intro-section" 

@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 
-export default function ServicesSection() {
+export function ServicesSection() {
   return (
     <section id="services-section" aria-label="VisHeart Services" className="services-section">
       <div className="py-24 bg-gradient-to-br from-background to-muted">

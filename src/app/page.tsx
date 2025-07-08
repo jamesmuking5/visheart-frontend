@@ -25,19 +25,19 @@ import {
 } from "@/components/ui/card"
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ContactSection } from "@/components/contact-section";
-import { GallerySection } from "@/components/gallery-section"; 
-import {FaqSection } from "@/components/faq-section"; 
+
+// --- Component Imports ---
+import { HeroSection } from '@/components/hero-section';
+import { AboutUsSection } from '@/components/about-us-section'; 
+import { ServicesSection } from '@/components/services-section';
+import { FaqSection } from "@/components/faq-section";
+import { GallerySection } from "@/components/gallery-section";
+import { ContactSection } from "@/components/contact-section"; 
 
 // --- 3D Imports ---
 import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useTexture, PerspectiveCamera } from '@react-three/drei';
-
-// --- Component Imports ---
-import HeroSection from '@/components/hero-section';
-import AboutUsSection from '@/components/about-us-section';
-import ServicesSection from '@/components/services-section';
 
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger); // <-- Register the plugin
