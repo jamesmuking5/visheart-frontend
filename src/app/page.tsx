@@ -1,16 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 // --- Animation Library Imports ---
-import { motion, AnimatePresence } from 'framer-motion';
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-// --- 3D and Canvas Imports ---
-import { OrbitControls, useGLTF, useTexture, PerspectiveCamera } from '@react-three/drei';
-import * as THREE from 'three';
-import { Canvas, useFrame } from '@react-three/fiber';
 
 // --- Page Section Component Imports ---
 import { HeroSection } from '@/components/hero-section';
@@ -37,17 +31,12 @@ export default function Home() {
   const [animationPaused, setAnimationPaused] = useState(false);
   const [showInteractionPrompt, setShowInteractionPrompt] = useState(true);
 
-  const threeDGallerySectionRef = useRef<HTMLDivElement>(null);
-
   // Define the images for the 3D gallery here using useMemo for stability
   const gallery3DImages = useMemo(() => [
     { src: "/image-1.png", alt: "Cardiac MRI Scan" },
     { src: "/image-2.png", alt: "High-Reso Cardiac MRI Scan" },
     { src: "/image-3.png", alt: "Doctor Interface" },
   ], []);
-
-  // Feature hover animation
-  const [activeFeature, setActiveFeature] = useState<number | null>(null);
 
   // Function to handle Learn More button click with effects
   const handleLearnMoreClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
