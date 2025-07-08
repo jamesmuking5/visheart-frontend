@@ -244,17 +244,32 @@ export default function DashboardPage() {
           </Button>
 
           <div className="flex items-center gap-2">
+            {/* GPU Status Indicator: Green=Online, Yellow=Checking, Red=Offline/Timeout */}
             <div
               className={`h-3 w-3 rounded-full ${
                 gpuStatus === "online"
                   ? "bg-green-500"
                   : gpuStatus === "offline"
                     ? "bg-red-500"
-                    : "bg-yellow-500"
+                    : gpuStatus === "timeout"
+                      ? "bg-red-500"
+                      : "bg-yellow-500"
               }`}
             />
             <span className="text-muted-foreground text-sm">
-              GPU {gpuStatus === "unknown" ? "Checking..." : gpuStatus}
+              {isLoading ? (
+                "GPU Checking..."
+              ) : (
+                `GPU ${
+                  gpuStatus === "unknown"
+                    ? "Unknown"
+                    : gpuStatus === "timeout"
+                      ? "Timeout"
+                      : gpuStatus === "online"
+                        ? "Online"
+                        : "Offline"
+                }`
+              )}
             </span>
           </div>
         </div>
@@ -355,10 +370,18 @@ export default function DashboardPage() {
               <CardContent>
                 <div
                   className={`text-2xl font-bold ${
-                    gpuStatus === "online" ? "text-green-600" : "text-red-600"
+                    gpuStatus === "online"
+                      ? "text-green-600"
+                      : gpuStatus === "timeout"
+                        ? "text-red-600"
+                        : gpuStatus === "offline"
+                          ? "text-red-600"
+                          : "text-yellow-600"
                   }`}
                 >
-                  {gpuStatus.charAt(0).toUpperCase() + gpuStatus.slice(1)}
+                  {gpuStatus === "timeout"
+                    ? "Timeout"
+                    : gpuStatus.charAt(0).toUpperCase() + gpuStatus.slice(1)}
                 </div>
                 <p className="text-muted-foreground text-xs">
                   Processing server

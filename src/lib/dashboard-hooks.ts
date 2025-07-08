@@ -5,20 +5,51 @@ import { projectApi, segmentationApi, adminApi, statusApi } from "@/lib/api";
 import { Project, Job, SystemStats, UserStats } from "@/types/dashboard";
 
 export function useGpuStatus() {
-  const [gpuStatus, setGpuStatus] = useState<"online" | "offline" | "unknown">(
-    "unknown",
-  );
+  const [gpuStatus, setGpuStatus] = useState<
+    "online" | "offline" | "unknown" | "timeout"
+  >("unknown");
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchGpuStatus = useCallback(async () => {
+    console.log("🔄 [useGpuStatus] Starting GPU status fetch...");
     setIsLoading(true);
+
     try {
       const response = await statusApi.getGpuStatus();
-      // Handle the new response format from GPU status route
-      setGpuStatus(response.status === "online" ? "online" : "offline");
-    } catch (error) {
-      console.error("Error fetching GPU status:", error);
-      setGpuStatus("offline");
+      console.log("✅ [useGpuStatus] GPU status response:", response);
+
+      // Parse backend response to determine actual status
+      let finalStatus: "online" | "offline" | "timeout" = "offline";
+
+      // Check for timeout indicators in response
+      const hasTimeoutCode = response.details?.code === "ETIMEDOUT";
+      const hasTimeoutMessage = response.message?.toLowerCase?.().includes?.("timeout") ||
+                               response.details?.includes?.("timeout");
+      
+      if (hasTimeoutCode || hasTimeoutMessage) {
+        console.log("⏰ [useGpuStatus] Backend reported timeout - code:", response.details?.code, "message:", response.message);
+        finalStatus = "timeout";
+      } else if (response.status === "online") {
+        console.log("✅ [useGpuStatus] GPU is online");
+        finalStatus = "online";
+      } else {
+        console.log("❌ [useGpuStatus] GPU is offline - status:", response.status);
+        finalStatus = "offline";
+      }
+      
+      console.log("📊 [useGpuStatus] Final status set to:", finalStatus);
+      setGpuStatus(finalStatus);
+    } catch (error: any) {
+      console.error("❌ [useGpuStatus] Error fetching GPU status:", error);
+      
+      // Check if the error itself indicates a timeout
+      if (error?.code === "ETIMEDOUT" || error?.message?.toLowerCase?.().includes?.("timeout")) {
+        console.log("⏰ [useGpuStatus] Network timeout detected in catch block");
+        setGpuStatus("timeout");
+      } else {
+        console.log("💀 [useGpuStatus] Setting status to offline due to error");
+        setGpuStatus("offline");
+      }
     } finally {
       setIsLoading(false);
     }

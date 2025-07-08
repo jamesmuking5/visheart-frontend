@@ -384,6 +384,16 @@ export const statusApi = {
       throw error;
     }
   },
+
+  // Get GPU system status (CPU, RAM, Disk)
+  getGpuSystemStatus: async () => {
+    try {
+      const response = await api.get("/status/gpu-system-status");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 export default api;

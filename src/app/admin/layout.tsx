@@ -56,10 +56,10 @@ const adminNavigation = [
   },
   {
     title: "System Monitor",
-    href: "/admin/monitor",
+    href: "/admin/system-monitor",
     icon: Activity,
     description: "Monitor system health and performance",
-    status: "coming-soon" as const,
+    status: "active" as const,
   },
 ] as const;
 
