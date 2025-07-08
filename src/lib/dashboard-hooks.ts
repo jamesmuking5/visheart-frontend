@@ -14,8 +14,10 @@ export function useGpuStatus() {
     setIsLoading(true);
     try {
       const response = await statusApi.getGpuStatus();
+      // Handle the new response format from GPU status route
       setGpuStatus(response.status === "online" ? "online" : "offline");
     } catch (error) {
+      console.error("Error fetching GPU status:", error);
       setGpuStatus("offline");
     } finally {
       setIsLoading(false);
