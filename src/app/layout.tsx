@@ -27,6 +27,9 @@ export const metadata: Metadata = {
   description: "VisHeart Web Application for Cardiac Component Segmentation",
 };
 
+// Toasts
+import { Toaster } from "sonner";
+
 export const viewport: Viewport = {
   initialScale: 1,
   width: "device-width",
@@ -39,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className="bg-background text-foreground" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -52,6 +55,7 @@ export default function RootLayout({
             <Footer />
           </AuthProvider>
         </ThemeProvider>
+        <Toaster richColors />
       </body>
     </html>
   );

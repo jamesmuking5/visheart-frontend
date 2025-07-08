@@ -121,13 +121,6 @@
     @apply border-border outline-ring/50;
   }
 
-  html {
-    /* Modern approach to prevent layout shifts from scrollbar */
-    scrollbar-gutter: stable;
-    /* Fallback for older browsers */
-    overflow-y: scroll;
-  }
-
   body {
     @apply bg-background text-foreground;
   }

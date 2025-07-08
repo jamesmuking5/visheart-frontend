@@ -19,10 +19,7 @@ import { LoginForm } from "@/components/LoginForm";
 
 export default function Header() {
   return (
-    <header
-      className="bg-background/50 border-border/40 sticky top-0 z-50 flex h-16 border-b backdrop-blur-sm"
-      suppressHydrationWarning
-    >
+    <header className="bg-background/50 border-border/40 sticky top-0 z-[60] flex h-16 border-b backdrop-blur-sm">
       {/* Navigation Bar */}
       <div className="ml-1 flex h-16 w-full">
         <NavigationMenu className="">
