@@ -13,7 +13,7 @@ import type { Mesh, Group, PerspectiveCamera as PerspectiveCameraType } from 'th
 function ImagePlane({ url, ...props }: { url: string } & JSX.IntrinsicElements['mesh']) {
   const texture = useTexture(url);
   const [hovered, setHovered] = useState(false);
-  const meshRef = useRef<THREE.Mesh>(null!);
+  const meshRef = useRef<Mesh>(null!);
 
   useFrame(() => {
     // Animate scale on hover
@@ -41,8 +41,8 @@ function ImagePlane({ url, ...props }: { url: string } & JSX.IntrinsicElements['
 
 // This is the main component that sets up the 3D scene and GSAP animation
 function ThreeDGallery({ images, trigger }: { images: { src: string; alt: string }[], trigger: HTMLElement | null }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const cameraRef = useRef<THREE.PerspectiveCamera>(null);
+  const groupRef = useRef<Group>(null);
+  const cameraRef = useRef<PerspectiveCameraType>(null);
 
   // Create a long, repeating array of images for a continuous effect
   const imagePlanes = useMemo(() => {
@@ -60,9 +60,7 @@ function ThreeDGallery({ images, trigger }: { images: { src: string; alt: string
 
   // Use GSAP to animate the camera on scroll
   useEffect(() => {
-    // The effect will now run when cameraRef.current is populated
-    if (cameraRef.current) {
-      // Define spacing constants here to match the useMemo hook
+    if (cameraRef.current && trigger) {
       const spacingX = 1.5;
       const spacingY = 1.0;
       const totalDistanceX = (imagePlanes.length - 1) * spacingX;
@@ -70,27 +68,25 @@ function ThreeDGallery({ images, trigger }: { images: { src: string; alt: string
 
       const tl = gsap.timeline({
         scrollTrigger: {
-          trigger: trigger, // Use the new section as the trigger
+          trigger: trigger,
           start: "top top",
-          end: `+=${totalDistanceX * 100}`, // Make scroll length proportional to distance
+          end: `+=${totalDistanceX * 100}`,
           scrub: 1.5,
-          pin: true, // Pin the section while scrolling through the gallery
+          pin: true,
         },
       });
 
-      // Animate the camera's position along the line of images
       tl.to(cameraRef.current.position, {
         x: totalDistanceX,
         y: totalDistanceY,
         ease: "none",
       });
 
-      // Cleanup function to kill the timeline when the component unmounts
       return () => {
         tl.kill();
       };
     }
-  }, [imagePlanes.length, cameraRef.current, trigger]); // <-- ADD cameraRef.current to dependency array
+  }, [imagePlanes.length, trigger]);
 
   return (
     <Canvas>
@@ -106,7 +102,7 @@ function ThreeDGallery({ images, trigger }: { images: { src: string; alt: string
 }
 
 // The main exported section component
-export function InteractiveGallerySection({ images }: { images: { src: string; alt: string }[] }) {
+export function InteractiveGallerySection() { // Removed the 'images' prop as it's no longer needed
   const sectionRef = useRef<HTMLDivElement>(null);
 
   // Define the images for the 3D gallery here
