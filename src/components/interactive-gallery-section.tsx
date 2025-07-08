@@ -8,10 +8,6 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { useTexture, PerspectiveCamera } from '@react-three/drei';
 import type { Mesh, Group, PerspectiveCamera as PerspectiveCameraType } from 'three';
 
-if (typeof window !== 'undefined') {
-  gsap.registerPlugin(ScrollTrigger);
-}
-
 // --- 3D Gallery Components (defined within the page) ---
 // This component represents a single image plane in the 3D scene
 function ImagePlane({ url, ...props }: { url: string } & JSX.IntrinsicElements['mesh']) {
