@@ -12,16 +12,6 @@ import { OrbitControls, useGLTF, useTexture, PerspectiveCamera } from '@react-th
 import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
 
-// --- UI Component Imports ---
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-
 // --- Page Section Component Imports ---
 import { HeroSection } from '@/components/hero-section';
 import { AboutUsSection } from '@/components/about-us-section'; 
@@ -29,6 +19,7 @@ import { ServicesSection } from '@/components/services-section';
 import { FaqSection } from "@/components/faq-section";
 import { GallerySection } from "@/components/gallery-section";
 import { ContactSection } from "@/components/contact-section"; 
+import { Commands } from '@/components/commands';
 
 // Register the GSAP ScrollTrigger plugin if in a browser environment
 if (typeof window !== 'undefined') {
