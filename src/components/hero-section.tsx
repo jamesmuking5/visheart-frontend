@@ -2,11 +2,43 @@
 
 import { motion } from 'framer-motion';
 
-interface HeroSectionProps {
-  handleLearnMoreClick: (e: React.MouseEvent<HTMLAnchorElement>) => void;
-}
+export function HeroSection() {
+  // Function to handle Learn More button click with effects
+  const handleLearnMoreClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    
+    // Add visual feedback - brief scale effect
+    const button = e.currentTarget;
+    button.style.transform = 'scale(0.95)';
+    
+    setTimeout(() => {
+      button.style.transform = 'scale(1)';
+      
+      // Navigate to about section with smooth scroll
+      const aboutSection = document.getElementById('info-section');
+      if (aboutSection) {
+        aboutSection.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start',
+          inline: 'nearest'
+        });
+        
+        // Add highlight effect to the about section
+        setTimeout(() => {
+          aboutSection.style.transition = 'all 0.8s ease';
+          aboutSection.style.boxShadow = '0 0 30px rgba(88, 123, 154, 0.3)';
+          aboutSection.style.transform = 'scale(1.01)';
+          
+          // Remove highlight after animation
+          setTimeout(() => {
+            aboutSection.style.boxShadow = '';
+            aboutSection.style.transform = '';
+          }, 1500);
+        }, 800);
+      }
+    }, 150);
+  };
 
-export function HeroSection({ handleLearnMoreClick }: HeroSectionProps) {
   return (
     <section 
       id="hero-intro-section" 

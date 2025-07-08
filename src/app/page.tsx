@@ -38,38 +38,6 @@ export default function Home() {
     { src: "/image-3.png", alt: "Doctor Interface" },
   ], []);
 
-  // Function to handle Learn More button click with effects
-  const handleLearnMoreClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    
-    const button = e.currentTarget;
-    button.style.transform = 'scale(0.95)';
-    
-    setTimeout(() => {
-      button.style.transform = 'scale(1)';
-      
-      const aboutSection = document.getElementById('info-section');
-      if (aboutSection) {
-        aboutSection.scrollIntoView({ 
-          behavior: 'smooth',
-          block: 'start',
-          inline: 'nearest'
-        });
-        
-        setTimeout(() => {
-          aboutSection.style.transition = 'all 0.8s ease';
-          aboutSection.style.boxShadow = '0 0 30px rgba(88, 123, 154, 0.3)';
-          aboutSection.style.transform = 'scale(1.01)';
-          
-          setTimeout(() => {
-            aboutSection.style.boxShadow = '';
-            aboutSection.style.transform = '';
-          }, 1500);
-        }, 800);
-      }
-    }, 150);
-  };
-
   // Add state to track text animation completion
   const [textAnimationsComplete, setTextAnimationsComplete] = useState(false);
   const [case0AnimationCompleted, setCase0AnimationCompleted] = useState(false);
@@ -191,7 +159,7 @@ export default function Home() {
         />
 
         {/* Hero/Intro Section - Main introduction with VisHeart branding and key features */}
-        <HeroSection handleLearnMoreClick={handleLearnMoreClick} />
+        <HeroSection />
 
         {/* About/Key Benefits Section - Detailed information and benefits */}
         <AboutUsSection />
