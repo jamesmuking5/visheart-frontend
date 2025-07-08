@@ -386,8 +386,6 @@ export default function AdminPageUserManagement() {
   );
 
   const fetchUsers = useCallback(async () => {
-    if (currentUser?.role !== "admin") return;
-
     try {
       setIsLoading(true);
       setError(null);
@@ -407,7 +405,7 @@ export default function AdminPageUserManagement() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentUser?.role]);
+  }, []);
 
   useEffect(() => {
     if (!authLoading) {
@@ -495,20 +493,6 @@ export default function AdminPageUserManagement() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <RefreshCw className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
-  if (currentUser?.role !== "admin") {
-    return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center text-red-500">
-          <AlertCircle className="mr-2 h-6 w-6" />
-          <h1 className="text-2xl font-bold">Access Denied</h1>
-        </div>
-        <p className="text-muted-foreground mt-4 text-center">
-          You do not have permission to view this page.
-        </p>
       </div>
     );
   }

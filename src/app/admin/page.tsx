@@ -1,17 +1,23 @@
 "use client";
 
 import { useAuth } from "@/context/auth-context";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Users, 
-  Shield, 
-  Activity, 
-  TrendingUp, 
+import {
+  Users,
+  Shield,
+  Activity,
+  TrendingUp,
   Clock,
   CheckCircle2,
   AlertTriangle,
-  Info
+  Info,
 } from "lucide-react";
 
 // Mock data - replace with real API calls
@@ -21,7 +27,7 @@ const systemStats = {
   adminUsers: 4,
   systemHealth: "Excellent",
   uptime: "99.9%",
-  lastUpdate: "2 hours ago"
+  lastUpdate: "2 hours ago",
 };
 
 const recentActivities = [
@@ -30,28 +36,28 @@ const recentActivities = [
     action: "User registration",
     user: "john.doe@example.com",
     timestamp: "5 minutes ago",
-    type: "info" as const
+    type: "info" as const,
   },
   {
     id: 2,
     action: "Admin login",
     user: "admin@visheart.com",
-    timestamp: "15 minutes ago", 
-    type: "success" as const
+    timestamp: "15 minutes ago",
+    type: "success" as const,
   },
   {
     id: 3,
     action: "System backup completed",
     user: "System",
     timestamp: "1 hour ago",
-    type: "success" as const
+    type: "success" as const,
   },
   {
     id: 4,
     action: "High CPU usage detected",
     user: "System Monitor",
     timestamp: "2 hours ago",
-    type: "warning" as const
+    type: "warning" as const,
   },
 ];
 
@@ -61,7 +67,7 @@ const quickActions = [
     description: "Create a new user account",
     href: "/admin/user-management",
     icon: Users,
-    variant: "default" as const
+    variant: "default" as const,
   },
   {
     title: "System Backup",
@@ -69,21 +75,21 @@ const quickActions = [
     href: "/admin/database",
     icon: Shield,
     variant: "secondary" as const,
-    disabled: true
+    disabled: true,
   },
   {
     title: "View Reports",
     description: "Check system analytics",
-    href: "/admin/analytics", 
+    href: "/admin/analytics",
     icon: TrendingUp,
     variant: "secondary" as const,
-    disabled: true
-  }
+    disabled: true,
+  },
 ];
 
 /**
  * Admin Dashboard Home Page
- * 
+ *
  * Provides an overview of system status, quick actions, and recent activities.
  * This is the landing page when users navigate to /admin.
  */
@@ -108,11 +114,11 @@ export default function AdminPageHome() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{systemStats.totalUsers}</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               +12% from last month
             </p>
           </CardContent>
@@ -122,13 +128,11 @@ export default function AdminPageHome() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <Activity className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{systemStats.activeUsers}</div>
-            <p className="text-xs text-muted-foreground">
-              Currently online
-            </p>
+            <p className="text-muted-foreground text-xs">Currently online</p>
           </CardContent>
         </Card>
 
@@ -142,7 +146,7 @@ export default function AdminPageHome() {
             <div className="text-2xl font-bold text-green-600">
               {systemStats.systemHealth}
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               All systems operational
             </p>
           </CardContent>
@@ -152,13 +156,11 @@ export default function AdminPageHome() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Uptime</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <TrendingUp className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{systemStats.uptime}</div>
-            <p className="text-xs text-muted-foreground">
-              Last 30 days
-            </p>
+            <p className="text-muted-foreground text-xs">Last 30 days</p>
           </CardContent>
         </Card>
       </div>
@@ -180,7 +182,7 @@ export default function AdminPageHome() {
             <div className="space-y-4">
               {recentActivities.map((activity) => (
                 <div key={activity.id} className="flex items-start space-x-3">
-                  <div className="flex-shrink-0 mt-1">
+                  <div className="mt-1 flex-shrink-0">
                     {activity.type === "success" && (
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
                     )}
@@ -191,16 +193,16 @@ export default function AdminPageHome() {
                       <Info className="h-4 w-4 text-blue-600" />
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-foreground text-sm font-medium">
                       {activity.action}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-muted-foreground text-sm">
                       {activity.user}
                     </p>
                   </div>
                   <div className="flex-shrink-0">
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground text-xs">
                       {activity.timestamp}
                     </span>
                   </div>
@@ -214,9 +216,7 @@ export default function AdminPageHome() {
         <Card>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>
-              Common administrative tasks
-            </CardDescription>
+            <CardDescription>Common administrative tasks</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -225,19 +225,19 @@ export default function AdminPageHome() {
                 return (
                   <div
                     key={action.title}
-                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                    className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
                       action.disabled
-                        ? "opacity-50 cursor-not-allowed bg-muted/50"
+                        ? "bg-muted/50 cursor-not-allowed opacity-50"
                         : "hover:bg-muted/50 cursor-pointer"
                     }`}
                   >
                     <div className="flex items-center space-x-3">
                       <div className="flex-shrink-0">
-                        <Icon className="h-5 w-5 text-muted-foreground" />
+                        <Icon className="text-muted-foreground h-5 w-5" />
                       </div>
                       <div>
                         <p className="text-sm font-medium">{action.title}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-muted-foreground text-xs">
                           {action.description}
                         </p>
                       </div>
@@ -258,7 +258,7 @@ export default function AdminPageHome() {
       {/* System Information Footer */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <div className="text-muted-foreground flex items-center justify-between text-sm">
             <span>VisHeart Admin Panel v1.0.0</span>
             <span>Last updated: {systemStats.lastUpdate}</span>
           </div>

@@ -18,13 +18,14 @@
 
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRoles?: string[];
   redirectTo?: string;
   fallback?: React.ReactNode;
+  autoRedirect?: boolean; // New prop to control auto-redirection
 }
 
 export function ProtectedRoute({
@@ -32,25 +33,50 @@ export function ProtectedRoute({
   allowedRoles = ["user", "admin"],
   redirectTo = "/",
   fallback,
+  autoRedirect = false, // Default to false to prevent automatic redirects
 }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [shouldRedirect, setShouldRedirect] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push(redirectTo);
-    } else if (
-      !loading &&
-      user &&
-      allowedRoles.length > 0 &&
-      !allowedRoles.includes(user.role)
-    ) {
-      router.push(redirectTo);
+    if (!loading && autoRedirect) {
+      if (!user) {
+        setShouldRedirect(true);
+        router.push(redirectTo);
+      } else if (
+        user &&
+        allowedRoles.length > 0 &&
+        !allowedRoles.includes(user.role)
+      ) {
+        setShouldRedirect(true);
+        router.push(redirectTo);
+      }
     }
-  }, [user, loading, router, allowedRoles, redirectTo]);
+  }, [user, loading, router, allowedRoles, redirectTo, autoRedirect]);
 
+  // Show loading state during auth check
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="flex items-center space-x-2">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+          <span className="text-sm text-gray-600">Checking permissions...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state during redirect
+  if (shouldRedirect) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="flex items-center space-x-2">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+          <span className="text-sm text-gray-600">Redirecting...</span>
+        </div>
+      </div>
+    );
   }
 
   if (!user) {
@@ -72,8 +98,50 @@ export function AdminOnly({
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }) {
+  const defaultFallback = (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="w-full max-w-md space-y-4 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
+          <svg
+            className="h-8 w-8 text-red-600 dark:text-red-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.314 18.5c-.77.833.192 2.5 1.732 2.5z"
+            />
+          </svg>
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Access Restricted
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            This area is restricted to administrators only. If you need access,
+            please contact your system administrator.
+          </p>
+        </div>
+        <div className="pt-4">
+          <button
+            onClick={() => window.history.back()}
+            className="inline-flex items-center rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+          >
+            ← Go Back
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
-    <ProtectedRoute allowedRoles={["admin"]} fallback={fallback}>
+    <ProtectedRoute
+      allowedRoles={["admin"]}
+      fallback={fallback || defaultFallback}
+    >
       {children}
     </ProtectedRoute>
   );

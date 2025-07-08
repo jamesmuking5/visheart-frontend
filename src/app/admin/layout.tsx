@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import type { Metadata } from "next";
 import {
   Shield,
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { AdminOnly } from "@/components/ProtectedRoute";
 
 // Define admin navigation structure for scalability
 const adminNavigation = [
@@ -63,8 +65,19 @@ const adminNavigation = [
 
 // Generate breadcrumb items based on current path
 function generateBreadcrumbs(pathname: string) {
+  if (process.env.NEXT_PUBLIC_ENV === "development") {
+    console.log(
+      "🍞 [AdminLayout] Generating breadcrumbs for pathname:",
+      pathname,
+    );
+  }
+
   const paths = pathname.split("/").filter(Boolean);
   const breadcrumbs = [];
+
+  if (process.env.NEXT_PUBLIC_ENV === "development") {
+    console.log("🍞 [AdminLayout] Split paths:", paths);
+  }
 
   // Always start with Admin root
   breadcrumbs.push({
@@ -76,15 +89,28 @@ function generateBreadcrumbs(pathname: string) {
   // Add sub-paths
   if (paths.length > 1) {
     const subPath = paths[1];
+    if (process.env.NEXT_PUBLIC_ENV === "development") {
+      console.log("🍞 [AdminLayout] Looking for subPath:", subPath);
+    }
+
     const navItem = adminNavigation.find((item) => item.href.includes(subPath));
 
     if (navItem) {
+      if (process.env.NEXT_PUBLIC_ENV === "development") {
+        console.log("🍞 [AdminLayout] Found navItem:", navItem.title);
+      }
       breadcrumbs.push({
         label: navItem.title,
         href: navItem.href,
         isActive: pathname === navItem.href,
       });
+    } else if (process.env.NEXT_PUBLIC_ENV === "development") {
+      console.warn("⚠️ [AdminLayout] No navItem found for subPath:", subPath);
     }
+  }
+
+  if (process.env.NEXT_PUBLIC_ENV === "development") {
+    console.log("🍞 [AdminLayout] Final breadcrumbs:", breadcrumbs);
   }
 
   return breadcrumbs;
@@ -98,8 +124,21 @@ function AdminNavigationCard({
   item: (typeof adminNavigation)[0];
   isActive: boolean;
 }) {
+  if (process.env.NEXT_PUBLIC_ENV === "development") {
+    console.log(
+      "🃏 [AdminNavigationCard] Rendering card for:",
+      item.title,
+      "isActive:",
+      isActive,
+    );
+  }
+
   const Icon = item.icon;
   const isComingSoon = item.status === "coming-soon";
+
+  if (process.env.NEXT_PUBLIC_ENV === "development" && isComingSoon) {
+    console.log("🚧 [AdminNavigationCard] Coming soon card:", item.title);
+  }
 
   const cardContent = (
     <Card
@@ -165,96 +204,136 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+
+  if (process.env.NEXT_PUBLIC_ENV === "development") {
+    console.log("🏛️ [AdminLayout] Rendering layout for pathname:", pathname);
+    console.log("🏛️ [AdminLayout] Environment:", process.env.NEXT_PUBLIC_ENV);
+    console.log("🏛️ [AdminLayout] API URL:", process.env.NEXT_PUBLIC_API_URL);
+  }
+
   const breadcrumbs = generateBreadcrumbs(pathname);
   const isAdminRoot = pathname === "/admin";
 
-  return (
-    <div className="min-h-screen bg-gray-50/30 dark:bg-gray-950/30">
-      {/* Admin Panel Header - Compact and non-sticky */}
-      <div className="bg-background border-border border-b">
-        <div className="container mx-auto px-6 py-3">
-          {/* Compact header with title and breadcrumbs */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="rounded-md bg-blue-100 p-1.5 dark:bg-blue-900/20">
-                <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h1 className="text-foreground text-lg font-semibold">
-                Admin Panel
-              </h1>
-            </div>
+  if (process.env.NEXT_PUBLIC_ENV === "development") {
+    console.log("🏛️ [AdminLayout] isAdminRoot:", isAdminRoot);
+  }
 
-            {/* Breadcrumb navigation inline with header */}
-            <Breadcrumb>
-              <BreadcrumbList>
-                {breadcrumbs.map((crumb, index) => (
-                  <BreadcrumbItem key={crumb.href}>
-                    {crumb.isActive ? (
-                      <BreadcrumbPage className="text-sm font-medium">
-                        {crumb.label}
-                      </BreadcrumbPage>
-                    ) : (
-                      <BreadcrumbLink asChild>
-                        <Link
-                          href={crumb.href}
-                          className="hover:text-foreground text-sm transition-colors"
-                        >
-                          {crumb.label}
-                        </Link>
-                      </BreadcrumbLink>
-                    )}
-                    {index < breadcrumbs.length - 1 && <BreadcrumbSeparator />}
-                  </BreadcrumbItem>
-                ))}
-              </BreadcrumbList>
-            </Breadcrumb>
+  return (
+    // Use ProtectedRoute to ensure only admins can access this layout
+    <AdminOnly>
+      {process.env.NEXT_PUBLIC_ENV === "development" && (
+        <div className="fixed top-0 left-0 z-50 rounded-br border border-yellow-300 bg-yellow-100 px-2 py-1 text-xs text-yellow-800">
+          DEV: Admin Layout - {pathname}
+        </div>
+      )}
+      <div className="min-h-screen bg-gray-50/30 dark:bg-gray-950/30">
+        {/* Admin Panel Header - Compact and non-sticky */}
+        <div className="bg-background border-border border-b">
+          <div className="container mx-auto px-6 py-3">
+            {/* Compact header with title and breadcrumbs */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="rounded-md bg-blue-100 p-1.5 dark:bg-blue-900/20">
+                  <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h1 className="text-foreground text-lg font-semibold">
+                  Admin Panel
+                </h1>
+              </div>
+
+              {/* Breadcrumb navigation inline with header */}
+              <Breadcrumb>
+                <BreadcrumbList>
+                  {breadcrumbs.map((crumb, index) => (
+                    <React.Fragment key={crumb.href}>
+                      <BreadcrumbItem>
+                        {crumb.isActive ? (
+                          <BreadcrumbPage className="text-sm font-medium">
+                            {crumb.label}
+                          </BreadcrumbPage>
+                        ) : (
+                          <BreadcrumbLink asChild>
+                            <Link
+                              href={crumb.href}
+                              className="hover:text-foreground text-sm transition-colors"
+                            >
+                              {crumb.label}
+                            </Link>
+                          </BreadcrumbLink>
+                        )}
+                      </BreadcrumbItem>
+                      {index < breadcrumbs.length - 1 && (
+                        <BreadcrumbSeparator />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
           </div>
         </div>
+
+        {/* Main content area with proper spacing and responsive design */}
+        <main className="container mx-auto px-6 py-8">
+          {isAdminRoot ? (
+            // Admin dashboard with navigation cards
+            <div className="space-y-8">
+              {process.env.NEXT_PUBLIC_ENV === "development" &&
+                console.log("🏠 [AdminLayout] Rendering admin dashboard cards")}
+              {/* Welcome section */}
+              <div className="space-y-2 text-center">
+                <h2 className="text-3xl font-bold tracking-tight">
+                  Welcome to the Admin Dashboard
+                </h2>
+                <p className="text-muted-foreground mx-auto max-w-2xl">
+                  Manage your VisHeart system efficiently with our comprehensive
+                  admin tools. Select a module below to get started.
+                </p>
+              </div>
+
+              {/* Navigation grid - responsive layout */}
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {adminNavigation.map((item) => {
+                  if (process.env.NEXT_PUBLIC_ENV === "development") {
+                    console.log(
+                      "🗂️ [AdminLayout] Rendering navigation card:",
+                      item.title,
+                    );
+                  }
+                  return (
+                    <AdminNavigationCard
+                      key={item.href}
+                      item={item}
+                      isActive={pathname === item.href}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Quick stats or additional info could go here */}
+              <div className="mt-12 rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-950/20">
+                <h3 className="mb-2 font-semibold text-blue-900 dark:text-blue-100">
+                  🚀 System Status
+                </h3>
+                <p className="text-sm text-blue-700 dark:text-blue-300">
+                  All admin modules are operational. New features are being
+                  developed and will be available soon.
+                </p>
+              </div>
+            </div>
+          ) : (
+            // Render child pages (like user-management)
+            <div className="space-y-6">
+              {process.env.NEXT_PUBLIC_ENV === "development" &&
+                console.log(
+                  "📄 [AdminLayout] Rendering child page for:",
+                  pathname,
+                )}
+              {children}
+            </div>
+          )}
+        </main>
       </div>
-
-      {/* Main content area with proper spacing and responsive design */}
-      <main className="container mx-auto px-6 py-8">
-        {isAdminRoot ? (
-          // Admin dashboard with navigation cards
-          <div className="space-y-8">
-            {/* Welcome section */}
-            <div className="space-y-2 text-center">
-              <h2 className="text-3xl font-bold tracking-tight">
-                Welcome to the Admin Dashboard
-              </h2>
-              <p className="text-muted-foreground mx-auto max-w-2xl">
-                Manage your VisHeart system efficiently with our comprehensive
-                admin tools. Select a module below to get started.
-              </p>
-            </div>
-
-            {/* Navigation grid - responsive layout */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {adminNavigation.map((item) => (
-                <AdminNavigationCard
-                  key={item.href}
-                  item={item}
-                  isActive={pathname === item.href}
-                />
-              ))}
-            </div>
-
-            {/* Quick stats or additional info could go here */}
-            <div className="mt-12 rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-950/20">
-              <h3 className="mb-2 font-semibold text-blue-900 dark:text-blue-100">
-                🚀 System Status
-              </h3>
-              <p className="text-sm text-blue-700 dark:text-blue-300">
-                All admin modules are operational. New features are being
-                developed and will be available soon.
-              </p>
-            </div>
-          </div>
-        ) : (
-          // Render child pages (like user-management)
-          <div className="space-y-6">{children}</div>
-        )}
-      </main>
-    </div>
+    </AdminOnly>
   );
 }
