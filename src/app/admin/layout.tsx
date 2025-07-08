@@ -104,10 +104,6 @@ function AdminNavigationCard({
   const Icon = item.icon;
   const isComingSoon = item.status === "coming-soon";
 
-  if (process.env.NEXT_PUBLIC_ENV === "development" && isComingSoon) {
-    console.log("🚧 [AdminNavigationCard] Coming soon card:", item.title);
-  }
-
   const cardContent = (
     <Card
       className={cn(
@@ -231,8 +227,6 @@ export default function AdminLayout({
           {isAdminRoot ? (
             // Admin dashboard with navigation cards
             <div className="space-y-8">
-              {process.env.NEXT_PUBLIC_ENV === "development" &&
-                console.log("🏠 [AdminLayout] Rendering admin dashboard cards")}
               {/* Welcome section */}
               <div className="space-y-2 text-center">
                 <h2 className="text-3xl font-bold tracking-tight">
@@ -270,14 +264,7 @@ export default function AdminLayout({
             </div>
           ) : (
             // Render child pages (like user-management)
-            <div className="space-y-6">
-              {process.env.NEXT_PUBLIC_ENV === "development" &&
-                console.log(
-                  "📄 [AdminLayout] Rendering child page for:",
-                  pathname,
-                )}
-              {children}
-            </div>
+            <div className="space-y-6">{children}</div>
           )}
         </main>
       </div>
