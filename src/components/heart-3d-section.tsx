@@ -1017,6 +1017,101 @@ export function Heart3DSection({
   setCase0AnimationCompleted
 }: Heart3DSectionProps) {
 
+    // Animation advancement logic - moved from page.tsx
+  const advanceAnimation = () => {
+    console.log('Current segment before advance:', currentAnimationSegment);
+    
+    if (currentAnimationSegment === 0 && !textAnimationsComplete) {
+      console.log('Text animations not complete yet - blocking advancement');
+      return;
+    }
+    
+    if (currentAnimationSegment < 4) {
+      const newSegment = currentAnimationSegment + 1;
+      console.log('Advancing to segment:', newSegment);
+      setCurrentAnimationSegment(newSegment);
+      setAnimationPaused(false);
+      
+      if (currentAnimationSegment === 0) {
+        setShowInteractionPrompt(false);
+      }
+    } else {
+      console.log('Animation complete, but keeping ECG visible');
+      setShowInteractionPrompt(false);
+      
+      setTimeout(() => {
+        setHasPlayedWelcome(true);
+      }, 5000);
+    }
+  };
+  
+  // Update the keyboard and click event listeners - moved from page.tsx
+  useEffect(() => {
+    const handleInteraction = (e: KeyboardEvent | MouseEvent) => {
+      if (hasPlayedWelcome) return;
+      
+      if (currentAnimationSegment === 0 && !textAnimationsComplete) {
+        console.log('Blocking interaction - text animations still running');
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
+      
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (e.type === 'keydown') {
+        const keyEvent = e as KeyboardEvent;
+        if (keyEvent.code === 'Enter' || keyEvent.code === 'Space') {
+          console.log('Keyboard interaction detected:', keyEvent.code);
+          advanceAnimation();
+        }
+      } else if (e.type === 'click') {
+        console.log('Click interaction detected');
+        advanceAnimation();
+      }
+    };
+  
+    if (!hasPlayedWelcome) {
+      console.log('Adding event listeners, current segment:', currentAnimationSegment);
+      document.addEventListener('keydown', handleInteraction, { passive: false });
+      document.addEventListener('click', handleInteraction, { passive: false });
+    }
+  
+    return () => {
+      document.removeEventListener('keydown', handleInteraction);
+      document.removeEventListener('click', handleInteraction);
+    };
+  }, [currentAnimationSegment, hasPlayedWelcome, textAnimationsComplete, advanceAnimation]);
+    
+  // Reset text animations state when component mounts - moved from page.tsx
+  useEffect(() => {
+    if (currentAnimationSegment === 0) {
+      setTextAnimationsComplete(false);
+    }
+  }, [currentAnimationSegment, setTextAnimationsComplete]);
+  
+  // Add this useEffect after case 0 completes - moved from page.tsx
+  useEffect(() => {
+    if (case0AnimationCompleted) {
+      // Force final static state via CSS
+      const text1 = document.getElementById('dramatic-text-1');
+      const text2 = document.getElementById('dramatic-text-2');
+      
+      if (text1) {
+        text1.style.opacity = '1';
+        text1.style.transform = 'translateY(0px)';
+        text1.style.pointerEvents = 'none';
+      }
+      
+      if (text2) {
+        text2.style.opacity = '1';
+        text2.style.transform = 'translateY(0px)';
+        text2.style.pointerEvents = 'none';
+      }
+    }
+  }, [case0AnimationCompleted]);
+
   return (
     <section 
       id="heart-3d-section" 
