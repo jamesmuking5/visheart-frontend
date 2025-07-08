@@ -1,44 +1,41 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
-import Link from 'next/link';
-import Image from "next/image";
-import { motion, AnimatePresence } from 'framer-motion';
-import { OrbitControls, useGLTF } from '@react-three/drei';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+// --- Animation Library Imports ---
+import { motion, AnimatePresence } from 'framer-motion';
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-// --- Component Imports ---
+// --- 3D and Canvas Imports ---
+import { OrbitControls, useGLTF, useTexture, PerspectiveCamera } from '@react-three/drei';
+import * as THREE from 'three';
+import { Canvas, useFrame } from '@react-three/fiber';
+
+// --- UI Component Imports ---
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+
+// --- Page Section Component Imports ---
 import { HeroSection } from '@/components/hero-section';
 import { AboutUsSection } from '@/components/about-us-section'; 
 import { ServicesSection } from '@/components/services-section';
 import { FaqSection } from "@/components/faq-section";
 import { GallerySection } from "@/components/gallery-section";
 import { ContactSection } from "@/components/contact-section"; 
-import { Commands } from '@/components/commands';
 
-// --- 3D Imports ---
-import * as THREE from 'three';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { useTexture, PerspectiveCamera } from '@react-three/drei';
-
+// Register the GSAP ScrollTrigger plugin if in a browser environment
 if (typeof window !== 'undefined') {
   gsap.registerPlugin(ScrollTrigger); // <-- Register the plugin
 }
 
 // --- 3D Gallery Components (defined within the page) ---
-
 // This component represents a single image plane in the 3D scene
 function ImagePlane({ url, ...props }: { url: string } & JSX.IntrinsicElements['mesh']) {
   const texture = useTexture(url);
