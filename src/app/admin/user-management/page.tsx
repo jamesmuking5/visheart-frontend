@@ -590,7 +590,7 @@ export default function AdminPageUserManagement() {
                         placeholder="Search by username, email, or phone..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="h-10 pl-10"
+                        className="h-8 pl-10"
                         disabled={!showFilters}
                       />
                       {searchTerm && searchTerm !== debouncedSearchTerm && (

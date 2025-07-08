@@ -179,11 +179,6 @@ export default function AdminLayout({
   return (
     // Use ProtectedRoute to ensure only admins can access this layout
     <AdminOnly>
-      {process.env.NEXT_PUBLIC_ENV === "development" && (
-        <div className="fixed top-0 left-0 z-50 rounded-br border border-yellow-300 bg-yellow-100 px-2 py-1 text-xs text-yellow-800">
-          DEV: Admin Layout - {pathname}
-        </div>
-      )}
       <div className="min-h-screen bg-gray-50/30 dark:bg-gray-950/30">
         {/* Admin Panel Header - Compact and non-sticky */}
         <div className="bg-background border-border border-b">
