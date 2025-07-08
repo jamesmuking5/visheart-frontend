@@ -31,13 +31,6 @@ export default function Home() {
   const [animationPaused, setAnimationPaused] = useState(false);
   const [showInteractionPrompt, setShowInteractionPrompt] = useState(true);
 
-  // Define the images for the 3D gallery here using useMemo for stability
-  const gallery3DImages = useMemo(() => [
-    { src: "/image-1.png", alt: "Cardiac MRI Scan" },
-    { src: "/image-2.png", alt: "High-Reso Cardiac MRI Scan" },
-    { src: "/image-3.png", alt: "Doctor Interface" },
-  ], []);
-
   // Add state to track text animation completion
   const [textAnimationsComplete, setTextAnimationsComplete] = useState(false);
   const [case0AnimationCompleted, setCase0AnimationCompleted] = useState(false);
@@ -176,9 +169,8 @@ export default function Home() {
         {/* Contact Section */}
         <ContactSection />
 
-        {/* --- NEW 3D GALLERY SECTION --- */}
-        <InteractiveGallerySection images={gallery3DImages} />
-
+        {/* --- 3D Interactive Gallery Section --- */}
+        <InteractiveGallerySection/>
       </main>
 
       {/* Floating Command Search Button */}

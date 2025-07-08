@@ -113,6 +113,13 @@ function ThreeDGallery({ images, trigger }: { images: { src: string; alt: string
 export function InteractiveGallerySection({ images }: { images: { src: string; alt: string }[] }) {
   const sectionRef = useRef<HTMLDivElement>(null);
 
+  // Define the images for the 3D gallery here
+  const gallery3DImages = useMemo(() => [
+    { src: "/image-1.png", alt: "Cardiac MRI Scan" },
+    { src: "/image-2.png", alt: "High-Reso Cardiac MRI Scan" },
+    { src: "/image-3.png", alt: "Doctor Interface" },
+  ], []);
+
   return (
     <section className="bg-gradient-to-br from-background to-muted">
       <div className="py-24 px-8">
@@ -134,7 +141,7 @@ export function InteractiveGallerySection({ images }: { images: { src: string; a
 
       <div ref={sectionRef} id="3d-gallery-section" className="relative h-[150vh] w-full">
         <div className="sticky top-0 h-screen w-full">
-          <ThreeDGallery images={images} trigger={sectionRef.current} />
+          <ThreeDGallery images={gallery3DImages} trigger={sectionRef.current} />
         </div>
       </div>
     </section>
