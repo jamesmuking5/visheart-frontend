@@ -220,7 +220,8 @@ export default function DashboardPage() {
           <div className="text-muted-foreground flex items-center gap-2">
             {getRoleIcon(user.role)}
             <span>
-              Welcome back, {user.role === "guest" ? "Guest User" : user.username}.
+              Welcome back,{" "}
+              {user.role === "guest" ? "Guest User" : user.username}.
             </span>
             <Badge variant="outline" className="ml-2">
               {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
@@ -577,10 +578,21 @@ export default function DashboardPage() {
                       <p className="font-medium">{project.filetype}</p>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Dimensions:</span>
+                      <span
+                        className="text-muted-foreground"
+                        title="In the representation of width * height * slices * frames"
+                      >
+                        Dimensions:
+                      </span>
                       <p className="font-medium">
-                        {project.dimensions.width}x{project.dimensions.height}x
-                        {project.dimensions.depth}
+                        {(() => {
+                          let dimensionStringRepresentation = `${project.dimensions.width}x${project.dimensions.height}`;
+                          if (project.dimensions.slices)
+                            dimensionStringRepresentation += `x${project.dimensions.slices}`;
+                          if (project.dimensions.frames)
+                            dimensionStringRepresentation += `x${project.dimensions.frames}`;
+                          return dimensionStringRepresentation;
+                        })()}
                       </p>
                     </div>
                     <div>

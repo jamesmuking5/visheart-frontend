@@ -14,7 +14,7 @@ export default function ContactLayout({
 }) {
   return (
     /* Keep this minimal for now; add nav, sidebar, etc. later */
-    <section className="mx-auto max-w-3xl p-6">
+    <section className="mx-auto max-w-8xl p-6">
       {children}
     </section>
   );
