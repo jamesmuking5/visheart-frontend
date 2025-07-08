@@ -65,19 +65,8 @@ const adminNavigation = [
 
 // Generate breadcrumb items based on current path
 function generateBreadcrumbs(pathname: string) {
-  if (process.env.NEXT_PUBLIC_ENV === "development") {
-    console.log(
-      "🍞 [AdminLayout] Generating breadcrumbs for pathname:",
-      pathname,
-    );
-  }
-
   const paths = pathname.split("/").filter(Boolean);
   const breadcrumbs = [];
-
-  if (process.env.NEXT_PUBLIC_ENV === "development") {
-    console.log("🍞 [AdminLayout] Split paths:", paths);
-  }
 
   // Always start with Admin root
   breadcrumbs.push({
@@ -89,28 +78,16 @@ function generateBreadcrumbs(pathname: string) {
   // Add sub-paths
   if (paths.length > 1) {
     const subPath = paths[1];
-    if (process.env.NEXT_PUBLIC_ENV === "development") {
-      console.log("🍞 [AdminLayout] Looking for subPath:", subPath);
-    }
 
     const navItem = adminNavigation.find((item) => item.href.includes(subPath));
 
     if (navItem) {
-      if (process.env.NEXT_PUBLIC_ENV === "development") {
-        console.log("🍞 [AdminLayout] Found navItem:", navItem.title);
-      }
       breadcrumbs.push({
         label: navItem.title,
         href: navItem.href,
         isActive: pathname === navItem.href,
       });
-    } else if (process.env.NEXT_PUBLIC_ENV === "development") {
-      console.warn("⚠️ [AdminLayout] No navItem found for subPath:", subPath);
     }
-  }
-
-  if (process.env.NEXT_PUBLIC_ENV === "development") {
-    console.log("🍞 [AdminLayout] Final breadcrumbs:", breadcrumbs);
   }
 
   return breadcrumbs;
@@ -124,15 +101,6 @@ function AdminNavigationCard({
   item: (typeof adminNavigation)[0];
   isActive: boolean;
 }) {
-  if (process.env.NEXT_PUBLIC_ENV === "development") {
-    console.log(
-      "🃏 [AdminNavigationCard] Rendering card for:",
-      item.title,
-      "isActive:",
-      isActive,
-    );
-  }
-
   const Icon = item.icon;
   const isComingSoon = item.status === "coming-soon";
 
@@ -205,18 +173,8 @@ export default function AdminLayout({
 }) {
   const pathname = usePathname();
 
-  if (process.env.NEXT_PUBLIC_ENV === "development") {
-    console.log("🏛️ [AdminLayout] Rendering layout for pathname:", pathname);
-    console.log("🏛️ [AdminLayout] Environment:", process.env.NEXT_PUBLIC_ENV);
-    console.log("🏛️ [AdminLayout] API URL:", process.env.NEXT_PUBLIC_API_URL);
-  }
-
   const breadcrumbs = generateBreadcrumbs(pathname);
   const isAdminRoot = pathname === "/admin";
-
-  if (process.env.NEXT_PUBLIC_ENV === "development") {
-    console.log("🏛️ [AdminLayout] isAdminRoot:", isAdminRoot);
-  }
 
   return (
     // Use ProtectedRoute to ensure only admins can access this layout
@@ -294,12 +252,6 @@ export default function AdminLayout({
               {/* Navigation grid - responsive layout */}
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {adminNavigation.map((item) => {
-                  if (process.env.NEXT_PUBLIC_ENV === "development") {
-                    console.log(
-                      "🗂️ [AdminLayout] Rendering navigation card:",
-                      item.title,
-                    );
-                  }
                   return (
                     <AdminNavigationCard
                       key={item.href}
