@@ -257,19 +257,17 @@ export default function DashboardPage() {
               }`}
             />
             <span className="text-muted-foreground text-sm">
-              {isLoading ? (
-                "GPU Checking..."
-              ) : (
-                `GPU ${
-                  gpuStatus === "unknown"
-                    ? "Unknown"
-                    : gpuStatus === "timeout"
-                      ? "Timeout"
-                      : gpuStatus === "online"
-                        ? "Online"
-                        : "Offline"
-                }`
-              )}
+              {gpuLoading
+                ? "GPU Checking..."
+                : `GPU ${
+                    gpuStatus === "unknown"
+                      ? "Unknown"
+                      : gpuStatus === "timeout"
+                        ? "Timeout"
+                        : gpuStatus === "online"
+                          ? "Online"
+                          : "Offline"
+                  }`}
             </span>
           </div>
         </div>
