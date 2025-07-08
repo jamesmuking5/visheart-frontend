@@ -6,14 +6,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from 'framer-motion';
 import { OrbitControls, useGLTF } from '@react-three/drei';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
+
 import {
   Card,
   CardAction,
@@ -33,6 +26,7 @@ import { ServicesSection } from '@/components/services-section';
 import { FaqSection } from "@/components/faq-section";
 import { GallerySection } from "@/components/gallery-section";
 import { ContactSection } from "@/components/contact-section"; 
+import { Commands } from '@/components/commands';
 
 // --- 3D Imports ---
 import * as THREE from 'three';
@@ -141,11 +135,7 @@ function ThreeDGallery({ images, trigger }: { images: { src: string; alt: string
   );
 }
 
-export default function Home() { 
-  // State for command dropdown
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [showCommandDropdown, setShowCommandDropdown] = useState(false);
-  
+export default function Home() {   
   // State for initial welcome animation
   const [hasPlayedWelcome, setHasPlayedWelcome] = useState(false);
 
@@ -165,32 +155,6 @@ export default function Home() {
 
   // Feature hover animation
   const [activeFeature, setActiveFeature] = useState<number | null>(null);
-
-  // Navigation function
-  const navigateToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-      setShowCommandDropdown(false);
-    }
-  };
-
-  // Function to navigate to contact form
-  const navigateToContactForm = () => {
-    // First scroll to contact section
-    const contactSection = document.getElementById('contact-section');
-    if (contactSection) {
-      contactSection.scrollIntoView({ behavior: 'smooth' });
-      
-      // Wait for scroll to complete, then switch to form tab
-      setTimeout(() => {
-        const formTab = document.querySelector('[value="form"]') as HTMLElement;
-        if (formTab) {
-          formTab.click();
-        }
-      }, 1000);
-    }
-  };
 
   // Function to handle Learn More button click with effects
   const handleLearnMoreClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -263,6 +227,7 @@ export default function Home() {
       }, 5000); // Keep ECG visible for 5 more seconds after VisHeart
     }
   };
+  
   // Update the keyboard and click event listeners
   useEffect(() => {
     const handleInteraction = (e: KeyboardEvent | MouseEvent) => {
@@ -1277,6 +1242,7 @@ export default function Home() {
       />
     );
   }
+  
 // Add this state at the top of your component
 const [case0AnimationCompleted, setCase0AnimationCompleted] = useState(false);
     // Add this useEffect after case 0 completes
@@ -1299,18 +1265,6 @@ const [case0AnimationCompleted, setCase0AnimationCompleted] = useState(false);
       }
     }
   }, [case0AnimationCompleted]);
-
-  // Keyboard shortcut to open command
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.metaKey && e.key === 'k') {
-        e.preventDefault();
-        setDropdownOpen(!dropdownOpen);
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [dropdownOpen]);
 
   return (
     <>
@@ -1599,61 +1553,7 @@ const [case0AnimationCompleted, setCase0AnimationCompleted] = useState(false);
       </main>
 
       {/* Floating Command Search Button */}
-      <div className="fixed top-20 right-15 z-50">
-        <div className="relative">
-          <button
-            onMouseEnter={() => setShowCommandDropdown(true)}
-            onMouseLeave={() => setShowCommandDropdown(false)}
-            className="bg-black dark:bg-white text-white dark:text-black border border-border hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors duration-200 rounded-full p-4 shadow-lg"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-          
-          {/* Command Dropdown */}
-          <AnimatePresence>
-            {showCommandDropdown && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2 }}
-                className="absolute top-full right-0 mt-2 w-64 bg-background border border-border rounded-lg shadow-lg overflow-hidden"
-                onMouseEnter={() => setShowCommandDropdown(true)}
-                onMouseLeave={() => setShowCommandDropdown(false)}
-              >
-                <Command className="w-full">
-                  <CommandInput placeholder="Search sections..." className="border-0" />
-                  <CommandList>
-                    <CommandEmpty>No results found.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem onSelect={() => navigateToSection('hero-intro-section')}>
-                        <span>Home</span>
-                      </CommandItem>
-                      <CommandItem onSelect={() => navigateToSection('info-section')}>
-                        <span>About Us</span>
-                      </CommandItem>
-                      <CommandItem onSelect={() => navigateToSection('services-section')}>
-                        <span>Services</span>
-                      </CommandItem>
-                      <CommandItem onSelect={() => navigateToSection('faq-section')}>
-                        <span>FAQ</span>
-                      </CommandItem>
-                      <CommandItem onSelect={() => navigateToSection('gallery-section')}>
-                        <span>Gallery</span>
-                      </CommandItem>
-                      <CommandItem onSelect={() => navigateToSection('contact-section')}>
-                        <span>Contact</span>
-                      </CommandItem>
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
+      <Commands />
     </>
   );
 }
