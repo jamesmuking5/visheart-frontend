@@ -181,14 +181,17 @@ export default function AdminLayout({
           <div className="container mx-auto px-6 py-3">
             {/* Compact header with title and breadcrumbs */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="rounded-md bg-blue-100 p-1.5 dark:bg-blue-900/20">
-                  <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+              <Link 
+                href="/admin" 
+                className="flex items-center gap-2 rounded-lg p-2 -m-2 transition-all duration-200 hover:bg-blue-50 hover:scale-105 dark:hover:bg-blue-950/30"
+              >
+                <div className="rounded-md bg-blue-100 p-1.5 dark:bg-blue-900/20 transition-colors duration-200 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40">
+                  <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400 transition-colors duration-200" />
                 </div>
-                <h1 className="text-foreground text-lg font-semibold">
+                <h1 className="text-foreground text-lg font-semibold transition-colors duration-200 hover:text-blue-600 dark:hover:text-blue-400">
                   Admin Panel
                 </h1>
-              </div>
+              </Link>
 
               {/* Breadcrumb navigation inline with header */}
               <Breadcrumb>

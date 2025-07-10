@@ -24,10 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Activity,
   AlertCircle,
   Brain,
-  Calendar,
   Download,
   FolderOpen,
   Heart,
@@ -380,41 +378,27 @@ export default function DashboardPage() {
               </ShowForUser>
 
               <ShowForUser fallback={null}>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    // Navigate to projects tab
-                    const tabsElement = document.querySelector(
-                      '[data-state="active"][value="projects"]',
-                    );
-                    if (tabsElement) {
-                      (tabsElement as HTMLElement).click();
-                    }
-                  }}
-                >
-                  <Brain className="mr-2 h-4 w-4" />
-                  Start Segmentation
-                </Button>
+                <Link href="/projects">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                  >
+                    <Brain className="mr-2 h-4 w-4" />
+                    Start Segmentation
+                  </Button>
+                </Link>
               </ShowForUser>
 
               <ShowForUser fallback={null}>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    // Navigate to segmentation tab
-                    const tabsElement = document.querySelector(
-                      '[data-state="active"][value="segmentation"]',
-                    );
-                    if (tabsElement) {
-                      (tabsElement as HTMLElement).click();
-                    }
-                  }}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Export Results
-                </Button>
+                <Link href="/results">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Export Results
+                  </Button>
+                </Link>
               </ShowForUser>
 
               <Link href="/profile">
@@ -644,17 +628,116 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Segmentation content would go here */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Segmentation Tasks</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                Segmentation management interface coming soon.
-              </p>
-            </CardContent>
-          </Card>
+          {/* Segmentation Jobs Display */}
+          <div className="grid gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Active Segmentation Jobs</CardTitle>
+                <CardDescription>Track your ongoing segmentation tasks</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {recentJobs.filter(job => job.status === "processing" || job.status === "pending").map((job) => {
+                  const statusDisplay = getStatusDisplay(job.status);
+                  const StatusIcon = statusDisplay.icon;
+
+                  return (
+                    <div
+                      key={job.jobId}
+                      className="flex items-center justify-between rounded-lg border p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`rounded-full p-2 ${statusDisplay.bg}`}>
+                          <StatusIcon
+                            className={`h-4 w-4 ${statusDisplay.color}`}
+                          />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">
+                            Job {job.jobId.slice(-8)}
+                          </p>
+                          <p className="text-muted-foreground text-xs">
+                            {job.message}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className={statusDisplay.color}>
+                        {job.status}
+                      </Badge>
+                    </div>
+                  );
+                })}
+                {recentJobs.filter(job => job.status === "processing" || job.status === "pending").length === 0 && (
+                  <div className="text-center py-8">
+                    <Brain className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                    <h3 className="mt-4 text-lg font-semibold">No Active Jobs</h3>
+                    <p className="text-muted-foreground">
+                      Start a segmentation task from your projects to see active jobs here.
+                    </p>
+                    <ShowForUser fallback={null}>
+                      <Link href="/projects">
+                        <Button className="mt-4">
+                          <Brain className="mr-2 h-4 w-4" />
+                          Start Segmentation
+                        </Button>
+                      </Link>
+                    </ShowForUser>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Completed Jobs History */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Results</CardTitle>
+                <CardDescription>Your completed segmentation tasks</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {recentJobs.filter(job => job.status === "completed").slice(0, 3).map((job) => {
+                  const statusDisplay = getStatusDisplay(job.status);
+                  const StatusIcon = statusDisplay.icon;
+
+                  return (
+                    <div
+                      key={job.jobId}
+                      className="flex items-center justify-between rounded-lg border p-3"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`rounded-full p-2 ${statusDisplay.bg}`}>
+                          <StatusIcon
+                            className={`h-4 w-4 ${statusDisplay.color}`}
+                          />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">
+                            Job {job.jobId.slice(-8)}
+                          </p>
+                          <p className="text-muted-foreground text-xs">
+                            {job.message}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={statusDisplay.color}>
+                          {job.status}
+                        </Badge>
+                        <ShowForUser fallback={null}>
+                          <Button size="sm" variant="outline">
+                            <Download className="h-3 w-3" />
+                          </Button>
+                        </ShowForUser>
+                      </div>
+                    </div>
+                  );
+                })}
+                {recentJobs.filter(job => job.status === "completed").length === 0 && (
+                  <p className="text-muted-foreground py-4 text-center text-sm">
+                    No completed segmentations yet.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
