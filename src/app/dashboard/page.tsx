@@ -6,12 +6,10 @@ import {
   useGpuStatus,
   useUserProjects,
   useUserJobs,
-  useSystemStats,
   useUserStats,
 } from "@/lib/dashboard-hooks";
 import {
   ShowForUser,
-  ShowForAdmin,
   ShowForGuest,
 } from "@/components/RoleGuard";
 import {
@@ -33,10 +31,6 @@ import {
   Download,
   FolderOpen,
   Heart,
-  BarChart3,
-  Users,
-  Settings,
-  Shield,
   Upload,
   Play,
   Clock,
@@ -44,11 +38,11 @@ import {
   XCircle,
   RefreshCw,
   FileText,
-  Database,
   Cpu,
-  HardDrive,
   User,
   UserCheck,
+  Settings,
+  Shield,
 } from "lucide-react";
 import Link from "next/link";
 import { projectApi, segmentationApi } from "@/lib/api";
@@ -114,18 +108,9 @@ export default function DashboardPage() {
     isLoading: gpuLoading,
     refresh: refreshGpuStatus,
   } = useGpuStatus();
-  const {
-    systemStats,
-    isLoading: systemStatsLoading,
-    refresh: refreshSystemStats,
-  } = useSystemStats(user?.role === "admin");
   const userStats = useUserStats(projects, recentJobs);
 
-  const isLoadingData =
-    projectsLoading ||
-    jobsLoading ||
-    gpuLoading ||
-    (user?.role === "admin" && systemStatsLoading);
+  const isLoadingData = projectsLoading || jobsLoading || gpuLoading;
 
   const refreshDashboard = async () => {
     if (user) {
@@ -133,7 +118,6 @@ export default function DashboardPage() {
         refreshProjects(),
         refreshJobs(),
         refreshGpuStatus(),
-        user.role === "admin" && refreshSystemStats(),
       ]);
     }
   };
@@ -292,19 +276,10 @@ export default function DashboardPage() {
 
       {/* Main Dashboard Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="projects">Projects</TabsTrigger>
           <TabsTrigger value="segmentation">Segmentation</TabsTrigger>
-          <ShowForAdmin
-            fallback={
-              <TabsTrigger value="admin" disabled>
-                Admin
-              </TabsTrigger>
-            }
-          >
-            <TabsTrigger value="admin">Admin</TabsTrigger>
-          </ShowForAdmin>
         </TabsList>
 
         {/* Overview Tab */}
@@ -448,6 +423,17 @@ export default function DashboardPage() {
                   Settings
                 </Button>
               </Link>
+
+              <ShowForUser fallback={null}>
+                {user?.role === "admin" && (
+                  <Link href="/admin">
+                    <Button variant="outline" className="w-full justify-start">
+                      <Shield className="mr-2 h-4 w-4" />
+                      Admin Panel
+                    </Button>
+                  </Link>
+                )}
+              </ShowForUser>
             </CardContent>
           </Card>
 
@@ -670,105 +656,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Admin Tab */}
-        <ShowForAdmin fallback={null}>
-          <TabsContent value="admin" className="space-y-4">
-            <div>
-              <h2 className="text-2xl font-bold">System Administration</h2>
-              <p className="text-muted-foreground">
-                Monitor and manage the VisHeart system
-              </p>
-            </div>
-
-            {/* System Stats */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Users
-                  </CardTitle>
-                  <Users className="text-muted-foreground h-4 w-4" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {systemStats?.totalUsers || 0}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    System Projects
-                  </CardTitle>
-                  <Database className="text-muted-foreground h-4 w-4" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {systemStats?.totalProjects || 0}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Pending Jobs
-                  </CardTitle>
-                  <Clock className="text-muted-foreground h-4 w-4" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {systemStats?.pendingJobs || 0}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Failed Jobs
-                  </CardTitle>
-                  <XCircle className="text-muted-foreground h-4 w-4" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-red-600">
-                    {systemStats?.failedJobs || 0}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Admin Actions */}
-            <Card>
-              <CardHeader>
-                <CardTitle>System Management</CardTitle>
-                <CardDescription>
-                  Administrative tools and controls
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                <Button variant="outline" className="w-full justify-start">
-                  <Users className="mr-2 h-4 w-4" />
-                  Manage Users
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Database className="mr-2 h-4 w-4" />
-                  System Projects
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <Activity className="mr-2 h-4 w-4" />
-                  Job Queue
-                </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <BarChart3 className="mr-2 h-4 w-4" />
-                  Analytics
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </ShowForAdmin>
       </Tabs>
     </div>
   );
