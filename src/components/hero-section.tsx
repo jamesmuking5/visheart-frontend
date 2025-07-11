@@ -1,8 +1,50 @@
 "use client";
 
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 
 export function HeroSection() {
+  const heroRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"]
+  });
+
+  // Parallax transforms
+  const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+  const textY = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+
+  // Typing effect state
+  const [displayText, setDisplayText] = useState('');
+  const [showCursor, setShowCursor] = useState(true);
+  const fullText = "AI-Powered Cardiac Segmentation for Precision Healthcare";
+
+  // Typing effect
+  useEffect(() => {
+    let currentIndex = 0;
+    const typingInterval = setInterval(() => {
+      if (currentIndex <= fullText.length) {
+        setDisplayText(fullText.slice(0, currentIndex));
+        currentIndex++;
+      } else {
+        clearInterval(typingInterval);
+        setShowCursor(false);
+      }
+    }, 50);
+
+    return () => clearInterval(typingInterval);
+  }, []);
+
+  // Cursor blinking effect
+  useEffect(() => {
+    const cursorInterval = setInterval(() => {
+      setShowCursor(prev => !prev);
+    }, 500);
+
+    return () => clearInterval(cursorInterval);
+  }, []);
+
   // Function to handle Learn More button click with effects
   const handleLearnMoreClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -39,123 +81,212 @@ export function HeroSection() {
     }, 150);
   };
 
+  // Enhanced feature data
+  const features = [
+    { 
+      icon: "🎯", 
+      title: "Precision", 
+      desc: "99.7% Accuracy",
+      color: "blue",
+      gradient: "from-blue-500 to-cyan-500"
+    },
+    { 
+      icon: "⚡", 
+      title: "Speed", 
+      desc: "Real-time Analysis",
+      color: "green",
+      gradient: "from-green-500 to-emerald-500"
+    },
+    { 
+      icon: "🔒", 
+      title: "Security", 
+      desc: "HIPAA Compliant",
+      color: "purple",
+      gradient: "from-purple-500 to-pink-500"
+    }
+  ];
+
   return (
     <section 
+      ref={heroRef}
       id="hero-intro-section" 
       aria-label="Hero introduction" 
-      className="hero-intro-section relative"
+      className="hero-intro-section relative overflow-hidden"
     >
       <motion.div
-        style={{ opacity: 1, scale: 1 }}
-        className="hero-section relative w-full h-screen overflow-hidden"
+        style={{ opacity }}
+        className="hero-section relative w-full h-screen"
       >
-        {/* Background Video with Parallax Effect */}
-        <div className="absolute inset-0 w-full h-full">
-          <div className="absolute inset-0 bg-[#3A4454] opacity-30 z-10"></div>
-          <video
-            className="w-full h-full object-cover"
-            autoPlay
-            loop
-            muted
-            playsInline
-          >
-            <source src="/heart.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
-        </div>
+        {/* Theme-responsive Background with Parallax */}
+        <motion.div 
+          style={{ y: backgroundY }}
+          className="absolute inset-0 w-full h-[120%] -top-[10%]"
+        >
+          {/* Theme-responsive background */}
+          <div className="absolute inset-0 bg-background z-5"></div>
+          
+          {/* Animated background patterns - theme responsive */}
+          <div className="absolute inset-0 opacity-20 dark:opacity-30">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-secondary/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+            <div className="absolute bottom-1/4 left-1/3 w-64 h-64 bg-accent/20 rounded-full blur-3xl animate-pulse delay-2000"></div>
+          </div>
+        </motion.div>
 
-        {/* Animated Content */}
-        <div className="hero-content relative z-20 h-full flex items-center justify-center px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
-            className="max-w-6xl w-full"
-          >
-            <motion.h1
-              initial={{ letterSpacing: "0.5em" }}
-              animate={{ letterSpacing: "0.2em" }}
-              transition={{ duration: 2, ease: "easeOut" }}
-              className="hero-header text-6xl md:text-7xl lg:text-8xl font-bold tracking-wider text-white m-0 drop-shadow-lg text-left"
+        {/* Enhanced Content */}
+        <motion.div 
+          style={{ y: textY }}
+          className="hero-content relative z-20 h-full flex items-center justify-center px-8"
+        >
+          <div className="max-w-7xl w-full">
+            {/* Main Title with Enhanced Animation */}
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+              className="text-center mb-8"
             >
-              VisHeart
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 1 }}
-              className="hero-description text-xl md:text-2xl lg:text-3xl font-light text-white mt-6 mb-12 max-w-3xl text-left"
-            >
-              AI-Powered Cardiac Segmentation for Precision Healthcare
-            </motion.p>
-            
-            {/* Container for colored boxes */}
-            <div className="flex flex-col lg:flex-row gap-6 items-center justify-center">
-              {/* Main colored box */}
+              <motion.h1
+                initial={{ letterSpacing: "0.5em", scale: 0.8 }}
+                animate={{ letterSpacing: "0.2em", scale: 1 }}
+                transition={{ duration: 2, ease: "easeOut" }}
+                className="hero-header text-6xl md:text-7xl lg:text-9xl font-bold tracking-wider text-primary m-0 drop-shadow-2xl mb-6"
+              >
+                VisHeart
+              </motion.h1>
+              
+              {/* Enhanced Subtitle with Typing Effect */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1, duration: 1 }}
-                className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20 flex-1 text-left"
+                transition={{ delay: 1.5, duration: 1 }}
+                className="text-2xl md:text-3xl lg:text-4xl font-light text-foreground/90 mb-4 min-h-[3rem]"
               >
-                <h3 className="text-xl md:text-2xl font-semibold text-white mb-4">
-                  Why choose VisHeart?
-                </h3>
-                <p className="text-base md:text-lg text-white/90 mb-6 leading-relaxed">
-                  Because we combine cutting-edge AI technology with medical expertise to deliver the most accurate cardiac segmentation solutions, helping healthcare professionals make better decisions and save more lives.
-                </p>
-                <a 
-                  href="#info-section"
-                  onClick={handleLearnMoreClick}
-                  className="hero-button px-8 py-4 bg-transparent border-2 border-white text-white rounded-full hover:bg-white hover:text-blue-900 transition-all duration-300 transform hover:-translate-y-1 active:scale-95 scroll-smooth inline-flex items-center group relative overflow-hidden"
-                >
-                  <span className="relative z-10">Learn More</span>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-2 transition-transform duration-300 group-hover:translate-y-1 relative z-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
-                  </svg>
-                  {/* Ripple effect background */}
-                  <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-full"></span>
-                </a>
+                {displayText}
+                <span className={`${showCursor ? 'opacity-100' : 'opacity-0'} transition-opacity duration-100`}>|</span>
               </motion.div>
+              
+              {/* Professional Tagline */}
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 2.5, duration: 0.8 }}
+                className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed"
+              >
+                Revolutionizing cardiac diagnostics with cutting-edge artificial intelligence
+              </motion.p>
+            </motion.div>
 
-              {/* Three square boxes */}
-              <div className="flex flex-row gap-4">
+            {/* Enhanced Feature Cards Grid */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 3, duration: 1 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12"
+            >
+              {features.map((feature, index) => (
                 <motion.div
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 1.2, duration: 0.8 }}
-                  className="w-24 h-24 bg-blue-500/20 backdrop-blur-sm rounded-xl border border-blue-300/30 flex items-center justify-center hover:bg-blue-500/30 transition-all duration-300"
+                  key={index}
+                  initial={{ opacity: 0, y: 50, scale: 0.8 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ 
+                    delay: 3.2 + (index * 0.2), 
+                    duration: 0.8,
+                    ease: "easeOut"
+                  }}
+                  whileHover={{ 
+                    scale: 1.05, 
+                    y: -10,
+                    transition: { duration: 0.3 }
+                  }}
+                  className="group relative"
                 >
-                  <svg className="w-10 h-10 text-blue-300" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                  </svg>
+                  <div className={`bg-gradient-to-br ${feature.gradient} p-[1px] rounded-2xl`}>
+                    <div className="bg-card/80 backdrop-blur-sm rounded-2xl p-6 h-full border border-border hover:border-border/50 transition-all duration-300">
+                      <div className="text-center">
+                        <motion.div
+                          whileHover={{ scale: 1.2, rotate: 360 }}
+                          transition={{ duration: 0.5 }}
+                          className="text-4xl mb-3 filter drop-shadow-lg"
+                        >
+                          {feature.icon}
+                        </motion.div>
+                        <h3 className="text-xl font-semibold text-foreground mb-2 group-hover:text-foreground transition-colors">
+                          {feature.title}
+                        </h3>
+                        <p className="text-muted-foreground text-sm font-medium">
+                          {feature.desc}
+                        </p>
+                      </div>
+                      
+                      {/* Animated background glow */}
+                      <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-300 rounded-2xl blur-xl`}></div>
+                    </div>
+                  </div>
                 </motion.div>
+              ))}
+            </motion.div>
 
-                <motion.div
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 1.4, duration: 0.8 }}
-                  className="w-24 h-24 bg-green-500/20 backdrop-blur-sm rounded-xl border border-green-300/30 flex items-center justify-center hover:bg-green-500/30 transition-all duration-300"
+            {/* Enhanced CTA Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 4, duration: 1 }}
+              className="text-center"
+            >
+              <motion.a 
+                href="#info-section"
+                onClick={handleLearnMoreClick}
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                className="group relative inline-flex items-center px-12 py-4 bg-gradient-to-r from-primary to-secondary text-primary-foreground font-semibold text-lg rounded-full shadow-2xl hover:shadow-primary/25 transition-all duration-300 overflow-hidden"
+              >
+                {/* Animated background */}
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-secondary/90 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                
+                {/* Button content */}
+                <span className="relative z-10 mr-3">Explore VisHeart</span>
+                <motion.svg 
+                  className="w-5 h-5 relative z-10"
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                  animate={{ x: [0, 5, 0] }}
+                  transition={{ repeat: Infinity, duration: 1.5 }}
                 >
-                  <svg className="w-10 h-10 text-green-300" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2zM3 10a1 1 0 011-1h12a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4zM3 3a1 1 0 011-1h12a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V3z" clipRule="evenodd"/>
-                  </svg>
-                </motion.div>
-
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </motion.svg>
+                
+                {/* Ripple effect */}
                 <motion.div
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 1.6, duration: 0.8 }}
-                  className="w-24 h-24 bg-purple-500/20 backdrop-blur-sm rounded-xl border border-purple-300/30 flex items-center justify-center hover:bg-purple-500/30 transition-all duration-300"
+                  className="absolute inset-0 bg-primary-foreground/20 rounded-full scale-0 group-hover:scale-100 transition-transform duration-500"
+                  style={{ transformOrigin: 'center' }}
+                ></motion.div>
+              </motion.a>
+              
+              {/* Scroll indicator */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 4.5, duration: 1 }}
+                className="mt-16 flex flex-col items-center"
+              >
+                <p className="text-muted-foreground text-sm mb-4">Scroll to discover more</p>
+                <motion.div
+                  animate={{ y: [0, 10, 0] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                  className="w-6 h-10 border-2 border-muted-foreground/30 rounded-full flex justify-center"
                 >
-                  <svg className="w-10 h-10 text-purple-300" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd"/>
-                  </svg>
+                  <motion.div
+                    animate={{ y: [0, 12, 0] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className="w-1 h-3 bg-muted-foreground/60 rounded-full mt-2"
+                  ></motion.div>
                 </motion.div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
+              </motion.div>
+            </motion.div>
+          </div>
+        </motion.div>
       </motion.div>
     </section>
   );
