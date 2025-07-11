@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   NavigationMenu,
@@ -88,6 +88,16 @@ const ANIMATION_CONSTANTS = {
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigationRef = useRef<HTMLElement>(null);
+
+  // Function to close all navigation menus
+  const closeNavigationMenus = () => {
+    // Trigger a click outside the navigation to close it
+    if (navigationRef.current) {
+      const event = new Event("click", { bubbles: true });
+      document.dispatchEvent(event);
+    }
+  };
 
   // Constants for header heights
   const HEADER_HEIGHT_NORMAL = 64; // h-16 = 64px
@@ -163,11 +173,11 @@ export default function Header() {
 
             {/* Desktop Navigation */}
             <div className="hidden items-center md:flex">
-              <NavigationMenu>
+              <NavigationMenu ref={navigationRef}>
                 <NavigationMenuList className="space-x-1">
-                  <ToolsDropDown />
-                  <HomeDropDown />
-                  <ProfileDropDown />
+                  <ToolsDropDown onMenuInteraction={closeNavigationMenus} />
+                  <HomeDropDown onMenuInteraction={closeNavigationMenus} />
+                  <ProfileDropDown onMenuInteraction={closeNavigationMenus} />
                 </NavigationMenuList>
               </NavigationMenu>
             </div>
@@ -274,6 +284,7 @@ const ListItem = React.memo(function ListItem({
   badge,
   isComingSoon = false,
   className,
+  onMenuInteraction,
   ...props
 }: React.ComponentPropsWithoutRef<"a"> & {
   href: string;
@@ -282,7 +293,17 @@ const ListItem = React.memo(function ListItem({
   badge?: string;
   isComingSoon?: boolean;
   className?: string;
+  onMenuInteraction?: () => void;
 }) {
+  const handleClick = (e: React.MouseEvent) => {
+    if (isComingSoon) {
+      e.preventDefault();
+    } else if (onMenuInteraction) {
+      // Small delay to allow navigation to start before closing menu
+      setTimeout(onMenuInteraction, 100);
+    }
+  };
+
   return (
     <li className={cn("flex", className)}>
       <NavigationMenuLink asChild>
@@ -295,7 +316,7 @@ const ListItem = React.memo(function ListItem({
             "hover:border-border/50 border border-transparent",
             isComingSoon && "cursor-not-allowed opacity-60",
           )}
-          onClick={isComingSoon ? (e) => e.preventDefault() : undefined}
+          onClick={handleClick}
           {...props}
         >
           <div className="flex items-center space-x-3">
@@ -332,7 +353,11 @@ const ListItem = React.memo(function ListItem({
 });
 
 // Enhanced HomeDropDown component
-const HomeDropDown = React.memo(function HomeDropDown() {
+const HomeDropDown = React.memo(function HomeDropDown({
+  onMenuInteraction,
+}: {
+  onMenuInteraction?: () => void;
+}) {
   return (
     <NavigationMenuItem>
       <NavigationMenuTrigger className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2 transition-all duration-200">
@@ -348,6 +373,9 @@ const HomeDropDown = React.memo(function HomeDropDown() {
               <Link
                 className="group flex h-full w-full flex-col justify-center rounded-lg border border-red-200/50 bg-gradient-to-br from-red-50 to-pink-50 p-6 no-underline transition-all duration-200 outline-none select-none hover:scale-[1.02] hover:shadow-md dark:border-red-800/50 dark:from-red-950/50 dark:to-pink-950/50"
                 href="/"
+                onClick={() =>
+                  onMenuInteraction && setTimeout(onMenuInteraction, 100)
+                }
               >
                 <div className="mb-4 flex items-center space-x-3">
                   <div className="rounded-lg bg-red-500/10 p-2">
@@ -372,6 +400,7 @@ const HomeDropDown = React.memo(function HomeDropDown() {
               icon={FileText}
               badge="Updated"
               className="flex-1"
+              onMenuInteraction={onMenuInteraction}
             >
               Complete guide on using VisHeart's features, tools, and best
               practices for cardiac imaging.
@@ -381,6 +410,7 @@ const HomeDropDown = React.memo(function HomeDropDown() {
               title="About Us"
               icon={Info}
               className="min-h-36 flex-1"
+              onMenuInteraction={onMenuInteraction}
             >
               Meet the VisHeart team and learn about our mission to advance
               cardiac imaging technology.
@@ -393,8 +423,18 @@ const HomeDropDown = React.memo(function HomeDropDown() {
 });
 
 // Enhanced ProfileDropDown component
-const ProfileDropDown = React.memo(function ProfileDropDown() {
+const ProfileDropDown = React.memo(function ProfileDropDown({
+  onMenuInteraction,
+}: {
+  onMenuInteraction?: () => void;
+}) {
   const { user } = useAuth();
+
+  const handleButtonClick = () => {
+    if (onMenuInteraction) {
+      setTimeout(onMenuInteraction, 100);
+    }
+  };
 
   return (
     <NavigationMenuItem>
@@ -405,7 +445,7 @@ const ProfileDropDown = React.memo(function ProfileDropDown() {
         </div>
       </NavigationMenuTrigger>
       <NavigationMenuContent className="bg-background/95 border shadow-lg backdrop-blur-md">
-        <div className="p-4">
+        <div className="p-4" onClick={handleButtonClick}>
           {user ? <AuthenticatedUserView /> : <LoginForm />}
         </div>
       </NavigationMenuContent>
@@ -414,7 +454,11 @@ const ProfileDropDown = React.memo(function ProfileDropDown() {
 });
 
 // Enhanced ToolsDropDown component
-const ToolsDropDown = React.memo(function ToolsDropDown() {
+const ToolsDropDown = React.memo(function ToolsDropDown({
+  onMenuInteraction,
+}: {
+  onMenuInteraction?: () => void;
+}) {
   return (
     <NavigationMenuItem>
       <NavigationMenuTrigger className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2 transition-all duration-200">
@@ -440,6 +484,7 @@ const ToolsDropDown = React.memo(function ToolsDropDown() {
               icon={Heart}
               badge="Active"
               className="min-h-36"
+              onMenuInteraction={onMenuInteraction}
             >
               Advanced <span className="text-green-500">2D</span> cardiac
               component segmentation using YOLO and MedSAM for precise medical
@@ -451,6 +496,7 @@ const ToolsDropDown = React.memo(function ToolsDropDown() {
               icon={Settings}
               isComingSoon={true}
               className="min-h-36"
+              onMenuInteraction={onMenuInteraction}
             >
               Upcoming <span className="text-red-500">3D</span> cardiac imaging
               capabilities with enhanced depth analysis and volumetric
