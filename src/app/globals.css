@@ -129,3 +129,12 @@ Button {
     @apply bg-background text-foreground;
   }
 }
+
+@font-face {
+  font-family: 'RetroFloral';
+  src: url('/Retro Floral.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
