@@ -159,11 +159,6 @@ export default function Header() {
                       className="transition-all duration-300"
                     />
                   </motion.div>
-                  <motion.div
-                    className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500"
-                    animate={{ scale: [1, 1.2, 1], opacity: [1, 0.7, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  />
                 </div>
                 <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-xl font-bold text-transparent">
                   VisHeart
