@@ -174,7 +174,7 @@ export default function Header() {
 
             {/* Right side controls */}
             <div className="flex items-center space-x-2">
-              <ThemeToggle iconSize={isScrolled ? 1.5 : 1.75} />
+              <ThemeToggle iconSize={isScrolled ? 1.25 : 1.75} />
 
               {/* Mobile menu button */}
               <Button
@@ -380,7 +380,7 @@ const HomeDropDown = React.memo(function HomeDropDown() {
               href="/about"
               title="About Us"
               icon={Info}
-              className="flex-1 min-h-36"
+              className="min-h-36 flex-1"
             >
               Meet the VisHeart team and learn about our mission to advance
               cardiac imaging technology.
@@ -423,7 +423,7 @@ const ToolsDropDown = React.memo(function ToolsDropDown() {
           <span>Tools</span>
         </div>
       </NavigationMenuTrigger>
-      <NavigationMenuContent className="bg-background/95 border shadow-lg backdrop-blur-md min-h-72">
+      <NavigationMenuContent className="bg-background/95 min-h-72 border shadow-lg backdrop-blur-md">
         <div className="grid w-[500px] gap-3 p-6 md:w-[600px] md:grid-cols-1 lg:w-[700px]">
           <div className="mb-4">
             <h3 className="text-primary mb-2 text-lg font-semibold">

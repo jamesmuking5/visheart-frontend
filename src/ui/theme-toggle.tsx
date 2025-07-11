@@ -18,10 +18,10 @@ enum Theme {
 }
 
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Define the props for the ThemeToggle component
 interface ThemeToggleProps {
@@ -39,15 +39,15 @@ export default function ThemeToggle({ iconSize = 1 }: ThemeToggleProps) {
   };
 
   return (
-    <HoverCard>
-      <HoverCardTrigger asChild>
+    <Tooltip>
+      <TooltipTrigger asChild>
         <Button
           variant="ghost"
           size="icon"
           onClick={() =>
             setTheme(theme === Theme.Light ? Theme.Dark : Theme.Light)
           }
-          className="h-9 w-9 text-foreground !bg-transparent hover:!bg-background/20 hover:backdrop-blur-sm transition-all duration-200"
+          className="text-foreground hover:!bg-background/20 h-9 w-9 !bg-transparent transition-all duration-200 hover:backdrop-blur-sm"
           suppressHydrationWarning
           style={
             {
@@ -68,14 +68,14 @@ export default function ThemeToggle({ iconSize = 1 }: ThemeToggleProps) {
           )}
           <span className="sr-only">Toggle theme</span>
         </Button>
-      </HoverCardTrigger>
-      <HoverCardContent className="w-48">
+      </TooltipTrigger>
+      <TooltipContent className="w-auto text-center">
         <div className="text-sm">Toggle Theme</div>
         <p className="text-muted-foreground">
           Switch to <span className="capitalize">{getOppositeTheme()}</span>{" "}
           mode.
         </p>
-      </HoverCardContent>
-    </HoverCard>
+      </TooltipContent>
+    </Tooltip>
   );
 }
