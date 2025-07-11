@@ -8,10 +8,7 @@ import {
   useUserJobs,
   useUserStats,
 } from "@/lib/dashboard-hooks";
-import {
-  ShowForUser,
-  ShowForGuest,
-} from "@/components/RoleGuard";
+import { ShowForUser, ShowForGuest } from "@/components/RoleGuard";
 import {
   Card,
   CardContent,
@@ -112,11 +109,7 @@ export default function DashboardPage() {
 
   const refreshDashboard = async () => {
     if (user) {
-      await Promise.all([
-        refreshProjects(),
-        refreshJobs(),
-        refreshGpuStatus(),
-      ]);
+      await Promise.all([refreshProjects(), refreshJobs(), refreshGpuStatus()]);
     }
   };
 
@@ -379,10 +372,7 @@ export default function DashboardPage() {
 
               <ShowForUser fallback={null}>
                 <Link href="/projects">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
+                  <Button variant="outline" className="w-full justify-start">
                     <Brain className="mr-2 h-4 w-4" />
                     Start Segmentation
                   </Button>
@@ -391,10 +381,7 @@ export default function DashboardPage() {
 
               <ShowForUser fallback={null}>
                 <Link href="/results">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-start"
-                  >
+                  <Button variant="outline" className="w-full justify-start">
                     <Download className="mr-2 h-4 w-4" />
                     Export Results
                   </Button>
@@ -633,45 +620,63 @@ export default function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Active Segmentation Jobs</CardTitle>
-                <CardDescription>Track your ongoing segmentation tasks</CardDescription>
+                <CardDescription>
+                  Track your ongoing segmentation tasks
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {recentJobs.filter(job => job.status === "processing" || job.status === "pending").map((job) => {
-                  const statusDisplay = getStatusDisplay(job.status);
-                  const StatusIcon = statusDisplay.icon;
+                {recentJobs
+                  .filter(
+                    (job) =>
+                      job.status === "processing" || job.status === "pending",
+                  )
+                  .map((job) => {
+                    const statusDisplay = getStatusDisplay(job.status);
+                    const StatusIcon = statusDisplay.icon;
 
-                  return (
-                    <div
-                      key={job.jobId}
-                      className="flex items-center justify-between rounded-lg border p-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`rounded-full p-2 ${statusDisplay.bg}`}>
-                          <StatusIcon
-                            className={`h-4 w-4 ${statusDisplay.color}`}
-                          />
+                    return (
+                      <div
+                        key={job.jobId}
+                        className="flex items-center justify-between rounded-lg border p-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`rounded-full p-2 ${statusDisplay.bg}`}
+                          >
+                            <StatusIcon
+                              className={`h-4 w-4 ${statusDisplay.color}`}
+                            />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">
+                              Job {job.jobId.slice(-8)}
+                            </p>
+                            <p className="text-muted-foreground text-xs">
+                              {job.message}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">
-                            Job {job.jobId.slice(-8)}
-                          </p>
-                          <p className="text-muted-foreground text-xs">
-                            {job.message}
-                          </p>
-                        </div>
+                        <Badge
+                          variant="outline"
+                          className={statusDisplay.color}
+                        >
+                          {job.status}
+                        </Badge>
                       </div>
-                      <Badge variant="outline" className={statusDisplay.color}>
-                        {job.status}
-                      </Badge>
-                    </div>
-                  );
-                })}
-                {recentJobs.filter(job => job.status === "processing" || job.status === "pending").length === 0 && (
-                  <div className="text-center py-8">
-                    <Brain className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                    <h3 className="mt-4 text-lg font-semibold">No Active Jobs</h3>
+                    );
+                  })}
+                {recentJobs.filter(
+                  (job) =>
+                    job.status === "processing" || job.status === "pending",
+                ).length === 0 && (
+                  <div className="py-8 text-center">
+                    <Brain className="text-muted-foreground/50 mx-auto h-12 w-12" />
+                    <h3 className="mt-4 text-lg font-semibold">
+                      No Active Jobs
+                    </h3>
                     <p className="text-muted-foreground">
-                      Start a segmentation task from your projects to see active jobs here.
+                      Start a segmentation task from your projects to see active
+                      jobs here.
                     </p>
                     <ShowForUser fallback={null}>
                       <Link href="/projects">
@@ -690,47 +695,58 @@ export default function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Recent Results</CardTitle>
-                <CardDescription>Your completed segmentation tasks</CardDescription>
+                <CardDescription>
+                  Your completed segmentation tasks
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {recentJobs.filter(job => job.status === "completed").slice(0, 3).map((job) => {
-                  const statusDisplay = getStatusDisplay(job.status);
-                  const StatusIcon = statusDisplay.icon;
+                {recentJobs
+                  .filter((job) => job.status === "completed")
+                  .slice(0, 3)
+                  .map((job) => {
+                    const statusDisplay = getStatusDisplay(job.status);
+                    const StatusIcon = statusDisplay.icon;
 
-                  return (
-                    <div
-                      key={job.jobId}
-                      className="flex items-center justify-between rounded-lg border p-3"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`rounded-full p-2 ${statusDisplay.bg}`}>
-                          <StatusIcon
-                            className={`h-4 w-4 ${statusDisplay.color}`}
-                          />
+                    return (
+                      <div
+                        key={job.jobId}
+                        className="flex items-center justify-between rounded-lg border p-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`rounded-full p-2 ${statusDisplay.bg}`}
+                          >
+                            <StatusIcon
+                              className={`h-4 w-4 ${statusDisplay.color}`}
+                            />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">
+                              Job {job.jobId.slice(-8)}
+                            </p>
+                            <p className="text-muted-foreground text-xs">
+                              {job.message}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">
-                            Job {job.jobId.slice(-8)}
-                          </p>
-                          <p className="text-muted-foreground text-xs">
-                            {job.message}
-                          </p>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="outline"
+                            className={statusDisplay.color}
+                          >
+                            {job.status}
+                          </Badge>
+                          <ShowForUser fallback={null}>
+                            <Button size="sm" variant="outline">
+                              <Download className="h-3 w-3" />
+                            </Button>
+                          </ShowForUser>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className={statusDisplay.color}>
-                          {job.status}
-                        </Badge>
-                        <ShowForUser fallback={null}>
-                          <Button size="sm" variant="outline">
-                            <Download className="h-3 w-3" />
-                          </Button>
-                        </ShowForUser>
-                      </div>
-                    </div>
-                  );
-                })}
-                {recentJobs.filter(job => job.status === "completed").length === 0 && (
+                    );
+                  })}
+                {recentJobs.filter((job) => job.status === "completed")
+                  .length === 0 && (
                   <p className="text-muted-foreground py-4 text-center text-sm">
                     No completed segmentations yet.
                   </p>

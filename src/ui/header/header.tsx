@@ -55,7 +55,7 @@ const MOBILE_MENU_ITEMS = [
     items: [
       {
         title: "Documentation",
-        href: "/docs",
+        href: "/doc",
         icon: FileText,
         badge: "Updated",
       },
@@ -367,7 +367,7 @@ const HomeDropDown = React.memo(function HomeDropDown() {
           </div>
           <ul className="flex h-full list-none flex-col">
             <ListItem
-              href="/docs"
+              href="/doc"
               title="Documentation"
               icon={FileText}
               badge="Updated"
