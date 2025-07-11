@@ -39,7 +39,7 @@ export const LoginForm = () => {
   } = useLogin();
 
   return (
-    <div className="z-10 sm:w-[300px] select-none">
+    <div className="z-10 select-none sm:w-[300px]">
       <CardHeader className="text-center">
         <CardTitle>Login</CardTitle>
         <CardDescription>No Account? Register Now!</CardDescription>

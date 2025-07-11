@@ -181,12 +181,12 @@ export default function AdminLayout({
           <div className="container mx-auto px-6 py-3">
             {/* Compact header with title and breadcrumbs */}
             <div className="flex items-center justify-between">
-              <Link 
-                href="/admin" 
-                className="flex items-center gap-2 rounded-lg p-2 -m-2 transition-all duration-200 hover:bg-blue-50 hover:scale-105 dark:hover:bg-blue-950/30"
+              <Link
+                href="/admin"
+                className="-m-2 flex items-center gap-2 rounded-lg p-2 transition-all duration-200 hover:scale-105 hover:bg-blue-50 dark:hover:bg-blue-950/30"
               >
-                <div className="rounded-md bg-blue-100 p-1.5 dark:bg-blue-900/20 transition-colors duration-200 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/40">
-                  <Shield className="h-4 w-4 text-blue-600 dark:text-blue-400 transition-colors duration-200" />
+                <div className="rounded-md bg-blue-100 p-1.5 transition-colors duration-200 group-hover:bg-blue-200 dark:bg-blue-900/20 dark:group-hover:bg-blue-800/40">
+                  <Shield className="h-4 w-4 text-blue-600 transition-colors duration-200 dark:text-blue-400" />
                 </div>
                 <h1 className="text-foreground text-lg font-semibold transition-colors duration-200 hover:text-blue-600 dark:hover:text-blue-400">
                   Admin Panel
@@ -194,33 +194,36 @@ export default function AdminLayout({
               </Link>
 
               {/* Breadcrumb navigation inline with header */}
-              <Breadcrumb>
-                <BreadcrumbList>
-                  {breadcrumbs.map((crumb, index) => (
-                    <React.Fragment key={crumb.href}>
-                      <BreadcrumbItem>
-                        {crumb.isActive ? (
-                          <BreadcrumbPage className="text-sm font-medium">
-                            {crumb.label}
-                          </BreadcrumbPage>
-                        ) : (
-                          <BreadcrumbLink asChild>
-                            <Link
-                              href={crumb.href}
-                              className="hover:text-foreground text-sm transition-colors"
-                            >
+              {/* Enhanced breadcrumb navigation with modern styling */}
+              <div className="flex items-center">
+                <Breadcrumb>
+                  <BreadcrumbList className="gap-1">
+                    {breadcrumbs.map((crumb, index) => (
+                      <React.Fragment key={crumb.href}>
+                        <BreadcrumbItem>
+                          {crumb.isActive ? (
+                            <BreadcrumbPage className="text-foreground rounded-md bg-blue-50/50 px-2 py-1 text-sm font-medium dark:bg-blue-950/30">
                               {crumb.label}
-                            </Link>
-                          </BreadcrumbLink>
+                            </BreadcrumbPage>
+                          ) : (
+                            <BreadcrumbLink asChild>
+                              <Link
+                                href={crumb.href}
+                                className="text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md px-2 py-1 text-sm transition-all duration-200"
+                              >
+                                {crumb.label}
+                              </Link>
+                            </BreadcrumbLink>
+                          )}
+                        </BreadcrumbItem>
+                        {index < breadcrumbs.length - 1 && (
+                          <BreadcrumbSeparator className="text-muted-foreground/50" />
                         )}
-                      </BreadcrumbItem>
-                      {index < breadcrumbs.length - 1 && (
-                        <BreadcrumbSeparator />
-                      )}
-                    </React.Fragment>
-                  ))}
-                </BreadcrumbList>
-              </Breadcrumb>
+                      </React.Fragment>
+                    ))}
+                  </BreadcrumbList>
+                </Breadcrumb>
+              </div>
             </div>
           </div>
         </div>
