@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect } from "react";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -41,11 +40,13 @@ const MOBILE_MENU_ITEMS = [
         href: "/cardiac-segmentation",
         icon: Heart,
         badge: "Active",
+        isComingSoon: false,
       },
       {
         title: "3D Cardiac Segmentation",
         href: "#",
         icon: Settings,
+        badge: undefined,
         isComingSoon: true,
       },
     ],
@@ -58,46 +59,22 @@ const MOBILE_MENU_ITEMS = [
         href: "/doc",
         icon: FileText,
         badge: "Updated",
+        isComingSoon: false,
       },
       {
         title: "About Us",
         href: "/about",
         icon: Info,
+        badge: undefined,
+        isComingSoon: false,
       },
     ],
   },
 ] as const;
 
-// Animation constants
-const ANIMATION_CONSTANTS = {
-  duration: {
-    fast: 0.2,
-    normal: 0.3,
-    slow: 0.6,
-  },
-  delay: {
-    initial: 0.1,
-    userSection: 0.2,
-    menuBase: 0.3,
-    sectionMultiplier: 0.1,
-    itemBase: 0.4,
-    itemMultiplier: 0.05,
-  },
-} as const;
-
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const navigationRef = useRef<HTMLElement>(null);
-
-  // Function to close all navigation menus
-  const closeNavigationMenus = () => {
-    // Trigger a click outside the navigation to close it
-    if (navigationRef.current) {
-      const event = new Event("click", { bubbles: true });
-      document.dispatchEvent(event);
-    }
-  };
 
   // Constants for header heights
   const HEADER_HEIGHT_NORMAL = 64; // h-16 = 64px
@@ -105,81 +82,73 @@ export default function Header() {
   const SCROLL_THRESHOLD = 20;
 
   useEffect(() => {
+    let ticking = false;
+
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > SCROLL_THRESHOLD);
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          setIsScrolled(window.scrollY > SCROLL_THRESHOLD);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
-    window.addEventListener("scroll", handleScroll);
+    // Add passive listener for better performance
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
     <>
-      <motion.header
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{
-          duration: ANIMATION_CONSTANTS.duration.slow,
-          ease: "easeOut",
-        }}
+      <header
         className={cn(
-          "fixed top-0 right-0 left-0 z-[60] transition-all duration-300 ease-in-out",
+          "fixed top-0 right-0 left-0 z-[60]",
           "supports-[backdrop-filter]:bg-background/60 border-b backdrop-blur-md",
+          "flex items-center",
           isScrolled
             ? "bg-background/95 border-border/80 h-10 shadow-sm"
             : "bg-background/50 border-border/40 h-16",
         )}
       >
         <div className="container mx-auto h-full px-4">
-          <div className="flex h-full items-center justify-between">
+          <div className="flex h-full min-h-0 items-center justify-between">
             {/* Logo and Brand */}
-            <motion.div
-              className="flex items-center space-x-2"
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: ANIMATION_CONSTANTS.duration.fast }}
-            >
-              <Link
-                href="/"
-                className="group flex items-center space-x-2 transition-all duration-200"
-              >
-                <div className="relative">
-                  <motion.div
-                    animate={{ rotate: [0, 360] }}
-                    transition={{
-                      duration: 20,
-                      repeat: Infinity,
-                      ease: "linear",
-                    }}
-                  >
-                    <Image
-                      src={visheartLogo}
-                      width={isScrolled ? 28 : 32}
-                      height={isScrolled ? 28 : 32}
-                      alt="VisHeart Logo"
-                      className="transition-all duration-300"
-                    />
-                  </motion.div>
+            <div className="flex min-w-0 items-center space-x-2">
+              <Link href="/" className="group flex items-center space-x-2">
+                <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center">
+                  <Image
+                    src={visheartLogo}
+                    width={32}
+                    height={32}
+                    alt="VisHeart Logo"
+                    className={cn(
+                      "transition-transform duration-200 ease-in-out",
+                      isScrolled ? "scale-90" : "scale-100",
+                    )}
+                    priority // Since it's above fold
+                  />
                 </div>
-                <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-xl font-bold text-transparent">
+                <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-xl font-bold whitespace-nowrap text-transparent">
                   VisHeart
                 </span>
               </Link>
-            </motion.div>
+            </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden items-center md:flex">
-              <NavigationMenu ref={navigationRef}>
+            <div className="hidden flex-shrink-0 items-center md:flex">
+              <NavigationMenu>
                 <NavigationMenuList className="space-x-1">
-                  <ToolsDropDown onMenuInteraction={closeNavigationMenus} />
-                  <HomeDropDown onMenuInteraction={closeNavigationMenus} />
-                  <ProfileDropDown onMenuInteraction={closeNavigationMenus} />
+                  <ToolsDropDown />
+                  <HomeDropDown />
+                  <ProfileDropDown />
                 </NavigationMenuList>
               </NavigationMenu>
             </div>
 
             {/* Right side controls */}
-            <div className="flex items-center space-x-2">
-              <ThemeToggle iconSize={isScrolled ? 1.25 : 1.75} />
+            <div className="flex flex-shrink-0 items-center space-x-2">
+              <ThemeToggle iconSize={1.5} />
 
               {/* Mobile menu button */}
               <Button
@@ -188,83 +157,45 @@ export default function Header() {
                 className="md:hidden"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               >
-                <AnimatePresence mode="wait">
-                  {isMobileMenuOpen ? (
-                    <motion.div
-                      key="close"
-                      initial={{ rotate: -90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: 90, opacity: 0 }}
-                      transition={{
-                        duration: ANIMATION_CONSTANTS.duration.fast,
-                      }}
-                    >
-                      <X className="h-5 w-5" />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="menu"
-                      initial={{ rotate: 90, opacity: 0 }}
-                      animate={{ rotate: 0, opacity: 1 }}
-                      exit={{ rotate: -90, opacity: 0 }}
-                      transition={{
-                        duration: ANIMATION_CONSTANTS.duration.fast,
-                      }}
-                    >
-                      <Menu className="h-5 w-5" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {isMobileMenuOpen ? (
+                  <X className="h-5 w-5" />
+                ) : (
+                  <Menu className="h-5 w-5" />
+                )}
               </Button>
             </div>
           </div>
         </div>
-      </motion.header>
+      </header>
 
       {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <div className="fixed inset-0 z-50 md:hidden">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: ANIMATION_CONSTANTS.duration.fast }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-              onClick={() => setIsMobileMenuOpen(false)}
-            />
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{
-                duration: ANIMATION_CONSTANTS.duration.normal,
-                ease: "easeOut",
-              }}
-              className="bg-background fixed top-0 right-0 h-full w-80 border-l shadow-lg"
-            >
-              <div className="flex items-center justify-between border-b p-4">
-                <span className="text-lg font-semibold">Menu</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-              <MobileMenu onClose={() => setIsMobileMenuOpen(false)} />
-            </motion.div>
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <div className="bg-background fixed top-0 right-0 h-full w-80 border-l shadow-lg">
+            <div className="flex items-center justify-between border-b p-4">
+              <span className="text-lg font-semibold">Menu</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <MobileMenu onClose={() => setIsMobileMenuOpen(false)} />
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
       {/* Spacer to prevent content from going under fixed header */}
-      <motion.div
-        animate={{
+      <div
+        style={{
           height: isScrolled ? HEADER_HEIGHT_SCROLLED : HEADER_HEIGHT_NORMAL,
         }}
-        transition={{ duration: ANIMATION_CONSTANTS.duration.normal }}
       />
     </>
   );
@@ -279,7 +210,6 @@ const ListItem = React.memo(function ListItem({
   badge,
   isComingSoon = false,
   className,
-  onMenuInteraction,
   ...props
 }: React.ComponentPropsWithoutRef<"a"> & {
   href: string;
@@ -288,14 +218,10 @@ const ListItem = React.memo(function ListItem({
   badge?: string;
   isComingSoon?: boolean;
   className?: string;
-  onMenuInteraction?: () => void;
 }) {
   const handleClick = (e: React.MouseEvent) => {
     if (isComingSoon) {
       e.preventDefault();
-    } else if (onMenuInteraction) {
-      // Small delay to allow navigation to start before closing menu
-      setTimeout(onMenuInteraction, 100);
     }
   };
 
@@ -305,7 +231,7 @@ const ListItem = React.memo(function ListItem({
         <Link
           href={isComingSoon ? "#" : href}
           className={cn(
-            "group relative flex h-full w-full flex-col space-y-1 rounded-lg p-4 leading-none no-underline transition-all duration-200 outline-none select-none",
+            "group relative flex h-full w-full flex-col space-y-1 rounded-lg p-4 leading-none no-underline outline-none select-none",
             "hover:bg-accent/50 hover:scale-[1.02] hover:shadow-md",
             "focus:bg-accent focus:text-accent-foreground",
             "hover:border-border/50 border border-transparent",
@@ -316,13 +242,13 @@ const ListItem = React.memo(function ListItem({
         >
           <div className="flex items-center space-x-3">
             {Icon && (
-              <div className="bg-primary/10 group-hover:bg-primary/20 flex-shrink-0 rounded-md p-2 transition-colors">
+              <div className="bg-primary/10 group-hover:bg-primary/20 flex-shrink-0 rounded-md p-2">
                 <Icon className="text-primary h-4 w-4" />
               </div>
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center space-x-2">
-                <span className="group-hover:text-primary truncate text-base font-semibold transition-colors">
+                <span className="group-hover:text-primary truncate text-base font-semibold">
                   {title}
                 </span>
                 {badge && (
@@ -348,14 +274,10 @@ const ListItem = React.memo(function ListItem({
 });
 
 // Enhanced HomeDropDown component
-const HomeDropDown = React.memo(function HomeDropDown({
-  onMenuInteraction,
-}: {
-  onMenuInteraction?: () => void;
-}) {
+const HomeDropDown = React.memo(function HomeDropDown() {
   return (
     <NavigationMenuItem>
-      <NavigationMenuTrigger className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2 transition-all duration-200">
+      <NavigationMenuTrigger className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2">
         <div className="flex items-center space-x-2">
           <Info className="h-4 w-4" />
           <span>About</span>
@@ -366,11 +288,8 @@ const HomeDropDown = React.memo(function HomeDropDown({
           <div className="row-span-3">
             <NavigationMenuLink asChild>
               <Link
-                className="group flex h-full w-full flex-col justify-center rounded-lg border border-red-200/50 bg-gradient-to-br from-red-50 to-pink-50 p-6 no-underline transition-all duration-200 outline-none select-none hover:scale-[1.02] hover:shadow-md dark:border-red-800/50 dark:from-red-950/50 dark:to-pink-950/50"
+                className="group flex h-full w-full flex-col justify-center rounded-lg border border-red-200/50 bg-gradient-to-br from-red-50 to-pink-50 p-6 no-underline outline-none select-none hover:scale-[1.02] hover:shadow-md dark:border-red-800/50 dark:from-red-950/50 dark:to-pink-950/50"
                 href="/"
-                onClick={() =>
-                  onMenuInteraction && setTimeout(onMenuInteraction, 100)
-                }
               >
                 <div className="mb-4 flex items-center space-x-3">
                   <div className="rounded-lg bg-red-500/10 p-2">
@@ -382,7 +301,7 @@ const HomeDropDown = React.memo(function HomeDropDown({
                   Advanced Cardiac Component Segmentation using AI-powered tools
                   for medical imaging analysis.
                 </p>
-                <div className="mt-4 flex items-center text-sm font-medium text-red-500 transition-colors group-hover:text-red-600">
+                <div className="mt-4 flex items-center text-sm font-medium text-red-500 group-hover:text-red-600">
                   Learn more →
                 </div>
               </Link>
@@ -395,7 +314,6 @@ const HomeDropDown = React.memo(function HomeDropDown({
               icon={FileText}
               badge="Updated"
               className="flex-1"
-              onMenuInteraction={onMenuInteraction}
             >
               Complete guide on using VisHeart's features, tools, and best
               practices for cardiac imaging.
@@ -405,7 +323,6 @@ const HomeDropDown = React.memo(function HomeDropDown({
               title="About Us"
               icon={Info}
               className="min-h-36 flex-1"
-              onMenuInteraction={onMenuInteraction}
             >
               Meet the VisHeart team and learn about our mission to advance
               cardiac imaging technology.
@@ -418,29 +335,19 @@ const HomeDropDown = React.memo(function HomeDropDown({
 });
 
 // Enhanced ProfileDropDown component
-const ProfileDropDown = React.memo(function ProfileDropDown({
-  onMenuInteraction,
-}: {
-  onMenuInteraction?: () => void;
-}) {
+const ProfileDropDown = React.memo(function ProfileDropDown() {
   const { user } = useAuth();
-
-  const handleButtonClick = () => {
-    if (onMenuInteraction) {
-      setTimeout(onMenuInteraction, 100);
-    }
-  };
 
   return (
     <NavigationMenuItem>
-      <NavigationMenuTrigger className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2 transition-all duration-200">
+      <NavigationMenuTrigger className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2">
         <div className="flex items-center space-x-2">
           <User className="h-4 w-4" />
           <span>{user ? "Profile" : "Sign In"}</span>
         </div>
       </NavigationMenuTrigger>
       <NavigationMenuContent className="bg-background/95 border shadow-lg backdrop-blur-md">
-        <div className="p-4" onClick={handleButtonClick}>
+        <div className="p-4">
           {user ? <AuthenticatedUserView /> : <LoginForm />}
         </div>
       </NavigationMenuContent>
@@ -449,14 +356,10 @@ const ProfileDropDown = React.memo(function ProfileDropDown({
 });
 
 // Enhanced ToolsDropDown component
-const ToolsDropDown = React.memo(function ToolsDropDown({
-  onMenuInteraction,
-}: {
-  onMenuInteraction?: () => void;
-}) {
+const ToolsDropDown = React.memo(function ToolsDropDown() {
   return (
     <NavigationMenuItem>
-      <NavigationMenuTrigger className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2 transition-all duration-200">
+      <NavigationMenuTrigger className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2">
         <div className="flex items-center space-x-2">
           <Zap className="h-4 w-4" />
           <span>Tools</span>
@@ -479,7 +382,6 @@ const ToolsDropDown = React.memo(function ToolsDropDown({
               icon={Heart}
               badge="Active"
               className="min-h-36"
-              onMenuInteraction={onMenuInteraction}
             >
               Advanced <span className="text-green-500">2D</span> cardiac
               component segmentation using YOLO and MedSAM for precise medical
@@ -491,7 +393,6 @@ const ToolsDropDown = React.memo(function ToolsDropDown({
               icon={Settings}
               isComingSoon={true}
               className="min-h-36"
-              onMenuInteraction={onMenuInteraction}
             >
               Upcoming <span className="text-red-500">3D</span> cardiac imaging
               capabilities with enhanced depth analysis and volumetric
@@ -504,7 +405,7 @@ const ToolsDropDown = React.memo(function ToolsDropDown({
   );
 });
 
-// Mobile Menu Component with enhanced animations
+// Mobile Menu Component
 const MobileMenu = React.memo(function MobileMenu({
   onClose,
 }: {
@@ -514,25 +415,9 @@ const MobileMenu = React.memo(function MobileMenu({
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <motion.div
-        className="space-y-6 p-4"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{
-          delay: ANIMATION_CONSTANTS.delay.initial,
-          duration: ANIMATION_CONSTANTS.duration.normal,
-        }}
-      >
+      <div className="space-y-6 p-4">
         {/* User Section */}
-        <motion.div
-          className="border-b pb-4"
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{
-            delay: ANIMATION_CONSTANTS.delay.userSection,
-            duration: ANIMATION_CONSTANTS.duration.normal,
-          }}
-        >
+        <div className="border-b pb-4">
           {user ? (
             <div className="space-y-3">
               <AuthenticatedUserView />
@@ -542,49 +427,24 @@ const MobileMenu = React.memo(function MobileMenu({
               <LoginForm />
             </div>
           )}
-        </motion.div>
+        </div>
 
         {/* Menu Sections */}
         {MOBILE_MENU_ITEMS.map((section, sectionIndex) => (
-          <motion.div
-            key={section.title}
-            className="space-y-3"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{
-              delay:
-                ANIMATION_CONSTANTS.delay.menuBase +
-                sectionIndex * ANIMATION_CONSTANTS.delay.sectionMultiplier,
-              duration: ANIMATION_CONSTANTS.duration.normal,
-            }}
-          >
+          <div key={section.title} className="space-y-3">
             <h3 className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
               {section.title}
             </h3>
             <div className="space-y-2">
               {section.items.map((item, itemIndex) => (
-                <motion.div
-                  key={item.title}
-                  initial={{ x: 20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{
-                    delay:
-                      ANIMATION_CONSTANTS.delay.itemBase +
-                      sectionIndex *
-                        ANIMATION_CONSTANTS.delay.sectionMultiplier +
-                      itemIndex * ANIMATION_CONSTANTS.delay.itemMultiplier,
-                    duration: ANIMATION_CONSTANTS.duration.normal,
-                  }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
+                <div key={item.title}>
                   <Link
                     href={item.isComingSoon ? "#" : item.href}
                     onClick={
                       item.isComingSoon ? (e) => e.preventDefault() : onClose
                     }
                     className={cn(
-                      "flex items-center space-x-3 rounded-lg p-3 transition-all duration-200",
+                      "flex items-center space-x-3 rounded-lg p-3",
                       "hover:bg-accent hover:text-accent-foreground",
                       item.isComingSoon && "cursor-not-allowed opacity-60",
                     )}
@@ -610,12 +470,12 @@ const MobileMenu = React.memo(function MobileMenu({
                       </div>
                     </div>
                   </Link>
-                </motion.div>
+                </div>
               ))}
             </div>
-          </motion.div>
+          </div>
         ))}
-      </motion.div>
+      </div>
     </div>
   );
 });
