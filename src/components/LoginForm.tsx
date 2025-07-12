@@ -102,7 +102,7 @@ export const LoginForm = () => {
                 Continue as Guest
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className="z-90">
               <AlertDialogHeader>
                 <AlertDialogTitle className="flex flex-row items-center gap-2">
                   <AlertCircleIcon className="h-4 w-4" />
