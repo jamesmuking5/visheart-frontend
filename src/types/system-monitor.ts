@@ -55,3 +55,47 @@ export interface SystemMonitorData {
   isLoading: boolean;
   lastUpdated: Date | null;
 }
+
+export interface GpuConfig {
+  host: string;
+  port: number;
+  isHTTPS: boolean;
+  description?: string;
+  serverIdForGpuServer: string;
+  gpuServerIdentity: string;
+  jwtRefreshInterval: number;
+  jwtLifetimeSeconds: number;
+  createdAt: string;
+  updatedAt: string;
+  setBy: string;
+  hasJwtSecret: boolean;
+}
+
+export interface GpuConfigUpdateData {
+  host?: string;
+  port?: number;
+  isHTTPS?: boolean;
+  description?: string;
+  serverIdForGpuServer?: string;
+  gpuServerIdentity?: string;
+  gpuServerAuthJwtSecret?: string;
+  jwtRefreshInterval?: number;
+  jwtLifetimeSeconds?: number;
+}
+
+export interface GpuConfigResponse {
+  success: boolean;
+  gpuHost?: GpuConfig;
+  message?: string;
+}
+
+export interface GpuConnectionTestResponse {
+  success: boolean;
+  message: string;
+  serverAddress?: string;
+  testUrl?: string;
+  status?: number;
+  statusText?: string;
+  reachable?: boolean;
+  error?: string;
+}

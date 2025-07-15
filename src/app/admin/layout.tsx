@@ -6,7 +6,6 @@ import {
   Shield,
   Users,
   BarChart3,
-  Settings,
   Database,
   Activity,
 } from "lucide-react";
@@ -41,13 +40,6 @@ const adminNavigation = [
     status: "coming-soon" as const,
   },
   {
-    title: "System Settings",
-    href: "/admin/settings",
-    icon: Settings,
-    description: "Configure system-wide settings",
-    status: "coming-soon" as const,
-  },
-  {
     title: "Database Management",
     href: "/admin/database",
     icon: Database,
@@ -55,10 +47,10 @@ const adminNavigation = [
     status: "coming-soon" as const,
   },
   {
-    title: "System Monitor",
+    title: "System Monitor & Configuration",
     href: "/admin/system-monitor",
     icon: Activity,
-    description: "Monitor system health and performance",
+    description: "Monitor system health, performance, and configure settings",
     status: "active" as const,
   },
 ] as const;

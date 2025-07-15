@@ -1,14 +1,16 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { statusApi } from "@/lib/api";
-import { GpuStatus, GpuSystemStatus } from "@/types/system-monitor";
+import { statusApi, gpuConfigApi } from "@/lib/api";
+import { GpuStatus, GpuSystemStatus, GpuConfig, GpuConfigResponse, GpuConnectionTestResponse, GpuConfigUpdateData } from "@/types/system-monitor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   RefreshCw,
   AlertCircle,
@@ -20,6 +22,11 @@ import {
   Monitor,
   Server,
   Clock,
+  Settings,
+  Edit,
+  Save,
+  X,
+  TestTube,
 } from "lucide-react";
 
 // Helper function to get status color and icon
@@ -92,6 +99,14 @@ export default function SystemMonitorPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // GPU Configuration state
+  const [gpuConfig, setGpuConfig] = useState<GpuConfig | null>(null);
+  const [isEditingConfig, setIsEditingConfig] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
+  const [isConfigLoading, setIsConfigLoading] = useState(false);
+  const [editFormData, setEditFormData] = useState<GpuConfigUpdateData>({});
+  const [connectionTestResult, setConnectionTestResult] = useState<GpuConnectionTestResponse | null>(null);
 
   const fetchSystemData = useCallback(async () => {
     setIsLoading(true);
@@ -191,12 +206,108 @@ export default function SystemMonitorPage() {
     }
   }, []);
 
+  // GPU Configuration functions
+  const fetchGpuConfig = useCallback(async () => {
+    try {
+      setIsConfigLoading(true);
+      setConfigError(null);
+      const response = await gpuConfigApi.getGpuConfig();
+      if (response.success && response.gpuHost) {
+        setGpuConfig(response.gpuHost);
+      } else {
+        setConfigError(response.message || "Failed to fetch GPU configuration");
+      }
+    } catch (error) {
+      setConfigError("Failed to fetch GPU configuration");
+      console.error("GPU config fetch error:", error);
+    } finally {
+      setIsConfigLoading(false);
+    }
+  }, []);
+
+  const handleEditConfig = () => {
+    if (gpuConfig) {
+      setEditFormData({ ...gpuConfig });
+      setIsEditingConfig(true);
+      setConfigError(null);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingConfig(false);
+    setEditFormData({});
+    setConfigError(null);
+  };
+
+  const handleSaveConfig = async () => {
+    try {
+      setIsConfigLoading(true);
+      setConfigError(null);
+      
+      const response = await gpuConfigApi.updateGpuConfig(editFormData);
+      if (response.success && response.gpuHost) {
+        setGpuConfig(response.gpuHost);
+        setIsEditingConfig(false);
+        setEditFormData({});
+        // Optionally reload system data to reflect changes
+        await fetchSystemData();
+      } else {
+        setConfigError(response.message || "Failed to update GPU configuration");
+      }
+    } catch (error) {
+      setConfigError("Failed to update GPU configuration");
+      console.error("GPU config update error:", error);
+    } finally {
+      setIsConfigLoading(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    try {
+      setIsConfigLoading(true);
+      setConnectionTestResult(null);
+      
+      const response = await gpuConfigApi.testGpuConnection();
+      setConnectionTestResult(response);
+    } catch (error) {
+      setConnectionTestResult({
+        success: false,
+        message: "Failed to test GPU server connection",
+        reachable: false
+      });
+      console.error("GPU connection test error:", error);
+    } finally {
+      setIsConfigLoading(false);
+    }
+  };
+
+  const handleReloadConfig = async () => {
+    try {
+      setIsConfigLoading(true);
+      setConfigError(null);
+      
+      const response = await gpuConfigApi.reloadGpuConfig();
+      if (response.success) {
+        await fetchGpuConfig(); // Refresh the displayed config
+        await fetchSystemData(); // Refresh system data
+      } else {
+        setConfigError(response.message || "Failed to reload GPU configuration");
+      }
+    } catch (error) {
+      setConfigError("Failed to reload GPU configuration");
+      console.error("GPU config reload error:", error);
+    } finally {
+      setIsConfigLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchSystemData();
+    fetchGpuConfig(); // Fetch GPU config on component mount
     // Auto-refresh every 30 seconds
     const interval = setInterval(fetchSystemData, 30000);
     return () => clearInterval(interval);
-  }, [fetchSystemData]);
+  }, [fetchSystemData, fetchGpuConfig]);
 
   const gpuStatusDisplay = getStatusDisplay(gpuStatus?.status || "offline");
   const systemStatusDisplay = getStatusDisplay(
@@ -208,9 +319,9 @@ export default function SystemMonitorPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">System Monitor</h1>
+          <h1 className="text-3xl font-bold tracking-tight">System Monitor & Configuration</h1>
           <p className="text-muted-foreground">
-            Monitor GPU server and Node server status in real-time
+            Monitor GPU server and Node server status in real-time, and configure system settings
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -410,6 +521,245 @@ export default function SystemMonitorPage() {
                     <p className="text-muted-foreground">
                       Unable to fetch GPU information. The GPU server may be
                       offline or experiencing timeout.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* GPU Configuration Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                <h2 className="text-2xl font-bold">GPU Server Configuration</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTestConnection}
+                  disabled={isConfigLoading}
+                >
+                  <TestTube className="mr-2 h-4 w-4" />
+                  Test Connection
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReloadConfig}
+                  disabled={isConfigLoading}
+                >
+                  <RefreshCw className={`mr-2 h-4 w-4 ${isConfigLoading ? "animate-spin" : ""}`} />
+                  Reload Config
+                </Button>
+                {!isEditingConfig ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleEditConfig}
+                    disabled={isConfigLoading || !gpuConfig}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSaveConfig}
+                      disabled={isConfigLoading}
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      Save
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelEdit}
+                      disabled={isConfigLoading}
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Cancel
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Configuration Error Alert */}
+            {configError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{configError}</AlertDescription>
+              </Alert>
+            )}
+
+            {/* Connection Test Result */}
+            {connectionTestResult && (
+              <Alert variant={connectionTestResult.reachable ? "default" : "destructive"}>
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Connection Test Result:</strong> {connectionTestResult.message}
+                  {connectionTestResult.serverAddress && (
+                    <div className="mt-1 text-sm">
+                      Server: {connectionTestResult.serverAddress}
+                      {connectionTestResult.status && ` (HTTP ${connectionTestResult.status})`}
+                    </div>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {gpuConfig ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Current GPU Server Configuration</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {isEditingConfig ? (
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <Label htmlFor="host">Host</Label>
+                        <Input
+                          id="host"
+                          value={editFormData.host || ""}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, host: e.target.value }))}
+                          placeholder="Enter GPU server host"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="port">Port</Label>
+                        <Input
+                          id="port"
+                          type="number"
+                          value={editFormData.port || ""}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, port: parseInt(e.target.value) || 0 }))}
+                          placeholder="Enter port number"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="serverIdForGpuServer">Server ID</Label>
+                        <Input
+                          id="serverIdForGpuServer"
+                          value={editFormData.serverIdForGpuServer || ""}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, serverIdForGpuServer: e.target.value }))}
+                          placeholder="Enter server ID"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="gpuServerIdentity">GPU Server Identity</Label>
+                        <Input
+                          id="gpuServerIdentity"
+                          value={editFormData.gpuServerIdentity || ""}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, gpuServerIdentity: e.target.value }))}
+                          placeholder="Enter GPU server identity"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="jwtLifetimeSeconds">JWT Lifetime (seconds)</Label>
+                        <Input
+                          id="jwtLifetimeSeconds"
+                          type="number"
+                          value={editFormData.jwtLifetimeSeconds || ""}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, jwtLifetimeSeconds: parseInt(e.target.value) || 0 }))}
+                          placeholder="Enter JWT lifetime"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="jwtRefreshInterval">JWT Refresh Interval (ms)</Label>
+                        <Input
+                          id="jwtRefreshInterval"
+                          type="number"
+                          value={editFormData.jwtRefreshInterval || ""}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, jwtRefreshInterval: parseInt(e.target.value) || 0 }))}
+                          placeholder="Enter refresh interval"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label htmlFor="description">Description</Label>
+                        <Input
+                          id="description"
+                          value={editFormData.description || ""}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="Enter description"
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <Label htmlFor="gpuServerAuthJwtSecret">JWT Secret (leave empty to keep current)</Label>
+                        <Input
+                          id="gpuServerAuthJwtSecret"
+                          type="password"
+                          value={editFormData.gpuServerAuthJwtSecret || ""}
+                          onChange={(e) => setEditFormData(prev => ({ ...prev, gpuServerAuthJwtSecret: e.target.value }))}
+                          placeholder="Enter new JWT secret (optional)"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      <div>
+                        <span className="text-muted-foreground text-sm">Host:</span>
+                        <p className="font-medium">{gpuConfig.host}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">Port:</span>
+                        <p className="font-medium">{gpuConfig.port}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">HTTPS:</span>
+                        <Badge variant={gpuConfig.isHTTPS ? "default" : "secondary"}>
+                          {gpuConfig.isHTTPS ? "Enabled" : "Disabled"}
+                        </Badge>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">Server ID:</span>
+                        <p className="font-medium">{gpuConfig.serverIdForGpuServer}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">GPU Server Identity:</span>
+                        <p className="font-medium">{gpuConfig.gpuServerIdentity}</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">JWT Secret:</span>
+                        <Badge variant={gpuConfig.hasJwtSecret ? "default" : "destructive"}>
+                          {gpuConfig.hasJwtSecret ? "Configured" : "Not Set"}
+                        </Badge>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">JWT Lifetime:</span>
+                        <p className="font-medium">{gpuConfig.jwtLifetimeSeconds}s</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">JWT Refresh Interval:</span>
+                        <p className="font-medium">{gpuConfig.jwtRefreshInterval}ms</p>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground text-sm">Last Updated:</span>
+                        <p className="font-medium">{new Date(gpuConfig.updatedAt).toLocaleString()}</p>
+                      </div>
+                      {gpuConfig.description && (
+                        <div className="md:col-span-2 lg:col-span-3">
+                          <span className="text-muted-foreground text-sm">Description:</span>
+                          <p className="font-medium">{gpuConfig.description}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <Settings className="text-muted-foreground mx-auto h-12 w-12" />
+                    <h3 className="mt-4 text-lg font-semibold">
+                      No GPU Configuration Available
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Unable to fetch GPU server configuration. Check your admin permissions.
                     </p>
                   </div>
                 </CardContent>

@@ -396,4 +396,57 @@ export const statusApi = {
   },
 };
 
+// GPU configuration functions (admin only)
+export const gpuConfigApi = {
+  // Get current GPU configuration
+  getGpuConfig: async () => {
+    try {
+      const response = await api.get("/admintools/gpu-config");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Update GPU configuration
+  updateGpuConfig: async (config: {
+    host?: string;
+    port?: number;
+    isHTTPS?: boolean;
+    description?: string;
+    serverIdForGpuServer?: string;
+    gpuServerIdentity?: string;
+    gpuServerAuthJwtSecret?: string;
+    jwtRefreshInterval?: number;
+    jwtLifetimeSeconds?: number;
+  }) => {
+    try {
+      const response = await api.patch("/admintools/gpu-config", config);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Reload GPU configuration from database
+  reloadGpuConfig: async () => {
+    try {
+      const response = await api.post("/admintools/gpu-config/reload");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Test GPU server connection
+  testGpuConnection: async () => {
+    try {
+      const response = await api.post("/admintools/gpu-config/test-connection");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
 export default api;
