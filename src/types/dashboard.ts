@@ -9,6 +9,8 @@ export interface Project {
       width: number;
       height: number;
       depth: number;
+      slices?: number;
+      frames?: number;
     };
     createdAt: string;
     updatedAt: string;

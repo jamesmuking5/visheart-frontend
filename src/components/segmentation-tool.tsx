@@ -66,6 +66,41 @@ export function SegmentationTool({ imageUrl, width, height }: SegmentationToolPr
     isDrawing.current = false;
   };
 
+  // Touch event handlers
+  const handleTouchStart = (e: KonvaEventObject<TouchEvent>) => {
+    isDrawing.current = true;
+    const pos = e.target.getStage()?.getPointerPosition();
+    if (!pos) return;
+
+    const newHistory = history.slice(0, historyStep + 1);
+    const lastLineState = newHistory[newHistory.length - 1] || [];
+    const newLine = { tool, points: [pos.x, pos.y], strokeWidth: brushSize };
+
+    setHistory([...newHistory, [...lastLineState, newLine]]);
+    setHistoryStep(newHistory.length);
+  };
+
+  const handleTouchMove = (e: KonvaEventObject<TouchEvent>) => {
+    if (!isDrawing.current) return;
+
+    const stage = e.target.getStage();
+    const point = stage?.getPointerPosition();
+    if (!point) return;
+
+    const lastHistoryState = history[history.length - 1];
+    const lastLine = lastHistoryState[lastHistoryState.length - 1];
+    lastLine.points = lastLine.points.concat([point.x, point.y]);
+
+    // Directly update the last history entry
+    const newHistory = [...history];
+    newHistory[newHistory.length - 1] = [...lastHistoryState];
+    setHistory(newHistory);
+  };
+
+  const handleTouchEnd = () => {
+    isDrawing.current = false;
+  };
+
   const handleUndo = useCallback(() => {
     if (historyStep > 0) {
       setHistoryStep(historyStep - 1);
@@ -135,9 +170,9 @@ export function SegmentationTool({ imageUrl, width, height }: SegmentationToolPr
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onTouchStart={handleMouseDown}
-          onTouchMove={handleMouseMove}
-          onTouchEnd={handleMouseUp}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           <Layer>
             <KonvaImage image={image} width={width} height={height} />

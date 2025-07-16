@@ -24,36 +24,46 @@ import { cn } from "@/lib/utils";
 import { AdminOnly } from "@/components/ProtectedRoute";
 
 // Define admin navigation structure for scalability
-const adminNavigation = [
+type NavigationStatus = "active" | "coming-soon";
+
+interface NavigationItem {
+  title: string;
+  href: string;
+  icon: any;
+  description: string;
+  status: NavigationStatus;
+}
+
+const adminNavigation: NavigationItem[] = [
   {
     title: "User Management",
     href: "/admin/user-management",
     icon: Users,
     description: "Manage users, roles, and permissions",
-    status: "active" as const,
+    status: "active",
   },
   {
     title: "Analytics",
     href: "/admin/analytics",
     icon: BarChart3,
     description: "View system analytics and reports",
-    status: "coming-soon" as const,
+    status: "coming-soon",
   },
   {
     title: "Database Management",
     href: "/admin/database",
     icon: Database,
     description: "Manage database operations and backups",
-    status: "coming-soon" as const,
+    status: "coming-soon",
   },
   {
     title: "System Monitor & Configuration",
     href: "/admin/system-monitor",
     icon: Activity,
     description: "Monitor system health, performance, and configure settings",
-    status: "active" as const,
+    status: "active",
   },
-] as const;
+];
 
 // Generate breadcrumb items based on current path
 function generateBreadcrumbs(pathname: string) {
@@ -90,7 +100,7 @@ function AdminNavigationCard({
   item,
   isActive,
 }: {
-  item: (typeof adminNavigation)[0];
+  item: NavigationItem;
   isActive: boolean;
 }) {
   const Icon = item.icon;

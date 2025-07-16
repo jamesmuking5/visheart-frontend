@@ -10,7 +10,7 @@ import type { Mesh, Group, PerspectiveCamera as PerspectiveCameraType } from 'th
 
 // --- 3D Gallery Components (defined within the page) ---
 // This component represents a single image plane in the 3D scene
-function ImagePlane({ url, ...props }: { url: string } & JSX.IntrinsicElements['mesh']) {
+function ImagePlane({ url, ...props }: { url: string } & React.ComponentProps<'mesh'>) {
   const texture = useTexture(url);
   const [hovered, setHovered] = useState(false);
   const meshRef = useRef<Mesh>(null!);

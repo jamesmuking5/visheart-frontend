@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { statusApi, gpuConfigApi } from "@/lib/api";
-import { GpuStatus, GpuSystemStatus, GpuConfig, GpuConfigResponse, GpuConnectionTestResponse, GpuConfigUpdateData } from "@/types/system-monitor";
+import { GpuStatus, GpuSystemStatus, GpuConfig, GpuConnectionTestResponse, GpuConfigUpdateData } from "@/types/system-monitor";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

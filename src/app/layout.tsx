@@ -16,7 +16,7 @@ import "@/app/globals.css";
 import Footer from "@/ui/footer/footer";
 import Header from "@/ui/header/header";
 
-import type { ViewPort } from "next";
+import type { Viewport } from "next";
 
 import { ThemeProvider } from "@/lib/theme-provider";
 
