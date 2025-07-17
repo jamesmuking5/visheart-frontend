@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // Export as static site
+  // output: 'export', // comment this line if not exporting as static (.next folder)
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.

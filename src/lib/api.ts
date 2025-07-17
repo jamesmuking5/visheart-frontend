@@ -16,6 +16,7 @@ const api = axios.create({
   // Crucially, this tells axios to send cookies (like the session ID) with every request.
   // This is essential for session-based authentication with Passport.js.
   withCredentials: true,
+  timeout: 30000,
 });
 
 // Log the API base URL to the console for debugging purposes.
