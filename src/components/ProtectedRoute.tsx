@@ -160,3 +160,49 @@ export function UserOrAdmin({
     </ProtectedRoute>
   );
 }
+
+// Registration protection - only allows guests and unauthenticated users
+export function RegistrationOnly({
+  children,
+  redirectTo = "/dashboard",
+}: {
+  children: React.ReactNode;
+  redirectTo?: string;
+}) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user && user.role !== "guest") {
+      // If user is authenticated and not a guest, redirect to dashboard
+      router.push(redirectTo);
+    }
+  }, [user, loading, router, redirectTo]);
+
+  // Show loading state during auth check
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <div className="flex items-center space-x-2">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+          <span className="text-sm text-gray-600">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Allow access for unauthenticated users or guests
+  if (!user || user.role === "guest") {
+    return <>{children}</>;
+  }
+
+  // Show redirecting state for authenticated non-guest users
+  return (
+    <div className="flex h-64 items-center justify-center">
+      <div className="flex items-center space-x-2">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+        <span className="text-sm text-gray-600">Redirecting to dashboard...</span>
+      </div>
+    </div>
+  );
+}

@@ -24,6 +24,47 @@ console.log(`API base URL: ${process.env.NEXT_PUBLIC_API_URL}`);
 
 // Authentication functions
 export const authApi = {
+  /**
+   * Register a new user account
+   * @param userData - User registration data containing username, password, email, and phone
+   * @returns Promise<ApiResponse> - Registration response with success status and user data
+   */
+  register: async (userData: {
+    username: string;
+    password: string;
+    email: string;
+    phone: string;
+  }) => {
+    try {
+      const response = await api.post("/auth/register", userData);
+      return response.data;
+    } catch (error) {
+      // Rethrow the error for handling by the caller
+      throw error;
+    }
+  },
+
+  /**
+   * Upgrade a guest account to a full registered user account
+   * @param userData - User registration data containing username, password, email, and phone
+   * @returns Promise<ApiResponse> - Registration response with success status and user data
+   * @requires User must be authenticated as a guest user
+   */
+  registerFromGuest: async (userData: {
+    username: string;
+    password: string;
+    email: string;
+    phone: string;
+  }) => {
+    try {
+      const response = await api.post("/auth/register-from-guest", userData);
+      return response.data;
+    } catch (error) {
+      // Rethrow the error for handling by the caller
+      throw error;
+    }
+  },
+
   // Login function that takes username and password
   login: async (username: string, password: string) => {
     try {
@@ -95,7 +136,7 @@ export const authApi = {
   // Delete user account
   deleteUser: async () => {
     try {
-      const response = await api.delete("/auth/delete-account");
+      const response = await api.post("/auth/delete");
       return response.data;
     } catch (error) {
       throw error;
@@ -327,7 +368,7 @@ export const adminApi = {
   // Update user role (admin only)
   updateUserRole: async (username: string, newRole: string) => {
     try {
-      const response = await api.patch("/auth/update-user-role", {
+      const response = await api.post("/auth/update-role", {
         username,
         newrole: newRole,
       });
