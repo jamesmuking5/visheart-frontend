@@ -1,16 +1,23 @@
+/* Import Tailwind CSS framework */
 @import "tailwindcss";
+/* Import Tailwind CSS animation utilities */
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* Dark mode variant - currently disabled */
+/* @custom-variant dark (&:is(.dark *)); */
 
+/* Debug borders - uncomment to see element boundaries */
 /* * {
   border: 0.5px solid red;
 } */
 
-Button {
+/* Make buttons show pointer cursor on hover - currently disabled */
+/* button {
   @apply hover:cursor-pointer;
-}
+} */
 
+/* Custom theme variables for inline Tailwind styles */
+/* These map CSS custom properties to Tailwind's color system */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -51,6 +58,8 @@ Button {
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* Light mode theme variables */
+/* Define colors and spacing for the default (light) theme */
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -86,6 +95,8 @@ Button {
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/* Dark mode theme variables */
+/* Override colors when .dark class is applied to body or parent element */
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -120,16 +131,22 @@ Button {
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* Base styles applied to all elements */
 @layer base {
+
+  /* Apply border and outline ring colors to all elements */
   * {
     @apply border-border outline-ring/50;
   }
 
+  /* Set background and text colors for the body */
   body {
     @apply bg-background text-foreground;
   }
 }
 
+/* Custom font definition */
+/* Load RetroFloral font from local file */
 @font-face {
   font-family: 'RetroFloral';
   src: url('/Retro Floral.ttf') format('truetype');
@@ -137,4 +154,3 @@ Button {
   font-style: normal;
   font-display: swap;
 }
-
