@@ -365,16 +365,7 @@ export default function DashboardPage() {
                 <Link href="/upload">
                   <Button className="w-full justify-start">
                     <Upload className="mr-2 h-4 w-4" />
-                    Upload Project
-                  </Button>
-                </Link>
-              </ShowForUser>
-
-              <ShowForUser fallback={null}>
-                <Link href="/projects">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Brain className="mr-2 h-4 w-4" />
-                    Start Segmentation
+                    New Project
                   </Button>
                 </Link>
               </ShowForUser>
@@ -391,7 +382,7 @@ export default function DashboardPage() {
               <Link href="/profile">
                 <Button variant="outline" className="w-full justify-start">
                   <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                  Profile Settings
                 </Button>
               </Link>
 
