@@ -553,7 +553,7 @@ export default function DashboardPage() {
             <AlertTitle>Project Management:</AlertTitle>
             <AlertDescription className="inline-block">
               <span className="inline">New projects start as </span>
-              <span className="bg-secondary text-secondary-foreground mx-1 inline-block rounded-md px-2 text-xs font-medium">
+              <span className="bg-secondary text-secondary-foreground mx-1 inline-block rounded-md px-2 py-0.5 text-xs font-medium">
                 Temp
               </span>
               <span className="inline">
@@ -561,11 +561,11 @@ export default function DashboardPage() {
                 <span className="font-semibold">automatically deleted</span>{" "}
                 when you log out. Click the
               </span>
-              <span className="bg-secondary text-secondary-foreground mx-1 inline-block rounded-md px-2 text-xs font-medium">
+              <span className="bg-secondary text-secondary-foreground mx-1 inline-block rounded-md px-2 py-0.5 text-xs font-medium">
                 Temp
               </span>
               <span className="inline"> badge to mark projects as </span>
-              <span className="bg-primary text-primary-foreground mx-1 inline-block rounded-md px-2 text-xs font-medium">
+              <span className="bg-primary text-primary-foreground mx-1 inline-block rounded-md px-2 py-0.5 text-xs font-medium">
                 Saved
               </span>
               <span className="inline">

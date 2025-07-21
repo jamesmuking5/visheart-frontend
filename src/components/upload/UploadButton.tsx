@@ -1,11 +1,15 @@
 import React from "react";
-import { Button, ButtonProps } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Upload } from "lucide-react";
+import { VariantProps } from "class-variance-authority";
 
-interface UploadButtonProps extends Omit<ButtonProps, "onClick"> {
+interface UploadButtonProps
+  extends Omit<React.ComponentProps<"button">, "onClick">,
+    VariantProps<typeof buttonVariants> {
   onUploadClick: () => void;
   text?: string;
   icon?: boolean;
+  asChild?: boolean;
 }
 
 export function UploadButton({
@@ -13,10 +17,20 @@ export function UploadButton({
   text = "Upload New Project",
   icon = true,
   className,
+  variant,
+  size,
+  asChild,
   ...props
 }: UploadButtonProps) {
   return (
-    <Button onClick={onUploadClick} className={className} {...props}>
+    <Button
+      onClick={onUploadClick}
+      className={className}
+      variant={variant}
+      size={size}
+      asChild={asChild}
+      {...props}
+    >
       {icon && <Upload className="mr-2 h-4 w-4" />}
       {text}
     </Button>
