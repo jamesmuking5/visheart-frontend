@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import {
   useGpuStatus,
@@ -19,6 +19,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertCircle,
@@ -38,9 +49,11 @@ import {
   UserCheck,
   Settings,
   Shield,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { projectApi, segmentationApi } from "@/lib/api";
+import { FileUploadDialog } from "@/components/upload/FileUploadDialog";
 
 // Helper function to format file size
 const formatFileSize = (bytes: number) => {
@@ -105,6 +118,16 @@ export default function DashboardPage() {
   } = useGpuStatus();
   const userStats = useUserStats(projects, recentJobs);
 
+  // State for upload dialog
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  
+  // State for delete confirmation dialog
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
   const isLoadingData = projectsLoading || jobsLoading || gpuLoading;
 
   const refreshDashboard = async () => {
@@ -147,6 +170,29 @@ export default function DashboardPage() {
     } catch (error) {
       console.error("Error saving project:", error);
     }
+  };
+
+  const handleDeleteProject = async (projectId: string, projectName: string) => {
+    setProjectToDelete({ id: projectId, name: projectName });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteProject = async () => {
+    if (!projectToDelete) return;
+
+    try {
+      await projectApi.deleteProject(projectToDelete.id);
+      await refreshProjects();
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      alert("Failed to delete project. Please try again.");
+    }
+  };
+
+  const handleUploadSuccess = async () => {
+    await refreshProjects();
   };
 
   if (authLoading) {
@@ -362,12 +408,13 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
               <ShowForUser fallback={null}>
-                <Link href="/upload">
-                  <Button className="w-full justify-start">
-                    <Upload className="mr-2 h-4 w-4" />
-                    New Project
-                  </Button>
-                </Link>
+                <Button 
+                  className="w-full justify-start"
+                  onClick={() => setUploadDialogOpen(true)}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  New Project
+                </Button>
               </ShowForUser>
 
               <ShowForUser fallback={null}>
@@ -491,7 +538,9 @@ export default function DashboardPage() {
               </p>
             </div>
             <ShowForUser fallback={null}>
-              <Button>
+              <Button
+                onClick={() => setUploadDialogOpen(true)}
+              >
                 <Upload className="mr-2 h-4 w-4" />
                 Upload New Project
               </Button>
@@ -591,6 +640,18 @@ export default function DashboardPage() {
                       Export
                     </Button>
                   </div>
+                  <ShowForUser fallback={null}>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="w-full mt-2"
+                      onClick={() => handleDeleteProject(project.projectId, project.name)}
+                    >
+                      <Trash2 className="mr-1 h-3 w-3" />
+                      Delete Project
+                    </Button>
+                  </ShowForUser>
+
                 </CardContent>
               </Card>
             ))}
@@ -747,6 +808,37 @@ export default function DashboardPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* File Upload Dialog */}
+      <FileUploadDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        onUploadSuccess={handleUploadSuccess}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{projectToDelete?.name}"? This action cannot be undone. 
+              This will permanently delete the project and all associated data including segmentation results.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setProjectToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteProject}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Project
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

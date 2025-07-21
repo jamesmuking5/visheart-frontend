@@ -210,6 +210,16 @@ export const projectApi = {
       throw error;
     }
   },
+
+  // Delete project
+  deleteProject: async (projectId: string) => {
+    try {
+      const response = await api.delete(`/project/user-delete-project/${projectId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 // Segmentation functions
