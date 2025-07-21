@@ -31,15 +31,15 @@ const RoleBadge = () => {
 
   const roleConfig = {
     admin: {
-      icon: <Shield className="h-4 w-4 text-blue-600" />,
+      icon: <Shield className="inline-flex h-4 w-4 text-blue-600" />,
       colors: "bg-blue-100 text-blue-800 border-blue-200",
     },
     user: {
-      icon: <UserCheck className="h-4 w-4 text-green-600" />,
+      icon: <UserCheck className="inline-flex h-4 w-4 text-green-600" />,
       colors: "bg-green-100 text-green-800 border-green-200",
     },
     guest: {
-      icon: <User className="h-4 w-4 text-gray-500" />,
+      icon: <User className="inline-flex h-4 w-4 text-gray-500" />,
       colors: "bg-gray-100 text-gray-800 border-gray-200",
     },
   };

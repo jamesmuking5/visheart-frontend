@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -120,7 +120,7 @@ export default function DashboardPage() {
 
   // State for upload dialog
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  
+
   // State for delete confirmation dialog
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<{
@@ -172,7 +172,10 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDeleteProject = async (projectId: string, projectName: string) => {
+  const handleDeleteProject = async (
+    projectId: string,
+    projectName: string,
+  ) => {
     setProjectToDelete({ id: projectId, name: projectName });
     setDeleteDialogOpen(true);
   };
@@ -241,7 +244,7 @@ export default function DashboardPage() {
           <div className="text-muted-foreground flex items-center gap-2">
             {getRoleIcon(user.role)}
             <span>
-              Welcome back,{" "}
+              Welcome back,
               {user.role === "guest" ? "Guest User" : user.username}.
             </span>
             <Badge variant="outline" className="ml-2">
@@ -408,7 +411,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
               <ShowForUser fallback={null}>
-                <Button 
+                <Button
                   className="w-full justify-start"
                   onClick={() => setUploadDialogOpen(true)}
                 >
@@ -464,8 +467,7 @@ export default function DashboardPage() {
                       <div>
                         <p className="text-sm font-medium">{project.name}</p>
                         <p className="text-muted-foreground text-xs">
-                          {formatFileSize(project.filesize)} •{" "}
-                          {project.filetype}
+                          {formatFileSize(project.filesize)} •{project.filetype}
                         </p>
                       </div>
                     </div>
@@ -538,14 +540,40 @@ export default function DashboardPage() {
               </p>
             </div>
             <ShowForUser fallback={null}>
-              <Button
-                onClick={() => setUploadDialogOpen(true)}
-              >
+              <Button onClick={() => setUploadDialogOpen(true)}>
                 <Upload className="mr-2 h-4 w-4" />
                 Upload New Project
               </Button>
             </ShowForUser>
           </div>
+
+          {/* Project Management Info */}
+          <Alert>
+            <AlertCircle className="inline h-4 w-4" />
+            <AlertTitle>Project Management:</AlertTitle>
+            <AlertDescription className="inline-block">
+              <span className="inline">New projects start as </span>
+              <span className="bg-secondary text-secondary-foreground mx-1 inline-block rounded-md px-2 text-xs font-medium">
+                Temp
+              </span>
+              <span className="inline">
+                and will be{" "}
+                <span className="font-semibold">automatically deleted</span>{" "}
+                when you log out. Click the
+              </span>
+              <span className="bg-secondary text-secondary-foreground mx-1 inline-block rounded-md px-2 text-xs font-medium">
+                Temp
+              </span>
+              <span className="inline"> badge to mark projects as </span>
+              <span className="bg-primary text-primary-foreground mx-1 inline-block rounded-md px-2 text-xs font-medium">
+                Saved
+              </span>
+              <span className="inline">
+                for permanent storage. Use the delete button to delete projects
+                <span className="font-semibold"> immediately</span>.
+              </span>
+            </AlertDescription>
+          </Alert>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
@@ -644,14 +672,15 @@ export default function DashboardPage() {
                     <Button
                       size="sm"
                       variant="destructive"
-                      className="w-full mt-2"
-                      onClick={() => handleDeleteProject(project.projectId, project.name)}
+                      className="mt-2 w-full"
+                      onClick={() =>
+                        handleDeleteProject(project.projectId, project.name)
+                      }
                     >
                       <Trash2 className="mr-1 h-3 w-3" />
                       Delete Project
                     </Button>
                   </ShowForUser>
-
                 </CardContent>
               </Card>
             ))}
@@ -821,9 +850,21 @@ export default function DashboardPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Project</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{projectToDelete?.name}"? This action cannot be undone. 
-              This will permanently delete the project and all associated data including segmentation results.
+            <AlertDialogDescription className="space-y-3">
+              <p>Are you sure you want to delete "{projectToDelete?.name}"?</p>
+
+              <p>
+                <span className="font-semibold">
+                  This action cannot be undone.
+                </span>
+                This will permanently delete the project and all associated data
+                including segmentation results.
+              </p>
+
+              <p className="text-muted-foreground italic">
+                Note: If this project contains important work, make sure to save
+                it first before deletion to preserve it in your account history.
+              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -834,7 +875,7 @@ export default function DashboardPage() {
               onClick={confirmDeleteProject}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete Project
+              Delete Permanently
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

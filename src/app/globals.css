@@ -4,7 +4,7 @@
 @import "tw-animate-css";
 
 /* Dark mode variant - currently disabled */
-/* @custom-variant dark (&:is(.dark *)); */
+@custom-variant dark (&:is(.dark *));
 
 /* Debug borders - uncomment to see element boundaries */
 /* * {
@@ -133,7 +133,6 @@
 
 /* Base styles applied to all elements */
 @layer base {
-
   /* Apply border and outline ring colors to all elements */
   * {
     @apply border-border outline-ring/50;
@@ -143,13 +142,18 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Force inline elements to stay inline */
+  span, strong, em, i, b, small, code, kbd, mark, sub, sup {
+    display: inline !important;
+  }
 }
 
 /* Custom font definition */
 /* Load RetroFloral font from local file */
 @font-face {
-  font-family: 'RetroFloral';
-  src: url('/Retro Floral.ttf') format('truetype');
+  font-family: "RetroFloral";
+  src: url("/Retro Floral.ttf") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
