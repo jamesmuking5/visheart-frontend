@@ -101,7 +101,12 @@ export const authApi = {
     try {
       const response = await api.get("/auth/fetch");
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      // If user is not authenticated (401/403), return null instead of throwing
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.log("User not authenticated, no session found.");
+      }
+      // For other errors (network issues, server errors), still throw
       throw error;
     }
   },
@@ -214,7 +219,9 @@ export const projectApi = {
   // Delete project
   deleteProject: async (projectId: string) => {
     try {
-      const response = await api.delete(`/project/user-delete-project/${projectId}`);
+      const response = await api.delete(
+        `/project/user-delete-project/${projectId}`,
+      );
       return response.data;
     } catch (error) {
       throw error;

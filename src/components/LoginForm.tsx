@@ -56,9 +56,9 @@ export const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   return (
-    <div className="mx-auto w-full max-w-md">
+    <div className="mx-auto flex w-full flex-col items-center justify-evenly sm:max-h-1/12 sm:flex-row">
       {/* Brand Header */}
-      <div className="mb-8 text-center">
+      <div className="my-8 text-center sm:flex-1/3">
         <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl">
           <Image
             src="/visheart_logo.svg"
@@ -77,7 +77,7 @@ export const LoginForm = () => {
       </div>
 
       {/* Main Login Card */}
-      <div className="bg-card border-border overflow-hidden rounded-2xl border shadow-xl">
+      <div className="bg-card border-border mx-4 overflow-hidden rounded-2xl border shadow-xl sm:my-3 sm:h-[610px] sm:flex-1/6">
         <CardHeader className="from-muted/50 to-muted/30 border-border/50 border-b bg-gradient-to-r pt-6">
           <CardTitle className="flex items-center gap-2 text-xl font-semibold">
             <Shield className="text-primary h-5 w-5" />

@@ -358,7 +358,10 @@ const ProfileDropDown = React.memo(function ProfileDropDown() {
     // Show login button that redirects to /login page
     return (
       <NavigationMenuItem>
-        <Link href="/login" className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2 flex items-center rounded-md">
+        <Link
+          href="/login"
+          className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 flex h-10 items-center rounded-md bg-transparent px-4 py-2"
+        >
           <div className="flex items-center space-x-2">
             <User className="h-4 w-4" />
             <span>Sign In</span>
@@ -441,7 +444,7 @@ const MobileMenu = React.memo(function MobileMenu({
               <Link
                 href="/login"
                 onClick={onClose}
-                className="flex items-center space-x-3 rounded-lg bg-primary p-3 text-primary-foreground hover:bg-primary/90"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center space-x-3 rounded-lg p-3"
               >
                 <User className="h-4 w-4" />
                 <span className="font-medium">Sign In</span>

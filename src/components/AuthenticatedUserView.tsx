@@ -63,25 +63,27 @@ export const AuthenticatedUserView = () => {
   if (!user) return null;
 
   return (
-    <div className="w-[400px] pb-5 select-none">
+    <div className="w-full max-w-[400px] pb-5 select-none sm:w-[400px]">
       <CardHeader className="pb-4 text-center">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-left text-lg">Welcome back,</CardTitle>
-            <p className="text-muted-foreground text-left text-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-0">
+          <div className="flex-1 text-center sm:text-left">
+            <CardTitle className="text-lg">Welcome back,</CardTitle>
+            <p className="text-muted-foreground text-sm">
               {user.role === "guest" ? "Guest User" : user.username}
             </p>
           </div>
-          <RoleBadge />
+          <div className="flex justify-center sm:justify-end">
+            <RoleBadge />
+          </div>
         </div>
       </CardHeader>
 
-      <CardContent className="grid gap-3">
+      <CardContent className="grid gap-3 px-4 sm:px-6">
         <ShowForGuest fallback={null}>
           <Alert className="border-orange-200 bg-orange-50 py-2">
             <AlertCircleIcon className="h-4 w-4 stroke-black" />
-            <AlertDescription className="text-orange-800">
-              You're in guest mode. Your work won't be saved.
+            <AlertDescription className="text-orange-800 text-sm">
+              You're in guest mode. Your work won't be saved.{" "}
               <Link href="/register" className="font-medium underline">
                 Create an account now.
               </Link>
@@ -91,7 +93,7 @@ export const AuthenticatedUserView = () => {
 
         <ShowForAdmin fallback={null}>
           <Alert className="border-blue-200 bg-blue-50 py-2">
-            <AlertDescription className="flex items-center justify-center text-blue-800">
+            <AlertDescription className="flex items-center justify-center text-blue-800 text-sm">
               <Shield className="mr-2 h-4 w-4 text-black" />
               Admin privileges active
             </AlertDescription>
@@ -100,31 +102,31 @@ export const AuthenticatedUserView = () => {
 
         <div className="grid gap-2">
           <Link href="/dashboard">
-            <Button variant="outline" className="w-full justify-start">
-              <Settings className="mr-2 h-4 w-4" />
+            <Button variant="outline" className="w-full justify-start h-11 text-sm sm:text-base">
+              <Settings className="mr-2 h-4 w-4 flex-shrink-0" />
               My Dashboard
             </Button>
           </Link>
           <ShowForAdmin fallback={null}>
             <Link href="/admin">
-              <Button variant="outline" className="w-full justify-start">
-                <Shield className="mr-2 h-4 w-4" />
+              <Button variant="outline" className="w-full justify-start h-11 text-sm sm:text-base">
+                <Shield className="mr-2 h-4 w-4 flex-shrink-0" />
                 Admin Panel
               </Button>
             </Link>
           </ShowForAdmin>
           <ShowForUser fallback={null}>
             <Link href="/profile">
-              <Button variant="outline" className="w-full justify-start">
-                <User className="mr-2 h-4 w-4" />
+              <Button variant="outline" className="w-full justify-start h-11 text-sm sm:text-base">
+                <User className="mr-2 h-4 w-4 flex-shrink-0" />
                 Profile Settings
               </Button>
             </Link>
           </ShowForUser>
           <ShowForGuest>
             <Link href="/register">
-              <Button className="w-full bg-green-600 hover:bg-green-700">
-                <UserCheck className="mr-2 h-4 w-4" />
+              <Button className="w-full bg-green-600 hover:bg-green-700 h-11 text-sm sm:text-base">
+                <UserCheck className="mr-2 h-4 w-4 flex-shrink-0" />
                 Upgrade Account
               </Button>
             </Link>
@@ -132,13 +134,13 @@ export const AuthenticatedUserView = () => {
         </div>
       </CardContent>
 
-      <CardFooter className="pt-4">
+      <CardFooter className="pt-4 px-4 sm:px-6">
         <Button
           variant="outline"
-          className="w-full justify-start border-red-200 text-red-600 hover:bg-red-50"
+          className="w-full justify-start border-red-200 text-red-600 hover:bg-red-50 h-11 text-sm sm:text-base"
           onClick={logout}
         >
-          <LogOut className="mr-2 h-4 w-4" />
+          <LogOut className="mr-2 h-4 w-4 flex-shrink-0" />
           Sign Out
         </Button>
       </CardFooter>
