@@ -80,14 +80,14 @@
                   whileInView={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.8, delay: 0.2 }}
                   viewport={{ once: true }}
-                  className="bg-card/50 backdrop-blur-sm rounded-2xl p-8 border border-border/50"
+                  className="bg-card/50 backdrop-blur-sm rounded-2xl p-8 border border-border/50 text-center"
                 >
                   <motion.h3 
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.4 }}
                     viewport={{ once: true }}
-                    className="text-2xl font-semibold text-foreground mb-4 flex items-center"
+                    className="text-2xl font-semibold text-foreground mb-4 flex items-center justify-center"
                   >
                     <motion.div 
                       initial={{ scale: 0, rotate: -180 }}
@@ -105,27 +105,27 @@
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.8 }}
                     viewport={{ once: true }}
-                    className="text-muted-foreground leading-relaxed"
+                    className="text-muted-foreground leading-relaxed text-center"
                   >
                     Advanced cardiac segmentation models exist but operate as standalone systems without user-friendly interfaces. 
                     This gap hinders clinical adoption and integration into healthcare workflows, limiting the real-world impact of AI research.
                   </motion.p>
                 </motion.div>
-
+            
                 {/* Our Solution */}
                 <motion.div
                   initial={{ opacity: 0, x: 50 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.8, delay: 0.4 }}
                   viewport={{ once: true }}
-                  className="bg-card/50 backdrop-blur-sm rounded-2xl p-8 border border-border/50"
+                  className="bg-card/50 backdrop-blur-sm rounded-2xl p-8 border border-border/50 text-center"
                 >
                   <motion.h3 
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.6 }}
                     viewport={{ once: true }}
-                    className="text-2xl font-semibold text-foreground mb-4 flex items-center"
+                    className="text-2xl font-semibold text-foreground mb-4 flex items-center justify-center"
                   >
                     <motion.div 
                       initial={{ scale: 0, rotate: 180 }}
@@ -143,7 +143,7 @@
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 1.0 }}
                     viewport={{ once: true }}
-                    className="text-muted-foreground leading-relaxed"
+                    className="text-muted-foreground leading-relaxed text-center"
                   >
                     VisHeart bridges this gap with an intuitive web-based platform that integrates cutting-edge AI models into clinical workflows. 
                     We enable seamless MRI upload, automated segmentation, and interactive refinement tools for healthcare professionals.
