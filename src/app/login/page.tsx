@@ -20,13 +20,9 @@ import { RegistrationOnly } from "@/components/ProtectedRoute";
 export default function LoginPage() {
   return (
     <RegistrationOnly redirectTo="/">
-      <div className="from-background to-muted/20 flex min-h-screen items-center justify-center bg-gradient-to-br p-4">
-        <div className="w-full max-w-md">
-          {/* Login Form Component */}
-          <div className="bg-card/80 border-0 shadow-xl backdrop-blur-sm rounded-lg">
-            <LoginForm />
-          </div>
-        </div>
+      <div className="bg-background">
+        {/* Login Form Component */}
+        <LoginForm />
       </div>
     </RegistrationOnly>
   );

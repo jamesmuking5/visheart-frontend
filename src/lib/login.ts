@@ -14,7 +14,11 @@ export function useLogin(redirectTo: string = "/") {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(username, password);
+      // Add a minimum 1-second delay to show the signing in spinner
+      const [loginResult] = await Promise.all([
+        login(username, password),
+        new Promise((resolve) => setTimeout(resolve, 1000)),
+      ]);
       router.push(redirectTo);
     } catch (error) {
       // Error is handled by the auth context
@@ -23,7 +27,11 @@ export function useLogin(redirectTo: string = "/") {
 
   const handleGuestLogin = async () => {
     try {
-      await guestLogin();
+      // Add a minimum 1-second delay to show the loading spinner
+      const [guestLoginResult] = await Promise.all([
+        guestLogin(),
+        new Promise((resolve) => setTimeout(resolve, 1000)),
+      ]);
       router.push(redirectTo);
     } catch (error) {
       // Error is handled by the auth context

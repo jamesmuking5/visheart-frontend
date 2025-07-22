@@ -19,6 +19,7 @@
 import { useAuth } from "@/context/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { RefreshCw } from "lucide-react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -60,7 +61,7 @@ export function ProtectedRoute({
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="flex items-center space-x-2">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+          <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
           <span className="text-sm text-gray-600">Checking permissions...</span>
         </div>
       </div>
@@ -72,7 +73,7 @@ export function ProtectedRoute({
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="flex items-center space-x-2">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
+          <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
           <span className="text-sm text-gray-600">Redirecting...</span>
         </div>
       </div>
@@ -184,8 +185,8 @@ export function RegistrationOnly({
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="flex items-center space-x-2">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
-          <span className="text-sm text-gray-600">Loading...</span>
+          <RefreshCw className="text-foreground h-4 w-4 animate-spin" />
+          <span className="text-foreground text-sm">Loading</span>
         </div>
       </div>
     );
@@ -200,8 +201,8 @@ export function RegistrationOnly({
   return (
     <div className="flex h-64 items-center justify-center">
       <div className="flex items-center space-x-2">
-        <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
-        <span className="text-sm text-gray-600">Redirecting...</span>
+        <RefreshCw className="text-foreground h-4 w-4 animate-spin" />
+        <span className="text-foreground text-sm">Redirecting</span>
       </div>
     </div>
   );
