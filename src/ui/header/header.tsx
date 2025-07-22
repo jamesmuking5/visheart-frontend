@@ -17,7 +17,6 @@ import ThemeToggle from "../theme-toggle";
 import visheartLogo from "@/../public/visheart_logo.svg";
 import { useAuth } from "@/context/auth-context";
 import { AuthenticatedUserView } from "@/components/AuthenticatedUserView";
-import { LoginForm } from "@/components/LoginForm";
 import { cn } from "@/lib/utils";
 import {
   Menu,
@@ -338,21 +337,36 @@ const HomeDropDown = React.memo(function HomeDropDown() {
 const ProfileDropDown = React.memo(function ProfileDropDown() {
   const { user } = useAuth();
 
-  return (
-    <NavigationMenuItem>
-      <NavigationMenuTrigger className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2">
-        <div className="flex items-center space-x-2">
-          <User className="h-4 w-4" />
-          <span>{user ? "Profile" : "Sign In"}</span>
-        </div>
-      </NavigationMenuTrigger>
-      <NavigationMenuContent className="bg-background/95 border shadow-lg backdrop-blur-md">
-        <div className="p-4">
-          {user ? <AuthenticatedUserView /> : <LoginForm />}
-        </div>
-      </NavigationMenuContent>
-    </NavigationMenuItem>
-  );
+  if (user) {
+    // Show profile dropdown for authenticated users
+    return (
+      <NavigationMenuItem>
+        <NavigationMenuTrigger className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2">
+          <div className="flex items-center space-x-2">
+            <User className="h-4 w-4" />
+            <span>Profile</span>
+          </div>
+        </NavigationMenuTrigger>
+        <NavigationMenuContent className="bg-background/95 border shadow-lg backdrop-blur-md">
+          <div className="p-4">
+            <AuthenticatedUserView />
+          </div>
+        </NavigationMenuContent>
+      </NavigationMenuItem>
+    );
+  } else {
+    // Show login button that redirects to /login page
+    return (
+      <NavigationMenuItem>
+        <Link href="/login" className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2 flex items-center rounded-md">
+          <div className="flex items-center space-x-2">
+            <User className="h-4 w-4" />
+            <span>Sign In</span>
+          </div>
+        </Link>
+      </NavigationMenuItem>
+    );
+  }
 });
 
 // Enhanced ToolsDropDown component
@@ -424,7 +438,14 @@ const MobileMenu = React.memo(function MobileMenu({
             </div>
           ) : (
             <div className="space-y-3">
-              <LoginForm />
+              <Link
+                href="/login"
+                onClick={onClose}
+                className="flex items-center space-x-3 rounded-lg bg-primary p-3 text-primary-foreground hover:bg-primary/90"
+              >
+                <User className="h-4 w-4" />
+                <span className="font-medium">Sign In</span>
+              </Link>
             </div>
           )}
         </div>

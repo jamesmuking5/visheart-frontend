@@ -25,15 +25,15 @@ interface ProtectedRouteProps {
   allowedRoles?: string[];
   redirectTo?: string;
   fallback?: React.ReactNode;
-  autoRedirect?: boolean; // New prop to control auto-redirection
+  autoRedirect?: boolean; // Controls auto-redirection behavior
 }
 
 export function ProtectedRoute({
   children,
   allowedRoles = ["user", "admin"],
-  redirectTo = "/",
+  redirectTo = "/login",
   fallback,
-  autoRedirect = false, // Default to false to prevent automatic redirects
+  autoRedirect = true, // Default to true to redirect unauthenticated users to login
 }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -161,10 +161,10 @@ export function UserOrAdmin({
   );
 }
 
-// Registration protection - only allows guests and unauthenticated users
+// Registration and Login protection - only allows guests and unauthenticated users
 export function RegistrationOnly({
   children,
-  redirectTo = "/dashboard",
+  redirectTo = "/",
 }: {
   children: React.ReactNode;
   redirectTo?: string;
@@ -174,7 +174,7 @@ export function RegistrationOnly({
 
   useEffect(() => {
     if (!loading && user && user.role !== "guest") {
-      // If user is authenticated and not a guest, redirect to dashboard
+      // If user is authenticated and not a guest, redirect to home or dashboard
       router.push(redirectTo);
     }
   }, [user, loading, router, redirectTo]);
@@ -201,7 +201,7 @@ export function RegistrationOnly({
     <div className="flex h-64 items-center justify-center">
       <div className="flex items-center space-x-2">
         <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></div>
-        <span className="text-sm text-gray-600">Redirecting to dashboard...</span>
+        <span className="text-sm text-gray-600">Redirecting...</span>
       </div>
     </div>
   );

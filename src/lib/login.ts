@@ -3,19 +3,31 @@
 
 import { useState } from "react";
 import { useAuth } from "@/context/auth-context";
+import { useRouter } from "next/navigation";
 
-export function useLogin() {
+export function useLogin(redirectTo: string = "/") {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const { login, guestLogin, error, loading } = useAuth();
+  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    await login(username, password);
+    try {
+      await login(username, password);
+      router.push(redirectTo);
+    } catch (error) {
+      // Error is handled by the auth context
+    }
   };
 
   const handleGuestLogin = async () => {
-    await guestLogin();
+    try {
+      await guestLogin();
+      router.push(redirectTo);
+    } catch (error) {
+      // Error is handled by the auth context
+    }
   };
 
   return {
