@@ -66,7 +66,7 @@ export function ServicesSection() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-light mb-6 text-foreground">
-              Our <span className="text-primary font-semibold">Services</span>
+              <span className="text-primary font-semibold">Our Services</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
               Comprehensive cardiac MRI analysis solutions powered by state-of-the-art AI models, 

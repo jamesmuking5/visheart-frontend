@@ -66,7 +66,7 @@ export function FaqSection() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-light mb-6 text-foreground">
-              Frequently Asked <span className="text-primary font-semibold">Questions</span>
+              <span className="text-primary font-semibold">Frequently Asked Questions</span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
               Find answers to common questions about VisHeart's AI-powered cardiac segmentation technology and research implementation.
@@ -86,35 +86,42 @@ export function FaqSection() {
               >
                 <motion.button
                   onClick={() => toggleFaq(faq.id)}
-                  className="w-full p-6 text-left flex items-center justify-between hover:bg-primary/5 transition-colors duration-300"
-                  whileHover={{ x: 5 }}
+                  className="w-full p-6 hover:bg-primary/5 transition-colors duration-300"
+                  whileHover={{ y: -2 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <div className="flex items-center space-x-4">
+                  <div className="flex items-center justify-between w-full">
+                    {/* Left side: Number + Question */}
+                    <div className="flex items-center space-x-4 flex-1">
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        whileInView={{ scale: 1, rotate: 0 }}
+                        transition={{ delay: 0.1 * index + 0.2, duration: 0.3 }}
+                        viewport={{ once: true }}
+                        className="w-8 h-8 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center flex-shrink-0"
+                      >
+                        <span className="text-white dark:text-black font-bold text-sm">
+                          {String(index + 1).padStart(2, '0')}
+                        </span>
+                      </motion.div>
+                      <div className="text-center flex-1">
+                        <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors duration-300">
+                          {faq.question}
+                        </h3>
+                      </div>
+                    </div>
+                    
+                    {/* Right side: Arrow */}
                     <motion.div
-                      initial={{ scale: 0, rotate: -180 }}
-                      whileInView={{ scale: 1, rotate: 0 }}
-                      transition={{ delay: 0.1 * index + 0.2, duration: 0.3 }}
-                      viewport={{ once: true }}
-                      className="w-8 h-8 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center flex-shrink-0"
+                      animate={{ rotate: openFaq === faq.id ? 180 : 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="flex-shrink-0 ml-4"
                     >
-                      <span className="text-white dark:text-black font-bold text-sm">
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
+                      <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
                     </motion.div>
-                    <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors duration-300">
-                      {faq.question}
-                    </h3>
                   </div>
-                  <motion.div
-                    animate={{ rotate: openFaq === faq.id ? 180 : 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="flex-shrink-0 ml-4"
-                  >
-                    <svg className="w-5 h-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </motion.div>
                 </motion.button>
                 
                 <motion.div
@@ -126,7 +133,7 @@ export function FaqSection() {
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   className="overflow-hidden"
                 >
-                  <div className="px-6 pb-6 pl-18">
+                  <div className="px-8 pb-8 pt-4">
                     <motion.p
                       initial={{ opacity: 0, y: 10 }}
                       animate={{
@@ -134,7 +141,7 @@ export function FaqSection() {
                         y: openFaq === faq.id ? 0 : 10
                       }}
                       transition={{ duration: 0.3, delay: openFaq === faq.id ? 0.1 : 0 }}
-                      className="text-muted-foreground leading-relaxed"
+                      className="text-muted-foreground leading-relaxed text-center"
                     >
                       {faq.answer}
                     </motion.p>
@@ -144,52 +151,52 @@ export function FaqSection() {
             ))}
           </div>
 
-        {/* Contact CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.7 }}
-          viewport={{ once: true }}
-          className="text-center mt-16"
-        >
-          <div className="bg-card/50 backdrop-blur-sm rounded-2xl p-8 border border-border/50 shadow-lg">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.8, duration: 0.5 }}
-              viewport={{ once: true }}
-              className="w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center mx-auto mb-4"
-            >
-              <svg className="w-8 h-8 text-white dark:text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </motion.div>
-            <h3 className="text-2xl font-semibold text-foreground mb-4">
-              Still Have Questions?
-            </h3>
-            <p className="text-muted-foreground mb-6 leading-relaxed">
-              Our research team is ready to help you understand how VisHeart can advance your cardiac imaging research and clinical workflow.
-            </p>
-            <motion.button
-              whileHover={{ scale: 1.05, y: -2 }}
-              whileTap={{ scale: 0.95 }}
-              className="px-8 py-4 bg-primary text-white dark:text-black rounded-full font-semibold hover:bg-primary/90 transition-all duration-300 inline-flex items-center group"
-            >
-              Contact Research Team
-              <motion.svg
-                whileHover={{ x: 3 }}
-                transition={{ duration: 0.2 }}
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-5 w-5 ml-2" 
-                fill="none" 
-                viewBox="0 0 24 24" 
-                stroke="currentColor"
+          {/* Contact CTA */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.7 }}
+            viewport={{ once: true }}
+            className="text-center mt-16"
+          >
+            <div className="bg-card/50 backdrop-blur-sm rounded-2xl p-8 border border-border/50 shadow-lg">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.8, duration: 0.5 }}
+                viewport={{ once: true }}
+                className="w-16 h-16 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center mx-auto mb-4"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </motion.svg>
-            </motion.button>
-          </div>
-        </motion.div>
+                <svg className="w-8 h-8 text-white dark:text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </motion.div>
+              <h3 className="text-2xl font-semibold text-foreground mb-4">
+                Still Have Questions?
+              </h3>
+              <p className="text-muted-foreground mb-6 leading-relaxed">
+                Our research team is ready to help you understand how VisHeart can advance your cardiac imaging research and clinical workflow.
+              </p>
+              <motion.button
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 bg-primary text-white dark:text-black rounded-full font-semibold hover:bg-primary/90 transition-all duration-300 inline-flex items-center group"
+              >
+                Contact Research Team
+                <motion.svg
+                  whileHover={{ x: 3 }}
+                  transition={{ duration: 0.2 }}
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="h-5 w-5 ml-2" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </motion.svg>
+              </motion.button>
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>

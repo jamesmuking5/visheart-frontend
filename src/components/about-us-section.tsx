@@ -58,7 +58,7 @@
               className="text-center mb-16"
             >
               <h2 className="text-4xl md:text-5xl font-light mb-6 text-foreground">
-                About <span className="text-primary font-semibold">VisHeart</span>
+                <span className="text-primary font-semibold"> About VisHeart</span>
               </h2>
               <p className="text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
                 Transforming cardiac MRI analysis through AI-powered segmentation technology

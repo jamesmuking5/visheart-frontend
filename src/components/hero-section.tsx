@@ -106,7 +106,7 @@ export function HeroSection() {
               className="text-center mb-12"
             >
               <motion.h1
-                initial={{ letterSpacing: "0.5em", scale: 0.8 }}
+                initial={{ letterSpacing: "0.1em", scale: 0.8 }}
                 animate={{ letterSpacing: "0.2em", scale: 1 }}
                 transition={{ duration: 2, ease: "easeOut" }}
                 className="hero-header text-5xl md:text-7xl lg:text-8xl font-bold tracking-wider text-primary m-0 drop-shadow-2xl mb-8"
