@@ -154,7 +154,7 @@ export function HeroSection() {
                     className="bg-card/50 backdrop-blur-sm border border-border rounded-xl p-4 relative"
                   >
                     <div className="text-center">
-                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-black dark:text-black font-bold text-sm mb-2 mx-auto">
+                      <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white dark:text-black font-bold text-sm mb-2 mx-auto">
                         {step.step}
                       </div>
                       <h4 className="font-semibold text-foreground text-sm mb-1">{step.title}</h4>
