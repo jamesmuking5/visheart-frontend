@@ -544,41 +544,48 @@ export default function SystemMonitorPage() {
 
           {/* GPU Configuration Section */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
-                <h2 className="text-2xl font-bold">GPU Server Configuration</h2>
+                <h2 className="text-xl sm:text-2xl font-bold">GPU Server Configuration</h2>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTestConnection}
-                  disabled={isConfigLoading}
-                >
-                  <TestTube className="mr-2 h-4 w-4" />
-                  Test Connection
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReloadConfig}
-                  disabled={isConfigLoading}
-                >
-                  <RefreshCw
-                    className={`mr-2 h-4 w-4 ${isConfigLoading ? "animate-spin" : ""}`}
-                  />
-                  Reload Config
-                </Button>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleTestConnection}
+                    disabled={isConfigLoading}
+                    className="flex-1 sm:flex-none text-xs sm:text-sm"
+                  >
+                    <TestTube className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                    <span className="hidden sm:inline">Test Connection</span>
+                    <span className="sm:hidden">Test</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReloadConfig}
+                    disabled={isConfigLoading}
+                    className="flex-1 sm:flex-none text-xs sm:text-sm"
+                  >
+                    <RefreshCw
+                      className={`mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 ${isConfigLoading ? "animate-spin" : ""}`}
+                    />
+                    <span className="hidden sm:inline">Reload Config</span>
+                    <span className="sm:hidden">Reload</span>
+                  </Button>
+                </div>
                 {!isEditingConfig ? (
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleEditConfig}
                     disabled={isConfigLoading || !gpuConfig}
+                    className="w-full sm:w-auto text-xs sm:text-sm"
                   >
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit
+                    <Edit className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                    Edit Configuration
                   </Button>
                 ) : (
                   <div className="flex gap-2">
@@ -587,8 +594,9 @@ export default function SystemMonitorPage() {
                       size="sm"
                       onClick={handleSaveConfig}
                       disabled={isConfigLoading}
+                      className="flex-1 sm:flex-none text-xs sm:text-sm"
                     >
-                      <Save className="mr-2 h-4 w-4" />
+                      <Save className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                       Save
                     </Button>
                     <Button
@@ -596,8 +604,9 @@ export default function SystemMonitorPage() {
                       size="sm"
                       onClick={handleCancelEdit}
                       disabled={isConfigLoading}
+                      className="flex-1 sm:flex-none text-xs sm:text-sm"
                     >
-                      <X className="mr-2 h-4 w-4" />
+                      <X className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
                       Cancel
                     </Button>
                   </div>
@@ -640,11 +649,11 @@ export default function SystemMonitorPage() {
                 <CardHeader>
                   <CardTitle>Current GPU Server Configuration</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 p-4 sm:p-6">
                   {isEditingConfig ? (
-                    <div className="grid gap-6 md:grid-cols-2">
+                    <div className="grid gap-4 sm:gap-6 sm:grid-cols-2">
                       <div>
-                        <Label htmlFor="host" className="mb-2 ml-2">
+                        <Label htmlFor="host" className="mb-2 ml-2 text-sm">
                           Host
                         </Label>
                         <Input
@@ -657,10 +666,11 @@ export default function SystemMonitorPage() {
                             }))
                           }
                           placeholder="Enter GPU server host"
+                          className="h-10 sm:h-auto"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="port" className="mb-2 ml-2">
+                        <Label htmlFor="port" className="mb-2 ml-2 text-sm">
                           Port
                         </Label>
                         <Input
@@ -674,12 +684,13 @@ export default function SystemMonitorPage() {
                             }))
                           }
                           placeholder="Enter port number"
+                          className="h-10 sm:h-auto"
                         />
                       </div>
                       <div>
                         <Label
                           htmlFor="serverIdForGpuServer"
-                          className="mb-2 ml-2"
+                          className="mb-2 ml-2 text-sm"
                         >
                           Server ID
                         </Label>
@@ -693,12 +704,13 @@ export default function SystemMonitorPage() {
                             }))
                           }
                           placeholder="Enter server ID"
+                          className="h-10 sm:h-auto"
                         />
                       </div>
                       <div>
                         <Label
                           htmlFor="gpuServerIdentity"
-                          className="mb-2 ml-2"
+                          className="mb-2 ml-2 text-sm"
                         >
                           GPU Server Identity
                         </Label>
@@ -712,12 +724,13 @@ export default function SystemMonitorPage() {
                             }))
                           }
                           placeholder="Enter GPU server identity"
+                          className="h-10 sm:h-auto"
                         />
                       </div>
                       <div>
                         <Label
                           htmlFor="jwtLifetimeSeconds"
-                          className="mb-2 ml-2"
+                          className="mb-2 ml-2 text-sm"
                         >
                           JWT Lifetime (seconds)
                         </Label>
@@ -732,12 +745,13 @@ export default function SystemMonitorPage() {
                             }))
                           }
                           placeholder="Enter JWT lifetime"
+                          className="h-10 sm:h-auto"
                         />
                       </div>
                       <div>
                         <Label
                           htmlFor="jwtRefreshInterval"
-                          className="mb-2 ml-2"
+                          className="mb-2 ml-2 text-sm"
                         >
                           JWT Refresh Interval (ms)
                         </Label>
@@ -752,10 +766,11 @@ export default function SystemMonitorPage() {
                             }))
                           }
                           placeholder="Enter refresh interval"
+                          className="h-10 sm:h-auto"
                         />
                       </div>
-                      <div className="md:col-span-2">
-                        <Label htmlFor="description" className="mb-2 ml-2">
+                      <div className="sm:col-span-2">
+                        <Label htmlFor="description" className="mb-2 ml-2 text-sm">
                           Description
                         </Label>
                         <Input
@@ -768,12 +783,13 @@ export default function SystemMonitorPage() {
                             }))
                           }
                           placeholder="Enter description"
+                          className="h-10 sm:h-auto"
                         />
                       </div>
-                      <div className="md:col-span-2">
+                      <div className="sm:col-span-2">
                         <Label
                           htmlFor="gpuServerAuthJwtSecret"
-                          className="mb-2 ml-2"
+                          className="mb-2 ml-2 text-sm"
                         >
                           JWT Secret (leave empty to keep current)
                         </Label>
@@ -788,11 +804,12 @@ export default function SystemMonitorPage() {
                             }))
                           }
                           placeholder="Enter new JWT secret (optional)"
+                          className="h-10 sm:h-auto"
                         />
                       </div>
                     </div>
                   ) : (
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       <div>
                         <span className="text-muted-foreground text-sm">
                           Host:

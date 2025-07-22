@@ -180,9 +180,9 @@ export default function AdminLayout({
       <div className="min-h-screen bg-gray-50/30 dark:bg-gray-950/30">
         {/* Admin Panel Header - Compact and non-sticky */}
         <div className="bg-background border-border border-b">
-          <div className="container mx-auto px-6 py-3">
+          <div className="container mx-auto px-4 sm:px-6 py-3">
             {/* Compact header with title and breadcrumbs */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <Link
                 href="/admin"
                 className="-m-2 flex items-center gap-2 rounded-lg p-2 transition-all duration-200 hover:scale-105 hover:bg-blue-50 dark:hover:bg-blue-950/30"
@@ -190,28 +190,28 @@ export default function AdminLayout({
                 <div className="rounded-md bg-blue-100 p-1.5 transition-colors duration-200 group-hover:bg-blue-200 dark:bg-blue-900/20 dark:group-hover:bg-blue-800/40">
                   <Shield className="h-4 w-4 text-blue-600 transition-colors duration-200 dark:text-blue-400" />
                 </div>
-                <h1 className="text-foreground text-lg font-semibold transition-colors duration-200 hover:text-blue-600 dark:hover:text-blue-400">
+                <h1 className="text-foreground text-base sm:text-lg font-semibold transition-colors duration-200 hover:text-blue-600 dark:hover:text-blue-400">
                   Admin Panel
                 </h1>
               </Link>
 
               {/* Breadcrumb navigation inline with header */}
               {/* Enhanced breadcrumb navigation with modern styling */}
-              <div className="flex items-center">
+              <div className="flex items-center overflow-x-auto">
                 <Breadcrumb>
-                  <BreadcrumbList className="gap-1">
+                  <BreadcrumbList className="gap-1 flex-nowrap">
                     {breadcrumbs.map((crumb, index) => (
                       <React.Fragment key={crumb.href}>
-                        <BreadcrumbItem>
+                        <BreadcrumbItem className="whitespace-nowrap">
                           {crumb.isActive ? (
-                            <BreadcrumbPage className="text-foreground rounded-md bg-blue-50/50 px-2 py-1 text-sm font-medium dark:bg-blue-950/30">
+                            <BreadcrumbPage className="text-foreground rounded-md bg-blue-50/50 px-2 py-1 text-xs sm:text-sm font-medium dark:bg-blue-950/30">
                               {crumb.label}
                             </BreadcrumbPage>
                           ) : (
                             <BreadcrumbLink asChild>
                               <Link
                                 href={crumb.href}
-                                className="text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md px-2 py-1 text-sm transition-all duration-200"
+                                className="text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md px-2 py-1 text-xs sm:text-sm transition-all duration-200"
                               >
                                 {crumb.label}
                               </Link>
@@ -219,7 +219,7 @@ export default function AdminLayout({
                           )}
                         </BreadcrumbItem>
                         {index < breadcrumbs.length - 1 && (
-                          <BreadcrumbSeparator className="text-muted-foreground/50" />
+                          <BreadcrumbSeparator className="text-muted-foreground/50 text-xs sm:text-sm" />
                         )}
                       </React.Fragment>
                     ))}
@@ -231,7 +231,7 @@ export default function AdminLayout({
         </div>
 
         {/* Main content area with proper spacing and responsive design */}
-        <main className="container mx-auto px-6 py-8">
+        <main className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
           {isAdminRoot ? (
             // Admin dashboard with navigation cards
             <div className="space-y-8">
