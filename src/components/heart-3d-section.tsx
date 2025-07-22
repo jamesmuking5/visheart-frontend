@@ -934,9 +934,7 @@ export function Heart3DSection({
           currentSegment={currentAnimationSegment} 
           hasPlayedWelcome={hasPlayedWelcome}
         />
-
-        {/* Animated ECG Lines - Show during welcome animation OR case 4 */}
-        {(!hasPlayedWelcome || currentAnimationSegment === 4) && <GSAPAnimatedECG />}
+        <GSAPAnimatedECG />
         
         {/* Enhanced 3D Heart Canvas */}
         <div className="absolute inset-0 z-20">
