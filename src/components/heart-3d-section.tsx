@@ -268,7 +268,7 @@ function DynamicBackground({ currentSegment, hasPlayedWelcome }: {
 
   // Theme-responsive colors
   const isDark = theme === 'dark';
-  const backgroundColor = isDark ? 'bg-gray-900' : 'bg-gray-300';
+  const backgroundColor = isDark ? 'bg-gray-1000' : 'bg-gray-300';
   const gridColor = isDark ? 'rgb(75, 85, 99)' : 'rgb(113, 117, 123)';
   const particleColor = isDark ? 'bg-gray-400' : 'bg-gray-900';
   const rayColor = isDark ? 'gray-400/50' : 'gray-500/40';
