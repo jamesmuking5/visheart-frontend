@@ -24,10 +24,12 @@ export function HeroSection() {
   ];
 
   // Segmentation types data
-const segmentationTypes = [
-  { abbr: "2D Segmentation" },
-  { abbr: "3D Segmentation" }
-];
+  const segmentationTypes = [
+    { abbr: "2D Segmentation" },
+    { abbr: "3D Segmentation" }
+  ];
+
+  const hoverCardClass = "transition-all duration-300 hover:scale-[1.03] hover:shadow-xl";
 
   return (
     <section 
@@ -83,7 +85,7 @@ const segmentationTypes = [
                   whileInView={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.8, delay: 0.2 }}
                   viewport={{ once: true }}
-                  className="bg-card/50 backdrop-blur-sm rounded-2xl p-8 border border-border/50 text-center"
+                  className={`bg-card/50 backdrop-blur-sm rounded-2xl p-8 border border-border/50 text-center ${hoverCardClass}`}
                 >
                   <motion.h3 
                     initial={{ opacity: 0, y: 20 }}
@@ -121,7 +123,7 @@ const segmentationTypes = [
                   whileInView={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.8, delay: 0.4 }}
                   viewport={{ once: true }}
-                  className="bg-card/50 backdrop-blur-sm rounded-2xl p-8 border border-border/50 text-center"
+                  className={`bg-card/50 backdrop-blur-sm rounded-2xl p-8 border border-border/50 text-center ${hoverCardClass}`}
                 >
                   <motion.h3 
                     initial={{ opacity: 0, y: 20 }}
@@ -160,7 +162,7 @@ const segmentationTypes = [
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 2, duration: 1 }}
-              className="text-center mb-16"
+              className={`text-center mb-16 ${hoverCardClass}`}
             >
               <div className="max-w-5xl mx-auto bg-card/30 backdrop-blur-sm border border-border rounded-xl p-8">
                 <h3 className="text-xl font-semibold text-foreground mb-4">Research Innovation</h3>
