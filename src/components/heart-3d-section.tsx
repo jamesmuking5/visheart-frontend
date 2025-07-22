@@ -708,27 +708,6 @@ function Heart3D({
                 ease: "back.out(1.4)",
               }, "-=1.2")
               
-              // Heart animations start with text
-              .to(meshRef.current.scale, {
-                x: 2.0,
-                y: 2.0,
-                z: 2.0,
-                duration: 1.5,
-                ease: "back.out(1.7)",
-              }, "-=1.5") // Start heart animation with text
-              .to(meshRef.current.rotation, {
-                y: "+=3.14159", // Add another π to current rotation (RELATIVE)
-                duration: 1.5,
-                ease: "power2.inOut",
-              }, "-=1.5")
-              .to(meshRef.current.position, {
-                y: "+=0.5", // Add to current Y position (RELATIVE)
-                duration: 0.8,
-                ease: "sine.inOut",
-                yoyo: true,
-                repeat: 1,
-              }, "-=0.8")
-              
               // Build tension with text glow
               .to("#case3-text", {
                 textShadow: "0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(255,255,255,0.4)",
@@ -742,32 +721,7 @@ function Heart3D({
                 duration: 1.5,
                 ease: "power2.inOut",
               })
-              
-              // Heart final positioning
-              .to(meshRef.current.scale, {
-                x: 1.8,
-                y: 1.8, 
-                z: 1.8,
-                duration: 1.2,
-                ease: "power2.inOut",
-              }, "-=0.8")
-              .to(meshRef.current.rotation, {
-                y: "+=1.57", // Add π/2 for final rotation
-                duration: 1.2,
-                ease: "power1.inOut",
-              }, "-=1.2")
-              
-              // Final VisHeart fade out - END ALL ANIMATIONS HERE
-              .to("#case3-text", {
-                opacity: 0,
-                scale: 0.8,
-                y: -30,
-                textShadow: "0 0 50px rgba(255,255,255,1), 0 0 100px rgba(255,255,255,0.8)",
-                duration: 1.2,
-                ease: "power3.in",
-                delay: 0.8
-              })
-              
+             
               // Mark animation as complete and navigate
               .call(() => {
                 console.log('VisHeart fade complete - ending all animations');
@@ -797,7 +751,6 @@ function Heart3D({
                 }, 2000); // 2 seconds after VisHeart fades
               })
               
-              .set("#case3-text", { display: "none" }); // Hide the text element
               break;
           }
         };
@@ -1128,11 +1081,11 @@ export function Heart3DSection({
             {/* Case 3 Text */}
             <div 
               id="case3-text"
-              className="text-center text-white opacity-0 absolute transition-colors duration-500"
+              className="text-center text-white opacity-0 absolute transition-colors duration-500 border border-gray-200 dark:border-gray-500 rounded-2xl px-8 py-6 shadow-lg bg-black/10 dark:bg-white/5"
               style={{ transform: 'translateY(30px)' }}
             >
               <h1 
-                className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-wider drop-shadow-2xl leading-tight transition-colors duration-500"
+                className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-wider drop-shadow-2xl leading-tight transition-colors duration-500 mb-4"
                 style={{ 
                   fontFamily: 'RetroFloral, serif',
                   color: textColor // Use the same theme-responsive color as other text
@@ -1140,6 +1093,15 @@ export function Heart3DSection({
               >
                 VisHeart
               </h1>
+              <p 
+                className="text-lg md:text-xl lg:text-2xl font-medium tracking-wide drop-shadow-lg transition-colors duration-500 opacity-90"
+                style={{ 
+                  color: textColor,
+                  fontFamily: 'system-ui, -apple-system, sans-serif'
+                }}
+              >
+                A Web-Based Application for Cardiac Component Segmentation
+              </p>
             </div>
           </div>
         </div>
