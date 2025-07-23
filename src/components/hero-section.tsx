@@ -164,6 +164,12 @@ export function HeroSection() {
           <div className="flex justify-center mt-16 mb-0">
             <button
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all"
+              onClick={() => {
+                const el = document.getElementById("quick-stats-section");
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+              }}
             >
               Learn More
             </button>
