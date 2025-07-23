@@ -102,12 +102,24 @@ export function TechnicalSpecsSection() {
     }
   ];
 
+  // Platform features (copied from AboutUsSection)
+  const systemFeatures = [
+    { title: "Industry-Standard Framework", desc: "Built with MERN stack for scalability and reliability" },
+    { title: "Python Integration", desc: "Seamless integration with AI models and medical imaging libraries" },
+    { title: "Responsive Design", desc: "Optimized for various devices and screen sizes" },
+    { title: "User-Centric Interface", desc: "Non-cluttered UI designed specifically for medical professionals" },
+    { title: "Data Security", desc: "Comprehensive patient anonymity and secure data handling" },
+    { title: "Account Management", desc: "Optional user accounts with secure data storage and deletion" },
+    { title: "GPU-Accelerated AI", desc: "Utilizes a dedicated Cloud GPU server for accelerated AI model inferencing and analysis" },
+    { title: "Scalable Cloud Deployment", desc: "Hosted on Amazon Web Services (AWS) for a secure, reliable, and scalable infrastructure" }
+  ];
+
   return (
     <section
       ref={ref}
       id="tech-specs-section"
       aria-label="Technical Specifications"
-      className="relative overflow-hidden py-20 min-h-[90vh] scroll-mt-[80px] bg-gradient-to-br from-blue-50 via-white to-pink-50 dark:from-gray-900 dark:via-card dark:to-gray-800"
+      className="relative overflow-hidden py-20 min-h-[60vh] scroll-mt-[80px] bg-gradient-to-br from-blue-50 via-white to-pink-50 dark:from-gray-900 dark:via-card dark:to-gray-800"
     >
       <motion.div
         initial={{ opacity: 0, y: -40 }}
@@ -133,7 +145,8 @@ export function TechnicalSpecsSection() {
           Explore <span className="font-bold text-primary">VisHeart</span>'s medical capabilities at a glance.
         </p>
       </motion.div>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 max-w-6xl mx-auto">
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-10 max-w-6xl mx-auto">
         {/* Cardiac Components */}
         <div
           className="text-center relative group"
@@ -331,6 +344,75 @@ export function TechnicalSpecsSection() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Platform Features Section */}
+      <div className="h-12" /> {/* Add spacing above platform features */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, delay: 0.5 }}
+        viewport={{ once: false }}
+        className="max-w-5xl mx-auto mb-16"
+      >
+        <h3 className="text-5xl font-extrabold text-foreground mb-8 drop-shadow-lg text-center">
+          {inView && (
+            <Typewriter
+              words={["Platform Features"]}
+              loop={1}
+              cursor
+              cursorStyle="|"
+              typeSpeed={70}
+              deleteSpeed={50}
+              delaySpeed={1000}
+            />
+          )}
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {systemFeatures.map((feature, index) => (
+            <motion.div
+              key={index}
+              initial={{ opacity: 0, y: 30, scale: 0.9 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.7 + (index * 0.1), duration: 0.4 }}
+              viewport={{ once: true }}
+              whileHover={{ scale: 1.02, x: 5 }}
+              className="flex items-start space-x-4 p-4 rounded-xl hover:bg-primary/5 transition-all duration-300"
+            >
+              <motion.div 
+                initial={{ scale: 0, rotate: -90 }}
+                whileInView={{ scale: 1, rotate: 0 }}
+                transition={{ delay: 0.8 + (index * 0.1), duration: 0.3 }}
+                viewport={{ once: true }}
+                className="w-6 h-6 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+              >
+                <svg className="w-3 h-3 text-white dark:text-black" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
+                </svg>
+              </motion.div>
+              <div>
+                <motion.h4 
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.9 + (index * 0.1), duration: 0.3 }}
+                  viewport={{ once: true }}
+                  className="font-semibold text-foreground mb-1"
+                >
+                  {feature.title}
+                </motion.h4>
+                <motion.p 
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.0 + (index * 0.1), duration: 0.3 }}
+                  viewport={{ once: true }}
+                  className="text-sm text-muted-foreground"
+                >
+                  {feature.desc}
+                </motion.p>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </motion.div>
     </section>
   );
 }
