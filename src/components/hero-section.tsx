@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useInView } from "react-intersection-observer";
 import { motion } from "framer-motion";
 import { Typewriter } from "react-simple-typewriter";
 import { FaHeartbeat, FaUserMd, FaFileMedical, FaMicroscope } from "react-icons/fa";
@@ -27,15 +28,14 @@ const features = [
 ];
 
 export function HeroSection() {
-  const [flipped, setFlipped] = useState([false, false]);
-  const [modalOpen, setModalOpen] = useState(false);
-
-  const handleFlip = (idx: number) => {
-    setFlipped((prev) => prev.map((f, i) => (i === idx ? !f : f)));
-  };
+  const { ref, inView } = useInView({
+    triggerOnce: false, // re-trigger every time section is exposed
+    threshold: 0.2,
+  });
 
   return (
     <section
+      ref={ref}
       id="hero-intro-section"
       aria-label="Hero introduction"
       className="hero-intro-section relative overflow-hidden"
@@ -43,14 +43,14 @@ export function HeroSection() {
       {/* Animated Gradient Background */}
       <motion.div
         initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        animate={inView ? { opacity: 1 } : { opacity: 0 }}
         transition={{ duration: 1.2 }}
         className="absolute inset-0 w-full h-full bg-gradient-to-br from-blue-100/40 via-white/10 to-blue-300/30 z-0"
       >
         {/* Floating Medical Icons */}
         <motion.div
           initial={{ y: -30, opacity: 0 }}
-          animate={{ y: 0, opacity: 0.6 }}
+          animate={inView ? { y: 0, opacity: 0.6 } : { y: -30, opacity: 0 }}
           transition={{ duration: 1.2, delay: 0.5 }}
           className="absolute top-10 left-10 text-6xl pointer-events-none select-none"
         >
@@ -58,7 +58,7 @@ export function HeroSection() {
         </motion.div>
         <motion.div
           initial={{ y: 30, opacity: 0 }}
-          animate={{ y: 0, opacity: 0.6 }}
+          animate={inView ? { y: 0, opacity: 0.6 } : { y: 30, opacity: 0 }}
           transition={{ duration: 1.2, delay: 0.7 }}
           className="absolute bottom-10 right-10 text-6xl pointer-events-none select-none"
         >
@@ -66,7 +66,7 @@ export function HeroSection() {
         </motion.div>
         <motion.div
           initial={{ x: -30, opacity: 0 }}
-          animate={{ x: 0, opacity: 0.5 }}
+          animate={inView ? { x: 0, opacity: 0.5 } : { x: -30, opacity: 0 }}
           transition={{ duration: 1.2, delay: 0.9 }}
           className="absolute top-1/2 left-4 text-5xl pointer-events-none select-none"
         >
@@ -74,7 +74,7 @@ export function HeroSection() {
         </motion.div>
         <motion.div
           initial={{ x: 30, opacity: 0 }}
-          animate={{ x: 0, opacity: 0.5 }}
+          animate={inView ? { x: 0, opacity: 0.5 } : { x: 30, opacity: 0 }}
           transition={{ duration: 1.2, delay: 1.1 }}
           className="absolute bottom-1/2 right-4 text-5xl pointer-events-none select-none"
         >
@@ -88,20 +88,22 @@ export function HeroSection() {
           {/* Title & Subtitle */}
           <motion.div
             initial={{ opacity: 0, y: -40 }}
-            animate={{ opacity: 1, y: 0 }}
+            animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: -40 }}
             transition={{ duration: 0.8 }}
             className="text-center mb-10"
           >
             <h1 className="text-5xl font-extrabold text-foreground mb-4 drop-shadow-lg">
-              <Typewriter
-                words={["VisHeart: Medical AI for Cardiac Care"]}
-                loop={1}
-                cursor
-                cursorStyle="|"
-                typeSpeed={70}
-                deleteSpeed={50}
-                delaySpeed={1000}
-              />
+              {inView && (
+                <Typewriter
+                  words={["VisHeart: Medical AI for Cardiac Care"]}
+                  loop={1}
+                  cursor
+                  cursorStyle="|"
+                  typeSpeed={70}
+                  deleteSpeed={50}
+                  delaySpeed={1000}
+                />
+              )}
             </h1>
             <p className="text-lg lg:text-xl text-muted-foreground text-center">
               Empowering clinicians with interactive AI tools for heart health.
@@ -111,8 +113,8 @@ export function HeroSection() {
           {/* Interactive Feature Cards */}
           <motion.div
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
+            animate={inView ? "visible" : "hidden"}
+            viewport={{ once: false }}
             variants={{
               hidden: {},
               visible: {
@@ -125,9 +127,8 @@ export function HeroSection() {
               <motion.div
                 key={feature.title}
                 initial={{ opacity: 0, y: 40, scale: 0.95 }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                animate={inView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 40, scale: 0.95 }}
                 transition={{ duration: 0.8, delay: idx * 0.2 }}
-                viewport={{ once: true }}
                 className="perspective"
               >
                 <div
@@ -139,9 +140,8 @@ export function HeroSection() {
                   <div className="flex flex-col items-center justify-center p-10">
                     <motion.div
                       initial={{ scale: 0, rotate: -180 }}
-                      whileInView={{ scale: 1, rotate: 0 }}
+                      animate={inView ? { scale: 1, rotate: 0 } : { scale: 0, rotate: -180 }}
                       transition={{ duration: 0.6, delay: 0.4 + idx * 0.2 }}
-                      viewport={{ once: true }}
                       className={`w-14 h-14 bg-gradient-to-br ${feature.gradient} rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg text-3xl text-white`}
                     >
                       {feature.icon}
