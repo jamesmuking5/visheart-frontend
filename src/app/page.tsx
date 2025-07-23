@@ -16,6 +16,7 @@ import { ContactSection } from "@/components/contact-section";
 import { InteractiveGallerySection } from '@/components/interactive-gallery-section';
 import { Commands } from '@/components/commands';
 import { Heart3DSection } from '@/components/heart-3d-section';
+import { QuickStatsSection } from '@/components/quick-stats-section';
 
 // Register the GSAP ScrollTrigger plugin if in a browser environment
 if (typeof window !== 'undefined') {
@@ -54,8 +55,11 @@ export default function Home() {
           setCase0AnimationCompleted={setCase0AnimationCompleted}
         />
 
-        {/* Hero/Intro Section - Main introduction with VisHeart branding and key features */}
+        {/* Hero Section - Main introduction with The Challenge and Our Solution */}
         <HeroSection />
+
+        {/* Quick Stats Section - Displaying key metrics */}
+        <QuickStatsSection />
 
         {/* About/Key Benefits Section - Detailed information and benefits */}
         <AboutUsSection />
