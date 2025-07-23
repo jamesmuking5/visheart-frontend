@@ -171,7 +171,7 @@ export function TechnicalSpecsSection() {
                 <div className="flex flex-row items-start justify-center gap-8">
                   {cardiacComponents.map((comp) => (
                     <div key={comp.abbr} className="flex flex-col items-center group">
-                      {comp.icon}
+                      {/* {comp.icon} */}
                       <span className={`font-bold text-lg ${comp.color}`}>{comp.abbr}</span>
                       <span className="text-xs text-muted-foreground mt-1 text-center">{comp.name}</span>
                       <span className="text-[10px] text-gray-400 mt-1 group-hover:text-primary transition">{comp.desc}</span>
@@ -219,8 +219,8 @@ export function TechnicalSpecsSection() {
               >
                 <div className="flex flex-row items-start justify-center gap-8">
                   {aiModels.map((model) => (
-                    <div key={model.abbr} className="   flex flex-col items-center group">
-                      {model.icon}
+                    <div key={typeof model.abbr === "string" ? model.abbr : "ai-model"} className="flex flex-col items-center group">
+                      {/* {model.icon} */}
                       <span className="font-bold text-lg text-primary">{model.abbr}</span>
                       <span className="text-[10px] text-gray-400 mt-1 group-hover:text-primary transition">{model.desc}</span>
                     </div>
@@ -234,7 +234,7 @@ export function TechnicalSpecsSection() {
         {/* Segmentation Types */}
         <div
           className="text-center relative group"
-          onMouseEnter={() => setShowSegTypes(true)}
+          onMouseEnter={() => setShowSegTypes("segmentation")}
           onMouseLeave={() => setShowSegTypes(false)}
         >
           <motion.div
@@ -248,7 +248,7 @@ export function TechnicalSpecsSection() {
             </div>
             <div className="flex justify-center w-full mt-1">
               <svg
-                className={`w-5 h-5 mx-auto transition-transform duration-200 ${showSegTypes ? 'rotate-180' : ''}`}
+                className={`w-5 h-5 mx-auto transition-transform duration-200 ${showSegTypes === "segmentation" ? 'rotate-180' : ''}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -258,7 +258,7 @@ export function TechnicalSpecsSection() {
             </div>
           </motion.div>
           <AnimatePresence>
-            {showSegTypes && (
+            {showSegTypes === "segmentation" && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -268,11 +268,16 @@ export function TechnicalSpecsSection() {
                 <div className="flex flex-row items-start justify-center gap-8">
                   {segmentationTypes.map((type) => (
                     <div key={type.abbr} className="flex flex-col items-center group">
-                      {type.icon}
+                      {/* {type.icon} */}
                       <span className="font-bold text-lg text-primary">{type.abbr}</span>
                       <span className="text-[10px] text-gray-400 mt-1 group-hover:text-primary transition">{type.desc}</span>
                     </div>
                   ))}
+                </div>
+                <div className="mt-4 text-center w-full">
+                  <span className="text-sm text-muted-foreground font-medium">
+                    Both support automated and manual processing.
+                  </span>
                 </div>
               </motion.div>
             )}
@@ -315,7 +320,7 @@ export function TechnicalSpecsSection() {
                 <div className="flex flex-row items-start justify-center gap-8">
                   {supportedFormats.map((format) => (
                     <div key={format.abbr} className="flex flex-col items-center group">
-                      {format.icon}
+                      {/* {format.icon} */}
                       <span className="font-bold text-lg text-primary">{format.abbr}</span>
                       <span className="text-[10px] text-gray-400 mt-1 group-hover:text-primary transition">{format.desc}</span>
                     </div>
