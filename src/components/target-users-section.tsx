@@ -1,80 +1,122 @@
 "use client";
 
-import { motion } from 'framer-motion';
+import { motion } from "framer-motion";
+import { Typewriter } from "react-simple-typewriter";
+import { useInView } from "react-intersection-observer";
 
-export function TargetUsersSection() { 
-  // End users and applications
+export function TargetUsersSection() {
+  const { ref, inView } = useInView({
+    triggerOnce: false,
+    threshold: 0.2,
+  });
+
   const endUsers = [
-    { 
-      title: "Medical Researchers", 
-      desc: "Cardiac researchers and clinical data scientists leveraging AI for advanced cardiac studies",
+    {
+      title: "Medical Researchers",
+      desc: "Cardiac researchers and clinical data scientists leveraging AI for advanced cardiac studies.",
       icon: "🔬",
-      applications: ["Cardiac motion estimation", "Disease classification", "Predictive analytics"]
+      applications: [
+        "Cardiac motion estimation",
+        "Disease classification",
+        "Predictive analytics",
+      ],
+      gradient: "from-pink-400 to-red-400",
     },
-    { 
-      title: "Healthcare Professionals", 
-      desc: "Cardiologists and radiologists requiring precise cardiac imaging analysis",
+    {
+      title: "Healthcare Professionals",
+      desc: "Cardiologists and radiologists requiring precise cardiac imaging analysis.",
       icon: "🏥",
-      applications: ["Clinical diagnosis", "Treatment planning", "Patient monitoring"]
+      applications: [
+        "Clinical diagnosis",
+        "Treatment planning",
+        "Patient monitoring",
+      ],
+      gradient: "from-teal-400 to-green-400",
     },
-    { 
-      title: "Research Applications", 
-      desc: "Downstream tasks enabled by precise cardiac segmentation",
+    {
+      title: "Research Applications",
+      desc: "Downstream tasks enabled by precise cardiac segmentation.",
       icon: "📊",
-      applications: ["3D cardiac reconstruction", "Abnormality detection", "Motion tracking"]
-    }
+      applications: [
+        "3D cardiac reconstruction",
+        "Abnormality detection",
+        "Motion tracking",
+      ],
+      gradient: "from-blue-400 to-purple-400",
+    },
   ];
 
   return (
-    <section aria-label="About VisHeart Platform" className="about-benefits-section">
-      <div id="info-section" className="py-24 bg-gradient-to-br from-background via-muted/50 to-background">
-        <div className="max-w-7xl mx-auto px-8">
-          {/* End Users & Applications */}
+    <section
+      ref={ref}
+      id="target-users-section"
+      aria-label="Target Users & Applications"
+      className="relative overflow-hidden py-20 min-h-[60vh] scroll-mt-[80px] bg-gradient-to-br from-blue-50 via-white to-pink-50 dark:from-gray-900 dark:via-card dark:to-gray-800"
+    >
+      <motion.div
+        initial={{ opacity: 0, y: -40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false }}
+        transition={{ duration: 0.8 }}
+        className="text-center mb-10"
+      >
+        <h2 className="text-5xl font-extrabold text-foreground mb-4 drop-shadow-lg">
+          {inView && (
+            <Typewriter
+              words={["Target Users & Applications"]}
+              loop={1}
+              cursor
+              cursorStyle="|"
+              typeSpeed={70}
+              deleteSpeed={50}
+              delaySpeed={1000}
+            />
+          )}
+        </h2>
+        <p className="text-lg lg:text-xl text-muted-foreground text-center">
+          Discover who benefits from <span className="font-bold text-primary">VisHeart</span>'s medical AI platform.
+        </p>
+      </motion.div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-6xl mx-auto">
+        {endUsers.map((user, idx) => (
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            viewport={{ once: true }}
-            className="mb-16"
+            key={user.title}
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.8, delay: idx * 0.2 }}
+            viewport={{ once: false }}
+            className="relative bg-white/60 dark:bg-card/70 backdrop-blur-xl rounded-3xl border border-primary/20 shadow-xl p-8 flex flex-col items-center justify-center hover:shadow-2xl transition-all duration-300"
           >
-            <h3 className="text-2xl font-semibold text-center text-foreground mb-8">Target Users & Applications</h3>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              {endUsers.map((user, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 50, scale: 0.9 }}
-                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ delay: 0.6 + (index * 0.2), duration: 0.6 }}
-                  viewport={{ once: true }}
-                  whileHover={{ scale: 1.02, y: -5 }}
-                  className="bg-card/50 backdrop-blur-sm rounded-2xl p-8 border border-border/50 hover:shadow-xl transition-all duration-300"
-                >
-                  <div className="text-center mb-6">
-                    <div className="text-4xl mb-3">{user.icon}</div>
-                    <h4 className="text-xl font-semibold text-foreground mb-2">{user.title}</h4>
-                    <p className="text-muted-foreground text-sm">{user.desc}</p>
-                  </div>
-                  <div className="space-y-2">
-                    <h5 className="font-medium text-foreground text-sm">Key Applications:</h5>
-                    {user.applications.map((app, appIndex) => (
-                      <motion.div
-                        key={appIndex}
-                        initial={{ opacity: 0, x: 20 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.8 + (index * 0.2) + (appIndex * 0.1), duration: 0.3 }}
-                        viewport={{ once: true }}
-                        className="flex items-center space-x-2"
-                      >
-                        <div className="w-2 h-2 bg-primary rounded-full"></div>
-                        <span className="text-xs text-muted-foreground">{app}</span>
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
-              ))}
+            <div
+              className={`w-14 h-14 bg-gradient-to-br ${user.gradient} rounded-full flex items-center justify-center mb-4 shadow-lg text-3xl`}
+            >
+              <span>{user.icon}</span>
+            </div>
+            <h3 className="text-2xl font-bold text-foreground mb-2 text-center">
+              {user.title}
+            </h3>
+            <p className="text-muted-foreground text-base mb-4 text-center">
+              {user.desc}
+            </p>
+            <div className="w-full">
+              <h4 className="font-semibold text-primary mb-2 text-center text-base">
+                Key Applications
+              </h4>
+              <ul className="space-y-2">
+                {user.applications.map((app, appIdx) => (
+                  <li
+                    key={appIdx}
+                    className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
+                  >
+                    <span className="w-2 h-2 bg-primary rounded-full inline-block"></span>
+                    {app}
+                  </li>
+                ))}
+              </ul>
             </div>
           </motion.div>
-        </div>
+        ))}
       </div>
     </section>
   );
