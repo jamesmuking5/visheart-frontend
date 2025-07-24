@@ -2,8 +2,15 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { Typewriter } from "react-simple-typewriter";
+import { useInView } from "react-intersection-observer";
 
 export function ServicesSection() {
+  const { ref, inView } = useInView({
+    triggerOnce: false,
+    threshold: 0.2,
+  });
+
   // Service data based on your FYP objectives
   const services = [
     {
@@ -54,113 +61,90 @@ export function ServicesSection() {
   ];
 
   return (
-    <section id="services-section" aria-label="VisHeart Services" className="services-section">
-      <div className="py-24 bg-gradient-to-br from-background to-muted">
-        <div className="max-w-7xl mx-auto px-8">
-          {/* Section Header */}
+    <section
+      ref={ref}
+      id="services-section"
+      aria-label="VisHeart Services"
+      className="relative overflow-hidden py-20 min-h-[60vh] scroll-mt-[80px] bg-gradient-to-br from-blue-50 via-white to-pink-50 dark:from-gray-900 dark:via-card dark:to-gray-800"
+    >
+      <motion.div
+        initial={{ opacity: 0, y: -40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false }}
+        transition={{ duration: 0.8 }}
+        className="text-center mb-10"
+      >
+        <h2 className="text-5xl font-extrabold text-foreground mb-4 drop-shadow-lg">
+          {inView && (
+            <Typewriter
+              words={["Our Services"]}
+              loop={1}
+              cursor
+              cursorStyle="|"
+              typeSpeed={70}
+              deleteSpeed={50}
+              delaySpeed={1000}
+            />
+          )}
+        </h2>
+        <p className="text-lg lg:text-xl text-muted-foreground text-center">
+          Comprehensive cardiac MRI analysis solutions powered by state-of-the-art AI models, designed to bridge the gap between research and clinical practice.
+        </p>
+      </motion.div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-6xl mx-auto">
+        {services.map((service, index) => (
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
+            key={service.id}
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.8, delay: index * 0.2 }}
+            viewport={{ once: false }}
+            className="relative bg-white/60 dark:bg-card/70 backdrop-blur-xl rounded-3xl border border-primary/20 shadow-xl p-8 flex flex-col items-center justify-center hover:shadow-2xl transition-all duration-300"
           >
-            <h2 className="text-4xl md:text-5xl font-light mb-6 text-foreground">
-              <span className="text-primary font-semibold">Our Services</span>
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed">
-              Comprehensive cardiac MRI analysis solutions powered by state-of-the-art AI models, 
-              designed to bridge the gap between research and clinical practice.
+            <div className={`w-14 h-14 bg-gradient-to-br ${service.gradient} rounded-full flex items-center justify-center mb-4 shadow-lg text-3xl`}>
+              <span>{service.icon}</span>
+            </div>
+            <h3 className="text-2xl font-bold text-foreground mb-2 text-center group-hover:text-primary transition-colors duration-300">
+              {service.title}
+            </h3>
+            <p className="text-muted-foreground text-base mb-4 text-center">
+              {service.description}
             </p>
-          </motion.div>
-
-          {/* Services Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {services.map((service, index) => (
-              <motion.div
-                key={service.id}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.1 * (index + 1) }}
-                viewport={{ once: true }}
-                className="group"
+            <div className="w-full mb-4">
+              <h4 className="font-semibold text-primary mb-2 text-center text-base">
+                Key Features
+              </h4>
+              <ul className="space-y-2">
+                {service.features.map((feature, featureIdx) => (
+                  <li
+                    key={featureIdx}
+                    className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
+                  >
+                    <span className={`w-2 h-2 bg-gradient-to-r ${service.gradient} rounded-full inline-block`}></span>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <Link
+              href={service.link}
+              className="inline-flex items-center text-primary hover:text-primary/80 transition-colors duration-200 font-medium mt-auto"
+            >
+              <span className="mr-2 text-sm">{service.linkText}</span>
+              <motion.svg
+                whileHover={{ x: 3 }}
+                transition={{ duration: 0.2 }}
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                {/* Service Card */}
-                <motion.div
-                  whileHover={{ scale: 1.02, y: -5 }}
-                  transition={{ duration: 0.3 }}
-                  className="h-full bg-card/50 backdrop-blur-sm rounded-2xl border border-border shadow-lg hover:shadow-xl hover:border-primary/40 transition-all duration-300 overflow-hidden"
-                >
-                  {/* Card Header with Icon */}
-                  <div className={`h-48 bg-gradient-to-br ${service.gradient} p-8 flex items-center justify-center relative overflow-hidden`}>
-                    <motion.div
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      transition={{ duration: 0.3 }}
-                      className="text-6xl filter drop-shadow-lg"
-                    >
-                      {service.icon}
-                    </motion.div>
-                    {/* Animated background patterns */}
-                    <div className="absolute inset-0 opacity-20">
-                      <div className="absolute top-4 left-4 w-16 h-16 bg-white/20 rounded-full"></div>
-                      <div className="absolute bottom-4 right-4 w-12 h-12 bg-white/10 rounded-full"></div>
-                      <div className="absolute top-1/2 right-8 w-8 h-8 bg-white/15 rounded-full"></div>
-                    </div>
-                  </div>
-
-                  {/* Card Content */}
-                  <div className="p-8">
-                    <h3 className="text-xl font-semibold text-foreground mb-4 group-hover:text-primary transition-colors duration-300">
-                      {service.title}
-                    </h3>
-                    
-                    <p className="text-muted-foreground leading-relaxed mb-6 text-sm">
-                      {service.description}
-                    </p>
-
-                    {/* Key Features */}
-                    <div className="mb-6">
-                      <h4 className="text-sm font-medium text-foreground mb-3">Key Features:</h4>
-                      <div className="space-y-2">
-                        {service.features.map((feature, featureIndex) => (
-                          <motion.div
-                            key={featureIndex}
-                            initial={{ opacity: 0, x: 20 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            transition={{ delay: 0.2 + (index * 0.1) + (featureIndex * 0.05), duration: 0.3 }}
-                            viewport={{ once: true }}
-                            className="flex items-center space-x-2"
-                          >
-                            <div className={`w-1.5 h-1.5 bg-gradient-to-r ${service.gradient} rounded-full`}></div>
-                            <span className="text-xs text-muted-foreground">{feature}</span>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* CTA Link */}
-                    <Link 
-                      href={service.link}
-                      className="inline-flex items-center text-primary hover:text-primary/80 transition-colors duration-200 group/link font-medium"
-                    >
-                      <span className="mr-2 text-sm">{service.linkText}</span>
-                      <motion.svg 
-                        whileHover={{ x: 3 }}
-                        transition={{ duration: 0.2 }}
-                        className="w-4 h-4" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </motion.svg>
-                    </Link>
-                  </div>
-                </motion.div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </motion.svg>
+            </Link>
+          </motion.div>
+        ))}
       </div>
     </section>
   );
