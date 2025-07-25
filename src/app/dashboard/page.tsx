@@ -38,7 +38,7 @@ import {
   FolderOpen,
   Heart,
   Upload,
-  Play,
+  Edit,
   Clock,
   CheckCircle,
   XCircle,
@@ -137,15 +137,6 @@ export default function DashboardPage() {
   };
 
   // Handle project actions
-  const handleStartSegmentation = async (projectId: string) => {
-    try {
-      const response = await segmentationApi.startSegmentation(projectId);
-      console.log("Segmentation started:", response);
-      await refreshJobs();
-    } catch (error) {
-      console.error("Error starting segmentation:", error);
-    }
-  };
 
   const handleExportProject = async (projectId: string) => {
     try {
@@ -319,7 +310,7 @@ export default function DashboardPage() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="projects">Projects</TabsTrigger>
-          <TabsTrigger value="segmentation">Segmentation</TabsTrigger>
+          <TabsTrigger value="jobs">Jobs</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -418,15 +409,6 @@ export default function DashboardPage() {
                   <Upload className="mr-2 h-4 w-4" />
                   New Project
                 </Button>
-              </ShowForUser>
-
-              <ShowForUser fallback={null}>
-                <Link href="/results">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Download className="mr-2 h-4 w-4" />
-                    Export Results
-                  </Button>
-                </Link>
               </ShowForUser>
 
               <Link href="/profile">
@@ -531,6 +513,7 @@ export default function DashboardPage() {
         </TabsContent>
 
         {/* Projects Tab */}
+
         <TabsContent value="projects" className="space-y-4">
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -644,20 +627,21 @@ export default function DashboardPage() {
                     <div>
                       <span className="text-muted-foreground">Created:</span>
                       <p className="font-medium">
-                        {new Date(project.createdAt).toLocaleDateString()}
+                        {new Date(project.createdAt).toLocaleString()}
                       </p>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
+                    <Link
+                      href={`/projects/${project.projectId}`}
+                      alt={`Open project ${project.name}`}
                       className="flex-1"
-                      onClick={() => handleStartSegmentation(project.projectId)}
-                      disabled={isLoadingData}
                     >
-                      <Play className="mr-1 h-3 w-3" />
-                      Segment
-                    </Button>
+                      <Button size="sm" className="w-full flex-1">
+                        <Edit className="mr-1 h-3 w-3" />
+                        Open
+                      </Button>
+                    </Link>
                     <Button
                       size="sm"
                       variant="outline"
@@ -687,12 +671,12 @@ export default function DashboardPage() {
           </div>
         </TabsContent>
 
-        {/* Segmentation Tab */}
-        <TabsContent value="segmentation" className="space-y-4">
+        {/* Ongoing Segmentation Jobs Tab */}
+        <TabsContent value="jobs" className="space-y-4">
           <div>
-            <h2 className="text-2xl font-bold">AI Segmentation</h2>
+            <h2 className="text-2xl font-bold">Jobs</h2>
             <p className="text-muted-foreground">
-              Manage your cardiac segmentation tasks
+              View ongoing and completed segmentation jobs
             </p>
           </div>
 
@@ -759,14 +743,6 @@ export default function DashboardPage() {
                       Start a segmentation task from your projects to see active
                       jobs here.
                     </p>
-                    <ShowForUser fallback={null}>
-                      <Link href="/projects">
-                        <Button className="mt-4">
-                          <Brain className="mr-2 h-4 w-4" />
-                          Start Segmentation
-                        </Button>
-                      </Link>
-                    </ShowForUser>
                   </div>
                 )}
               </CardContent>
@@ -851,20 +827,16 @@ export default function DashboardPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Project</AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
-              <p>Are you sure you want to delete "{projectToDelete?.name}"?</p>
-
-              <p>
-                <span className="font-semibold">
-                  This action cannot be undone.
-                </span>
+              Are you sure you want to delete "{projectToDelete?.name}"?
+              <br />
+              <span className="text-muted-foreground text-sm italic">
                 This will permanently delete the project and all associated data
                 including segmentation results.
-              </p>
-
-              <p className="text-muted-foreground italic">
-                Note: If this project contains important work, make sure to save
-                it first before deletion to preserve it in your account history.
-              </p>
+              </span>
+              <br />
+              <span className="font-semibold">
+                This action cannot be undone.
+              </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
