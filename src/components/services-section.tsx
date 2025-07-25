@@ -17,12 +17,6 @@ export function ServicesSection() {
       id: 1,
       title: "2D Cardiac Segmentation",
       description: "Slice-by-slice analysis of cardiac MRI images with AI-powered detection and segmentation of LVC, MYO, and RV components using YOLOv11 and MedSAM models.",
-      features: [
-        "DICOM & NifTI format support",
-        "YOLOv11 object detection",
-        "MedSAM precise segmentation",
-        "Interactive ROI refinement"
-      ],
       link: "/services/ai-segmentation",
       linkText: "Go to 2D Cardiac Segmentation",
       icon: "🫀",
@@ -30,31 +24,19 @@ export function ServicesSection() {
     },
     {
       id: 2,
-      title: "3D Cardiac Reconstruction",
+      title: "3D Cardiac Segmentation",
       description: "Advanced 3D modeling and visualization from 2D segmentation results, enabling comprehensive cardiac analysis and motion tracking capabilities.",
-      features: [
-        "3D volume reconstruction",
-        "Multi-slice integration",
-        "Cardiac motion estimation",
-        "Disease classification support"
-      ],
       link: "/services/real-time-analysis",
-      linkText: "Go to 3D Cardiac Reconstruction",
+      linkText: "Go to 3D Cardiac Segmentation",
       icon: "🏗️",
       gradient: "from-blue-500 to-cyan-500"
     },
     {
       id: 3,
-      title: "Clinical Integration & Support",
+      title: "Consultation & Support",
       description: "Comprehensive support for healthcare professionals with secure data handling, anonymization, and seamless integration into clinical workflows.",
-      features: [
-        "Patient data anonymization",
-        "Clinical workflow integration",
-        "Secure cloud processing",
-        "Expert consultation support"
-      ],
-      link: "/services/cloud-integration",
-      linkText: "Go to Clinical Support",
+      link: "#contact-section",
+      linkText: "Go to Consultation & Support",
       icon: "🏥",
       gradient: "from-green-500 to-emerald-500"
     }
@@ -111,38 +93,45 @@ export function ServicesSection() {
             <p className="text-muted-foreground text-base mb-4 text-center">
               {service.description}
             </p>
-            <div className="w-full mb-4">
-              <h4 className="font-semibold text-primary mb-2 text-center text-base">
-                Key Features
-              </h4>
-              <ul className="space-y-2">
-                {service.features.map((feature, featureIdx) => (
-                  <li
-                    key={featureIdx}
-                    className="flex items-center justify-center gap-2 text-sm text-muted-foreground"
-                  >
-                    <span className={`w-2 h-2 bg-gradient-to-r ${service.gradient} rounded-full inline-block`}></span>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <Link
-              href={service.link}
-              className="inline-flex items-center text-primary hover:text-primary/80 transition-colors duration-200 font-medium mt-auto"
-            >
-              <span className="mr-2 text-sm">{service.linkText}</span>
-              <motion.svg
-                whileHover={{ x: 3 }}
-                transition={{ duration: 0.2 }}
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {service.id === 3 ? (
+              <button
+                type="button"
+                className="inline-flex items-center text-primary hover:text-primary/80 transition-colors duration-200 font-medium mt-auto"
+                onClick={() => {
+                  const el = document.getElementById('contact-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </motion.svg>
-            </Link>
+                <span className="mr-2 text-sm">{service.linkText}</span>
+                <motion.svg
+                  whileHover={{ x: 3 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </motion.svg>
+              </button>
+            ) : (
+              <Link
+                href={service.link}
+                className="inline-flex items-center text-primary hover:text-primary/80 transition-colors duration-200 font-medium mt-auto"
+              >
+                <span className="mr-2 text-sm">{service.linkText}</span>
+                <motion.svg
+                  whileHover={{ x: 3 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </motion.svg>
+              </Link>
+            )}
           </motion.div>
         ))}
       </div>
