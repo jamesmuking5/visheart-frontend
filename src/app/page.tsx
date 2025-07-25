@@ -70,14 +70,14 @@ export default function Home() {
         {/* FAQ Section - Frequently Asked Questions */}
         <FaqSection />
         
-        {/* Gallery Section */}
-        <GallerySection />
+        {/* Gallery Section - removed for testing */} 
+
+        {/* --- 3D Interactive Gallery Section --- */}
+        <InteractiveGallerySection/>
                   
         {/* Contact Section */}
         <ContactSection />
 
-        {/* --- 3D Interactive Gallery Section --- */}
-        <InteractiveGallerySection/>
       </main>
 
       {/* Floating Command Search Button */}

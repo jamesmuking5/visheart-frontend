@@ -117,7 +117,7 @@ export function TechnicalSpecsSection() {
   return (
     <section
       ref={ref}
-      id="tech-specs-section"
+      id="technical-specs-section"
       aria-label="Technical Specifications"
       className="relative overflow-hidden py-20 min-h-[60vh] scroll-mt-[80px] bg-gradient-to-br from-blue-50 via-white to-pink-50 dark:from-gray-900 dark:via-card dark:to-gray-800"
     >
