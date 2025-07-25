@@ -165,7 +165,7 @@ export function HeroSection() {
             <button
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all"
               onClick={() => {
-                const el = document.getElementById("tech-specs-section");
+                const el = document.getElementById("technical-specs-section");
                 if (el) {
                   el.scrollIntoView({ behavior: "smooth", block: "start" });
                 }
