@@ -211,7 +211,7 @@ export function FaqSection() {
               }
             }}
           >
-            Contact Research Team
+            Contact Us
             <motion.svg
               whileHover={{ x: 3 }}
               transition={{ duration: 0.2 }}
