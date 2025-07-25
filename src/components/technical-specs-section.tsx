@@ -383,25 +383,26 @@ export function TechnicalSpecsSection() {
             />
           )}
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {systemFeatures.map((feature, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 30, scale: 0.9 }}
+              initial={{ opacity: 0, y: 30, scale: 0.95 }}
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ delay: 0.7 + (index * 0.1), duration: 0.4 }}
+              transition={{ delay: 0.7 + (index * 0.1), duration: 0.5 }}
               viewport={{ once: true }}
-              whileHover={{ scale: 1.02, x: 5 }}
-              className="flex items-start space-x-4 p-4 rounded-xl hover:bg-primary/5 transition-all duration-300"
+              whileHover={{ scale: 1.03, x: 8, boxShadow: "0 8px 32px rgba(0,0,0,0.10)" }}
+              className="flex items-start space-x-5 p-6 rounded-2xl bg-white/80 dark:bg-card/80 border-2 border-primary/30 shadow-lg hover:bg-primary/5 transition-all duration-300"
             >
               <motion.div 
                 initial={{ scale: 0, rotate: -90 }}
                 whileInView={{ scale: 1, rotate: 0 }}
                 transition={{ delay: 0.8 + (index * 0.1), duration: 0.3 }}
                 viewport={{ once: true }}
-                className="w-6 h-6 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                className="w-8 h-8 bg-gradient-to-br from-primary to-primary/70 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 shadow-md"
               >
-                <svg className="w-3 h-3 text-white dark:text-black" fill="currentColor" viewBox="0 0 20 20">
+                {/* Smaller check icon */}
+                <svg className="w-4 h-4 text-white dark:text-black" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
                 </svg>
               </motion.div>
@@ -411,7 +412,7 @@ export function TechnicalSpecsSection() {
                   whileInView={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.9 + (index * 0.1), duration: 0.3 }}
                   viewport={{ once: true }}
-                  className="font-semibold text-foreground mb-1"
+                  className="font-extrabold text-2xl text-primary mb-2"
                 >
                   {feature.title}
                 </motion.h4>
@@ -420,7 +421,7 @@ export function TechnicalSpecsSection() {
                   whileInView={{ opacity: 1, x: 0 }}
                   transition={{ delay: 1.0 + (index * 0.1), duration: 0.3 }}
                   viewport={{ once: true }}
-                  className="text-sm text-muted-foreground"
+                  className="text-lg text-muted-foreground leading-relaxed"
                 >
                   {feature.desc}
                 </motion.p>
