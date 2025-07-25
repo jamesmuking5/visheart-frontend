@@ -547,7 +547,9 @@ export default function SystemMonitorPage() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
                 <Settings className="h-5 w-5" />
-                <h2 className="text-xl sm:text-2xl font-bold">GPU Server Configuration</h2>
+                <h2 className="text-xl font-bold sm:text-2xl">
+                  GPU Server Configuration
+                </h2>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
                 <div className="flex gap-2">
@@ -556,24 +558,22 @@ export default function SystemMonitorPage() {
                     size="sm"
                     onClick={handleTestConnection}
                     disabled={isConfigLoading}
-                    className="flex-1 sm:flex-none text-xs sm:text-sm"
+                    className="flex-1 text-xs sm:flex-none sm:text-sm"
                   >
-                    <TestTube className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                    <TestTube className="mr-1 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4" />
                     <span className="hidden sm:inline">Test Connection</span>
-                    <span className="sm:hidden">Test</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleReloadConfig}
                     disabled={isConfigLoading}
-                    className="flex-1 sm:flex-none text-xs sm:text-sm"
+                    className="flex-1 text-xs sm:flex-none sm:text-sm"
                   >
                     <RefreshCw
-                      className={`mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 ${isConfigLoading ? "animate-spin" : ""}`}
+                      className={`mr-1 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4 ${isConfigLoading ? "animate-spin" : ""}`}
                     />
                     <span className="hidden sm:inline">Reload Config</span>
-                    <span className="sm:hidden">Reload</span>
                   </Button>
                 </div>
                 {!isEditingConfig ? (
@@ -582,9 +582,9 @@ export default function SystemMonitorPage() {
                     size="sm"
                     onClick={handleEditConfig}
                     disabled={isConfigLoading || !gpuConfig}
-                    className="w-full sm:w-auto text-xs sm:text-sm"
+                    className="w-full text-xs sm:w-auto sm:text-sm"
                   >
-                    <Edit className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                    <Edit className="mr-1 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4" />
                     Edit Configuration
                   </Button>
                 ) : (
@@ -594,9 +594,9 @@ export default function SystemMonitorPage() {
                       size="sm"
                       onClick={handleSaveConfig}
                       disabled={isConfigLoading}
-                      className="flex-1 sm:flex-none text-xs sm:text-sm"
+                      className="flex-1 text-xs sm:flex-none sm:text-sm"
                     >
-                      <Save className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                      <Save className="mr-1 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4" />
                       Save
                     </Button>
                     <Button
@@ -604,9 +604,9 @@ export default function SystemMonitorPage() {
                       size="sm"
                       onClick={handleCancelEdit}
                       disabled={isConfigLoading}
-                      className="flex-1 sm:flex-none text-xs sm:text-sm"
+                      className="flex-1 text-xs sm:flex-none sm:text-sm"
                     >
-                      <X className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                      <X className="mr-1 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4" />
                       Cancel
                     </Button>
                   </div>
@@ -649,9 +649,9 @@ export default function SystemMonitorPage() {
                 <CardHeader>
                   <CardTitle>Current GPU Server Configuration</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4 p-4 sm:p-6">
+                <CardContent className="p-4 sm:p-6">
                   {isEditingConfig ? (
-                    <div className="grid gap-4 sm:gap-6 sm:grid-cols-2">
+                    <div className="grid gap-4 sm:grid-cols-2 sm:gap-6">
                       <div>
                         <Label htmlFor="host" className="mb-2 ml-2 text-sm">
                           Host
@@ -770,7 +770,10 @@ export default function SystemMonitorPage() {
                         />
                       </div>
                       <div className="sm:col-span-2">
-                        <Label htmlFor="description" className="mb-2 ml-2 text-sm">
+                        <Label
+                          htmlFor="description"
+                          className="mb-2 ml-2 text-sm"
+                        >
                           Description
                         </Label>
                         <Input
