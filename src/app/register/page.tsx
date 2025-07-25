@@ -25,7 +25,7 @@ export default function RegisterPage() {
           {/* Registration Form Component */}
           <RegistrationForm
             className="bg-card/80 border-0 shadow-xl backdrop-blur-sm"
-            onSuccess={(userData: any) => {
+            onSuccess={(userData: unknown) => {
               console.log("Registration successful:", userData);
               // Additional success handling can be added here
             }}
