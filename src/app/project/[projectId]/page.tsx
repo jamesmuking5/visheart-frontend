@@ -1,14 +1,20 @@
 "use client";
 
-import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { projectApi } from '@/lib/api';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Heart, Download, Scissors, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { projectApi } from "@/lib/api";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Heart, Download, Scissors, ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 interface ProjectInfo {
   projectId: string;
@@ -47,23 +53,29 @@ export default function ProjectPage() {
       try {
         setLoading(true);
         const response = await projectApi.getProjectInfo(projectId);
-        
+
         if (response.success && response.project) {
           setProject(response.project);
         } else {
-          setError(response.message || 'Project not found');
+          setError(response.message || "Project not found");
         }
       } catch (err: unknown) {
-        console.error('Error fetching project:', err);
-        let errorMessage = 'Failed to load project';
-        
+        console.error("Error fetching project:", err);
+        let errorMessage = "Failed to load project";
+
         if (err instanceof Error) {
           errorMessage = err.message;
-        } else if (typeof err === 'object' && err !== null && 'response' in err) {
-          const axiosError = err as { response?: { data?: { message?: string } } };
+        } else if (
+          typeof err === "object" &&
+          err !== null &&
+          "response" in err
+        ) {
+          const axiosError = err as {
+            response?: { data?: { message?: string } };
+          };
           errorMessage = axiosError.response?.data?.message || errorMessage;
         }
-        
+
         setError(errorMessage);
       } finally {
         setLoading(false);
@@ -74,27 +86,27 @@ export default function ProjectPage() {
   }, [projectId]);
 
   const formatFileSize = (bytes: number) => {
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    if (bytes === 0) return '0 Bytes';
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    if (bytes === 0) return "0 Bytes";
     const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
+    return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i];
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+        <div className="space-y-4 text-center">
+          <Loader2 className="mx-auto h-8 w-8 animate-spin" />
           <p className="text-muted-foreground">Loading project...</p>
         </div>
       </div>
@@ -104,7 +116,7 @@ export default function ProjectPage() {
   if (error || !project) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="text-center space-y-4">
+        <div className="space-y-4 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
             <Heart className="h-8 w-8 text-red-600 dark:text-red-400" />
           </div>
@@ -113,11 +125,11 @@ export default function ProjectPage() {
               Project Not Found
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              {error || 'The requested project could not be found.'}
+              {error || "The requested project could not be found."}
             </p>
           </div>
-          <Button onClick={() => router.push('/dashboard')} variant="outline">
-            <ArrowLeft className="h-4 w-4 mr-2" />
+          <Button onClick={() => router.push("/dashboard")} variant="outline">
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
         </div>
@@ -127,7 +139,7 @@ export default function ProjectPage() {
 
   return (
     <ProtectedRoute allowedRoles={["user", "admin", "guest"]}>
-      <div className="container mx-auto py-6 space-y-6">
+      <div className="container mx-auto space-y-6 py-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -135,19 +147,15 @@ export default function ProjectPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push("/dashboard")}
                 className="p-2"
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <h1 className="text-3xl font-bold">{project.name}</h1>
-              {project.isSaved && (
-                <Badge variant="secondary">Saved</Badge>
-              )}
+              {project.isSaved && <Badge variant="secondary">Saved</Badge>}
             </div>
-            <p className="text-muted-foreground">
-              Project ID: {projectId}
-            </p>
+            <p className="text-muted-foreground">Project ID: {projectId}</p>
           </div>
         </div>
 
@@ -158,37 +166,55 @@ export default function ProjectPage() {
             <CardDescription>{project.description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               <div>
-                <h4 className="font-medium text-sm text-muted-foreground">File Type</h4>
-                <p className="font-mono text-sm">{project.filetype.toUpperCase()}</p>
+                <h4 className="text-muted-foreground text-sm font-medium">
+                  File Type
+                </h4>
+                <p className="font-mono text-sm">
+                  {project.filetype.toUpperCase()}
+                </p>
               </div>
               <div>
-                <h4 className="font-medium text-sm text-muted-foreground">File Size</h4>
-                <p className="font-mono text-sm">{formatFileSize(project.filesize)}</p>
+                <h4 className="text-muted-foreground text-sm font-medium">
+                  File Size
+                </h4>
+                <p className="font-mono text-sm">
+                  {formatFileSize(project.filesize)}
+                </p>
               </div>
               <div>
-                <h4 className="font-medium text-sm text-muted-foreground">Created</h4>
+                <h4 className="text-muted-foreground text-sm font-medium">
+                  Created
+                </h4>
                 <p className="text-sm">{formatDate(project.createdAt)}</p>
               </div>
               {project.dimensions && (
                 <div>
-                  <h4 className="font-medium text-sm text-muted-foreground">Dimensions</h4>
+                  <h4 className="text-muted-foreground text-sm font-medium">
+                    Dimensions
+                  </h4>
                   <p className="font-mono text-sm">
-                    {project.dimensions.width} × {project.dimensions.height} × {project.dimensions.depth}
+                    {project.dimensions.width} × {project.dimensions.height} ×{" "}
+                    {project.dimensions.depth}
                   </p>
                 </div>
               )}
               {project.voxelsize && (
                 <div>
-                  <h4 className="font-medium text-sm text-muted-foreground">Voxel Size</h4>
+                  <h4 className="text-muted-foreground text-sm font-medium">
+                    Voxel Size
+                  </h4>
                   <p className="font-mono text-sm">
-                    {project.voxelsize.x} × {project.voxelsize.y} × {project.voxelsize.z}
+                    {project.voxelsize.x} × {project.voxelsize.y} ×{" "}
+                    {project.voxelsize.z}
                   </p>
                 </div>
               )}
               <div>
-                <h4 className="font-medium text-sm text-muted-foreground">Last Updated</h4>
+                <h4 className="text-muted-foreground text-sm font-medium">
+                  Last Updated
+                </h4>
                 <p className="text-sm">{formatDate(project.updatedAt)}</p>
               </div>
             </div>
@@ -196,9 +222,9 @@ export default function ProjectPage() {
         </Card>
 
         {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {/* Segmentation Card */}
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
             <Link href={`/project/${projectId}/segmentation`}>
               <CardHeader className="text-center">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/20">
@@ -213,7 +239,7 @@ export default function ProjectPage() {
           </Card>
 
           {/* Results Card */}
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
             <Link href={`/project/${projectId}/results`}>
               <CardHeader className="text-center">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
@@ -228,7 +254,7 @@ export default function ProjectPage() {
           </Card>
 
           {/* Export Card */}
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+          <Card className="cursor-pointer transition-shadow hover:shadow-md">
             <Link href={`/project/${projectId}/export`}>
               <CardHeader className="text-center">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/20">
