@@ -13,6 +13,9 @@ import {
   UserJob,
   UserJobsResponse,
   JobStatus,
+  MedSAMask,
+  EditableMask,
+  SegmentationMask,
 } from "@/types/project";
 
 export default function ProjectPage() {
@@ -23,8 +26,8 @@ export default function ProjectPage() {
   // State management
   const [project, setProject] = useState<ProjectInfo | null>(null);
   const [maskFound, setMaskFound] = useState<boolean>(false);
-  const [medSamMask, setMedSamMask] = useState<any[]>([]);
-  const [editableMask, setEditableMask] = useState<any[]>([]);
+  const [medSamMask, setMedSamMask] = useState<MedSAMask[]>([]);
+  const [editableMask, setEditableMask] = useState<EditableMask[]>([]);
   const [decodedMasks, setDecodedMasks] = useState<DecodedMasks>({
     aiMasks: {},
     manualMasks: {},
@@ -58,49 +61,7 @@ export default function ProjectPage() {
         }
         setProject(response.project);
 
-        // 2. Fetch user jobs to check for active jobs
-        let projectJobs: UserJob[] = [];
-        try {
-          const jobsResponse: UserJobsResponse =
-            await segmentationApi.getUserJobs();
-          if (jobsResponse.success) {
-            setUserJobs(jobsResponse.jobs);
-            setActiveJobCount(jobsResponse.activeJobCount);
-
-            // Filter jobs for this specific project
-            console.log("All jobs:", jobsResponse.jobs);
-            console.log("Current projectId:", projectId);
-
-            projectJobs = jobsResponse.jobs.filter((job) => {
-              console.log(
-                `Comparing job.projectId (${job.projectId}) with projectId (${projectId})`,
-              );
-              return job.projectId === projectId;
-            });
-            setProjectActiveJobs(projectJobs);
-
-            console.log(
-              `Found ${projectJobs.length} jobs for project ${projectId}:`,
-              projectJobs,
-            );
-
-            // Check for active jobs specifically
-            const activeJobs = projectJobs.filter(
-              (job) =>
-                job.status === JobStatus.PENDING ||
-                job.status === JobStatus.IN_PROGRESS,
-            );
-            console.log(
-              `Found ${activeJobs.length} active jobs for project ${projectId}:`,
-              activeJobs,
-            );
-          }
-        } catch (jobError) {
-          console.warn("Failed to fetch user jobs:", jobError);
-          // Don't fail the entire fetch if jobs fail
-        }
-
-        // 3. Fetch segmentation masks
+        // 2. Fetch segmentation masks first
         const masksResponse =
           await segmentationApi.getSegmentationResults(projectId);
 
@@ -113,10 +74,12 @@ export default function ProjectPage() {
           setMaskFound(true);
 
           const aiMasks = masksResponse.segmentations.filter(
-            (mask: any) => mask.isMedSAMOutput === true,
+            (mask: SegmentationMask): mask is MedSAMask =>
+              mask.isMedSAMOutput === true,
           );
           const manualMasks = masksResponse.segmentations.filter(
-            (mask: any) => mask.isMedSAMOutput === false,
+            (mask: SegmentationMask): mask is EditableMask =>
+              mask.isMedSAMOutput === false,
           );
 
           setMedSamMask(aiMasks);
@@ -130,45 +93,92 @@ export default function ProjectPage() {
             });
             setDecodedMasks(decoded);
           } else {
-            console.warn("Project dimensions not available for mask decoding");
+            // console.warn("Project dimensions not available for mask decoding");
           }
 
-          console.log(
-            `Found ${aiMasks.length} AI masks and ${manualMasks.length} manual masks`,
-          );
+          // console.log(
+          //   `Found ${aiMasks.length} AI masks and ${manualMasks.length} manual masks`,
+          // );
+
+          // Clear job states since we have masks
+          setUserJobs([]);
+          setActiveJobCount(0);
+          setProjectActiveJobs([]);
         } else {
-          // No masks found - check job status for potential issues
+          // No masks found - check job status
           setMaskFound(false);
           setMedSamMask([]);
           setEditableMask([]);
 
-          // Edge case: Check if there are completed/failed jobs but no masks (indicates error)
-          const completedOrFailedJobs = projectJobs.filter(
-            (job) =>
-              job.status === JobStatus.COMPLETED ||
-              job.status === JobStatus.FAILED,
-          );
+          // 3. Fetch user jobs only if no masks exist
+          try {
+            const jobsResponse: UserJobsResponse =
+              await segmentationApi.getUserJobs();
+            if (jobsResponse.success) {
+              setUserJobs(jobsResponse.jobs);
+              setActiveJobCount(jobsResponse.activeJobCount);
 
-          if (completedOrFailedJobs.length > 0) {
-            const failedJobs = completedOrFailedJobs.filter(
-              (job) => job.status === JobStatus.FAILED,
-            );
-            const completedJobs = completedOrFailedJobs.filter(
-              (job) => job.status === JobStatus.COMPLETED,
-            );
+              // Filter jobs for this specific project
+              // console.log("All jobs:", jobsResponse.jobs);
+              // console.log("Current projectId:", projectId);
 
-            if (failedJobs.length > 0) {
-              setSegmentationError(
-                `Segmentation failed. Found ${failedJobs.length} failed job(s).`,
+              const projectJobs = jobsResponse.jobs.filter((job) => {
+                // console.log(
+                //   `Comparing job.projectId (${job.projectId}) with projectId (${projectId})`,
+                // );
+                return job.projectId === projectId;
+              });
+              setProjectActiveJobs(projectJobs);
+
+              // console.log(
+              //   `Found ${projectJobs.length} jobs for project ${projectId}:`,
+              //   projectJobs,
+              // );
+
+              // Check for completed jobs - if they exist but no masks, throw error
+              const completedJobs = projectJobs.filter(
+                (job) => job.status === JobStatus.COMPLETED,
               );
-            } else if (completedJobs.length > 0) {
-              setSegmentationError(
-                `Warning: Found ${completedJobs.length} completed job(s) but no segmentation masks. This may indicate a processing error.`,
+              const failedJobs = projectJobs.filter(
+                (job) => job.status === JobStatus.FAILED,
               );
+
+              if (completedJobs.length > 0) {
+                throw new Error(
+                  `Processing error: Found ${completedJobs.length} completed job(s) but no segmentation masks. This indicates a server-side processing issue.`,
+                );
+              }
+
+              if (failedJobs.length > 0) {
+                setSegmentationError(
+                  `Segmentation failed. Found ${failedJobs.length} failed job(s).`,
+                );
+              }
+
+              // Check for active jobs specifically
+              // const activeJobs = projectJobs.filter(
+              //   (job) =>
+              //     job.status === JobStatus.PENDING ||
+              //     job.status === JobStatus.IN_PROGRESS,
+              // );
+              // console.log(
+              //   `Found ${activeJobs.length} active jobs for project ${projectId}:`,
+              //   activeJobs,
+              // );
             }
+          } catch (jobError) {
+            if (
+              jobError instanceof Error &&
+              jobError.message.includes("Processing error")
+            ) {
+              // Re-throw processing errors
+              throw jobError;
+            }
+            // console.warn("Failed to fetch user jobs:", jobError);
+            // Don't fail the entire fetch if jobs fail for other reasons
           }
 
-          console.warn("No segmentation masks found for this project.");
+          // console.warn("No segmentation masks found for this project.");
         }
       } catch (err: unknown) {
         console.error("Error fetching project data:", err);
@@ -278,11 +288,9 @@ export default function ProjectPage() {
         },
       );
 
-      console.log(
-        `Rendering ${currentMasks.length} AI masks for frame ${currentFrame}, slice ${currentSlice}`,
-      );
-
-      // Draw each mask based on its class label
+      // console.log(
+      //   `Rendering ${currentMasks.length} AI masks for frame ${currentFrame}, slice ${currentSlice}`,
+      // );      // Draw each mask based on its class label
       currentMasks.forEach(([maskKey, maskData]) => {
         // Extract class name from mask key
         const classMatch = maskKey.match(/_([^_]+)$/);
@@ -292,7 +300,7 @@ export default function ProjectPage() {
           !className ||
           !CLASS_COLORS[className as keyof typeof CLASS_COLORS]
         ) {
-          console.warn(`Unknown or missing class label for mask: ${maskKey}`);
+          // console.warn(`Unknown or missing class label for mask: ${maskKey}`);
           return; // Skip masks with unknown classes
         }
 
@@ -311,9 +319,9 @@ export default function ProjectPage() {
           }
         }
 
-        console.log(
-          `Painted ${className} mask with color [${color.join(", ")}]`,
-        );
+        // console.log(
+        //   `Painted ${className} mask with color [${color.join(", ")}]`,
+        // );
       });
 
       // Draw the imageData to canvas
@@ -426,16 +434,6 @@ export default function ProjectPage() {
     const getJobsByStatus = (status: JobStatus) =>
       projectActiveJobs.filter((job) => job.status === status);
 
-    const hasActiveJobs = () =>
-      projectActiveJobs.some(
-        (job) =>
-          job.status === JobStatus.PENDING ||
-          job.status === JobStatus.IN_PROGRESS,
-      );
-
-    // Don't show button if masks are found
-    if (maskFound) return null;
-
     // Check if there are ANY jobs (any status) for this project
     const hasAnyJobs = projectActiveJobs.length > 0;
 
@@ -499,11 +497,11 @@ export default function ProjectPage() {
 
       try {
         setIsStartingSegmentation(true);
-        console.log("Starting segmentation for project:", projectId);
+        // console.log("Starting segmentation for project:", projectId);
 
         const response = await segmentationApi.startSegmentation(projectId);
         if (response) {
-          console.log("Segmentation started successfully:", response);
+          // console.log("Segmentation started successfully:", response);
           // Refresh the page to show the new job status
           window.location.reload();
         }
@@ -518,7 +516,9 @@ export default function ProjectPage() {
     return (
       <div className="space-y-4">
         <p className="text-foreground">
-          No segmentation masks found. Start AI segmentation to generate masks.
+          {maskFound
+            ? "Start a new AI segmentation job to generate additional masks."
+            : "No segmentation masks found. Start AI segmentation to generate masks."}
         </p>
         {segmentationError && (
           <div className="rounded bg-red-100 p-3 text-red-700 dark:bg-red-900/20 dark:text-red-400">

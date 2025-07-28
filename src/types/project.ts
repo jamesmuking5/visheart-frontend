@@ -38,11 +38,82 @@ export enum ComponentBoundingBoxesClass {
 }
 
 /**
+ * Component bounding box interface
+ */
+export interface ComponentBoundingBox {
+  class: ComponentBoundingBoxesClass;
+  confidence: number;
+  x_min: number;
+  y_min: number;
+  x_max: number;
+  y_max: number;
+}
+
+/**
+ * Segmentation mask content interface
+ */
+export interface SegmentationMaskContent {
+  class: ComponentBoundingBoxesClass;
+  segmentationmaskcontents: string; // RLE encoded string
+}
+
+/**
+ * Slice data interface
+ */
+export interface SliceData {
+  sliceindex: number;
+  componentboundingboxes?: ComponentBoundingBox[];
+  segmentationmasks?: SegmentationMaskContent[];
+}
+
+/**
+ * Frame data interface
+ */
+export interface FrameData {
+  frameindex: number;
+  frameinferred: boolean;
+  slices: SliceData[];
+}
+
+/**
+ * Base interface for segmentation masks (both MedSAM and editable)
+ */
+export interface BaseSegmentationMask {
+  _id: string;
+  projectid: string;
+  name: string;
+  description?: string;
+  isSaved: boolean;
+  segmentationmaskRLE: boolean;
+  isMedSAMOutput: boolean;
+  frames: FrameData[];
+}
+
+/**
+ * MedSAM (AI-generated) segmentation mask interface
+ */
+export interface MedSAMask extends BaseSegmentationMask {
+  isMedSAMOutput: true;
+}
+
+/**
+ * Editable (manual) segmentation mask interface
+ */
+export interface EditableMask extends BaseSegmentationMask {
+  isMedSAMOutput: false;
+}
+
+/**
+ * Union type for segmentation masks from API responses
+ */
+export type SegmentationMask = MedSAMask | EditableMask;
+
+/**
  * Job status enum matching backend JobStatus
  */
 export enum JobStatus {
   PENDING = "PENDING",
-  IN_PROGRESS = "IN_PROGRESS", 
+  IN_PROGRESS = "IN_PROGRESS",
   COMPLETED = "COMPLETED",
   FAILED = "FAILED"
 }
@@ -73,36 +144,4 @@ export interface UserJobsResponse {
 export interface UserJobsErrorResponse {
   success: false;
   message: string;
-}
-
-/**
- * SegmentationMask is the metadata for a segmentation mask associated with a project.
- */
-export interface SegmentationMask {
-  _id: string;
-  projectid: string;
-  name: string;
-  description?: string;
-  isSaved: boolean;
-  segmentationmaskRLE: boolean;
-  isMedSAMOutput: boolean; // Important - indicates if manual or AI output
-  frames: {
-    frameindex: number;
-    frameinferred: boolean;
-    slices: {
-      sliceindex: number;
-      componentboundingboxes?: {
-        class: ComponentBoundingBoxesClass;
-        confidence: number;
-        x_min: number;
-        y_min: number;
-        x_max: number;
-        y_max: number;
-      }[];
-      segmentationmasks?: {
-        class: ComponentBoundingBoxesClass;
-        segmentationmaskcontents: string;
-      }[];
-    }[];
-  }[];
 }
