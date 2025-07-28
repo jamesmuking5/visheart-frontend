@@ -100,7 +100,7 @@ export default function ProjectPage() {
     return (
       <div>
         <p>No mask found, press button below to start segmentation.</p>
-        <Button onClick={handleStartSegmentation} variant="primary">
+        <Button onClick={handleStartSegmentation} variant="secondary">
           Start Segmentation
         </Button>
       </div>
@@ -133,7 +133,7 @@ export default function ProjectPage() {
               {error || "The requested project could not be found."}
             </p>
           </div>
-          <Button onClick={() => router.push("/dashboard")} variant="outline">
+          <Button onClick={() => router.push("/dashboard")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Dashboard
           </Button>
@@ -146,7 +146,8 @@ export default function ProjectPage() {
     <>
       <pre>{JSON.stringify(project)}</pre>
       <p>{`Error: ${error}`}</p>
-      {medSamMask.length === 0 && editableMask.length === 0 ? (
+      {(medSamMask.length === 0 || medSamMask === null) &&
+      (editableMask.length === 0 || editableMask === null) ? (
         <RequestSegmentationButton />
       ) : null}
     </>
