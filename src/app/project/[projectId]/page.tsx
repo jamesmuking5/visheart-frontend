@@ -20,23 +20,25 @@ export default function ProjectPage() {
   const router = useRouter();
   const projectId = params.projectId as string;
 
+  // State management
   const [project, setProject] = useState<ProjectInfo | null>(null);
-  const [maskFound, setMaskFound] = useState(false); // if prior segmentation done
-  const [medSamMask, setMedSamMask] = useState<any[] | null>([]);
-  const [editableMask, setEditableMask] = useState<any[] | null>([]);
+  const [maskFound, setMaskFound] = useState<boolean>(false);
+  const [medSamMask, setMedSamMask] = useState<any[]>([]);
+  const [editableMask, setEditableMask] = useState<any[]>([]);
   const [decodedMasks, setDecodedMasks] = useState<DecodedMasks>({
     aiMasks: {},
     manualMasks: {},
   });
   const [userJobs, setUserJobs] = useState<UserJob[]>([]);
-  const [activeJobCount, setActiveJobCount] = useState(0);
+  const [activeJobCount, setActiveJobCount] = useState<number>(0);
   const [projectActiveJobs, setProjectActiveJobs] = useState<UserJob[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [segmentationError, setSegmentationError] = useState<string | null>(
     null,
   );
-  const [isStartingSegmentation, setIsStartingSegmentation] = useState(false);
+  const [isStartingSegmentation, setIsStartingSegmentation] =
+    useState<boolean>(false);
 
   useEffect(() => {
     if (!projectId) return;
@@ -194,30 +196,20 @@ export default function ProjectPage() {
     fetchProjectData();
   }, [projectId]);
 
-  const formatFileSize = (bytes: number) => {
-    const sizes = ["Bytes", "KB", "MB", "GB"];
-    if (bytes === 0) return "0 Bytes";
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i];
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  // Simple canvas component to test decoded masks
+  // Canvas component for displaying decoded masks
   const MaskTestCanvas = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [currentFrame, setCurrentFrame] = useState(0);
-    const [currentSlice, setCurrentSlice] = useState(0);
+    const [currentFrame, setCurrentFrame] = useState<number>(0);
+    const [currentSlice, setCurrentSlice] = useState<number>(0);
     const [availableFrames, setAvailableFrames] = useState<number[]>([]);
     const [availableSlices, setAvailableSlices] = useState<number[]>([]);
+
+    // Constants for mask visualization
+    const CLASS_COLORS = {
+      lvc: [255, 0, 0, 180] as const, // Red - Left Ventricle Cavity
+      rv: [0, 255, 0, 180] as const, // Green - Right Ventricle
+      myo: [0, 0, 255, 180] as const, // Blue - Myocardium
+    } as const;
 
     // Extract available frames and slices from mask keys
     useEffect(() => {
@@ -286,13 +278,6 @@ export default function ProjectPage() {
         },
       );
 
-      // Define colors based on actual class labels
-      const classColors = {
-        lvc: [255, 0, 0, 180], // Red - Left Ventricle Cavity
-        rv: [0, 255, 0, 180], // Green - Right Ventricle
-        myo: [0, 0, 255, 180], // Blue - Myocardium
-      };
-
       console.log(
         `Rendering ${currentMasks.length} AI masks for frame ${currentFrame}, slice ${currentSlice}`,
       );
@@ -303,12 +288,15 @@ export default function ProjectPage() {
         const classMatch = maskKey.match(/_([^_]+)$/);
         const className = classMatch ? classMatch[1] : null;
 
-        if (!className || !classColors[className as keyof typeof classColors]) {
+        if (
+          !className ||
+          !CLASS_COLORS[className as keyof typeof CLASS_COLORS]
+        ) {
           console.warn(`Unknown or missing class label for mask: ${maskKey}`);
           return; // Skip masks with unknown classes
         }
 
-        const color = classColors[className as keyof typeof classColors];
+        const color = CLASS_COLORS[className as keyof typeof CLASS_COLORS];
 
         for (let i = 0; i < maskData.length; i++) {
           if (maskData[i] > 0) {
@@ -432,8 +420,19 @@ export default function ProjectPage() {
     );
   };
 
-  // Component to ask if want to start segmentation if no masks found
+  // Component for segmentation request button
   const RequestSegmentationButton = () => {
+    // Helper functions for job filtering
+    const getJobsByStatus = (status: JobStatus) =>
+      projectActiveJobs.filter((job) => job.status === status);
+
+    const hasActiveJobs = () =>
+      projectActiveJobs.some(
+        (job) =>
+          job.status === JobStatus.PENDING ||
+          job.status === JobStatus.IN_PROGRESS,
+      );
+
     // Don't show button if masks are found
     if (maskFound) return null;
 
@@ -442,18 +441,10 @@ export default function ProjectPage() {
 
     // Hide button if there are any jobs for this project
     if (hasAnyJobs) {
-      const pendingJobs = projectActiveJobs.filter(
-        (job) => job.status === JobStatus.PENDING,
-      );
-      const inProgressJobs = projectActiveJobs.filter(
-        (job) => job.status === JobStatus.IN_PROGRESS,
-      );
-      const completedJobs = projectActiveJobs.filter(
-        (job) => job.status === JobStatus.COMPLETED,
-      );
-      const failedJobs = projectActiveJobs.filter(
-        (job) => job.status === JobStatus.FAILED,
-      );
+      const pendingJobs = getJobsByStatus(JobStatus.PENDING);
+      const inProgressJobs = getJobsByStatus(JobStatus.IN_PROGRESS);
+      const completedJobs = getJobsByStatus(JobStatus.COMPLETED);
+      const failedJobs = getJobsByStatus(JobStatus.FAILED);
 
       return (
         <div className="space-y-2">
@@ -601,45 +592,52 @@ export default function ProjectPage() {
         {/* Debug info */}
         <div className="rounded-md border bg-yellow-50 p-3 dark:bg-yellow-900/20">
           <h3 className="text-foreground mb-2 font-semibold">Debug Info</h3>
-          <p className="text-foreground">Mask Found: {maskFound.toString()}</p>
-          <p className="text-foreground">
-            AI Masks Count: {medSamMask?.length || 0}
-          </p>
-          <p className="text-foreground">
-            Manual Masks Count: {editableMask?.length || 0}
-          </p>
-          <p className="text-foreground">Active Jobs Count: {activeJobCount}</p>
-          <p className="text-foreground">
-            Project Active Jobs: {projectActiveJobs.length}
-          </p>
-          <p className="text-foreground">Project ID: {projectId}</p>
-          <p className="text-foreground">
-            Has Active Project Jobs:{" "}
-            {projectActiveJobs
-              .some(
-                (job) =>
-                  job.status === JobStatus.PENDING ||
-                  job.status === JobStatus.IN_PROGRESS,
-              )
-              .toString()}
-          </p>
-          <p className="text-foreground">
-            Has Any Project Jobs: {(projectActiveJobs.length > 0).toString()}
-          </p>
-          <p className="text-foreground">
-            Is Starting Segmentation: {isStartingSegmentation.toString()}
-          </p>
-          <p className="text-foreground">
-            Decoded AI Masks: {Object.keys(decodedMasks.aiMasks).length}
-          </p>
-          <p className="text-foreground">
-            Decoded Manual Masks: {Object.keys(decodedMasks.manualMasks).length}
-          </p>
-          {segmentationError && (
-            <p className="text-red-600">
-              Segmentation Error: {segmentationError}
+          <div className="space-y-1 text-sm">
+            <p className="text-foreground">
+              Mask Found: {maskFound.toString()}
             </p>
-          )}
+            <p className="text-foreground">
+              AI Masks Count: {medSamMask.length}
+            </p>
+            <p className="text-foreground">
+              Manual Masks Count: {editableMask.length}
+            </p>
+            <p className="text-foreground">
+              Active Jobs Count: {activeJobCount}
+            </p>
+            <p className="text-foreground">
+              Project Active Jobs: {projectActiveJobs.length}
+            </p>
+            <p className="text-foreground">Project ID: {projectId}</p>
+            <p className="text-foreground">
+              Has Active Project Jobs:{" "}
+              {projectActiveJobs
+                .some(
+                  (job) =>
+                    job.status === JobStatus.PENDING ||
+                    job.status === JobStatus.IN_PROGRESS,
+                )
+                .toString()}
+            </p>
+            <p className="text-foreground">
+              Has Any Project Jobs: {(projectActiveJobs.length > 0).toString()}
+            </p>
+            <p className="text-foreground">
+              Is Starting Segmentation: {isStartingSegmentation.toString()}
+            </p>
+            <p className="text-foreground">
+              Decoded AI Masks: {Object.keys(decodedMasks.aiMasks).length}
+            </p>
+            <p className="text-foreground">
+              Decoded Manual Masks:{" "}
+              {Object.keys(decodedMasks.manualMasks).length}
+            </p>
+            {segmentationError && (
+              <p className="text-red-600">
+                Segmentation Error: {segmentationError}
+              </p>
+            )}
+          </div>
         </div>
 
         <RequestSegmentationButton />
@@ -671,7 +669,7 @@ export default function ProjectPage() {
           </details>
         )}
 
-        {medSamMask && medSamMask.length > 0 && (
+        {medSamMask.length > 0 && (
           <details className="rounded-md border">
             <summary className="text-foreground cursor-pointer bg-blue-50 p-3 font-semibold dark:bg-blue-900/20">
               AI Masks ({medSamMask.length}) (Click to expand)
@@ -682,7 +680,7 @@ export default function ProjectPage() {
           </details>
         )}
 
-        {editableMask && editableMask.length > 0 && (
+        {editableMask.length > 0 && (
           <details className="rounded-md border">
             <summary className="text-foreground cursor-pointer bg-green-50 p-3 font-semibold dark:bg-green-900/20">
               Editable Masks ({editableMask.length}) (Click to expand)
