@@ -15,6 +15,7 @@ export default function ProjectPage() {
   const projectId = params.projectId as string;
 
   const [project, setProject] = useState<ProjectInfo | null>(null);
+  const [maskFound, setMaskFound] = useState(false); // if prior segmentation done
   const [medSamMask, setMedSamMask] = useState<any[] | null>([]);
   const [editableMask, setEditableMask] = useState<any[] | null>([]);
   const [loading, setLoading] = useState(true);
@@ -32,15 +33,25 @@ export default function ProjectPage() {
         if (response.success && response.project) {
           setProject(response.project);
 
-          // Fetch segmentation masks and break to MedSAM output mask and editable mask
+          // Fetch segmentation masks and separate to MedSAM output mask and editable mask
           const masksResponse =
             await segmentationApi.getSegmentationResults(projectId);
           if (masksResponse.success) {
-            // TODO: HANDLE MASK (BREAK INTO MEDSAM AND EDITABLE MASK)
-            console.log("Masks response:", masksResponse);
+            setMaskFound(true);
+
+            // Separate masks based on isMedSAMOutput flag
+            const aiMasks = masksResponse.segmentations.filter(
+              (mask: any) => mask.isMedSAMOutput === true,
+            );
+            const manualMasks = masksResponse.segmentations.filter(
+              (mask: any) => mask.isMedSAMOutput === false,
+            );
+
+            setMedSamMask(aiMasks);
+            setEditableMask(manualMasks);
           } else {
-            // If no masks, ask if want to start segmentation (check if mask is null)
-            console.warn("No segmentation masks found for this project.");
+            // If no masks, check for job first. If no job means no segmentation started, ask if want
+            await 
           }
         } else {
           setError(response.message || "Project not found");
@@ -90,13 +101,18 @@ export default function ProjectPage() {
 
   // Component to ask if want to start segmentation if no masks found
   const RequestSegmentationButton = () => {
-    const handleStartSegmentation = () => {
+    if (!maskFound) return null;
+    // Function to handle starting segmentation
+    const handleStartSegmentation = async () => {
       try {
-        segmentationApi.startSegmentation(projectId);
+        const response = await segmentationApi.startSegmentation(projectId);
+        if (response)
+          console.log("Segmentation started successfully:", response);
       } catch (error) {
         console.error("Error starting segmentation:", error);
       }
     };
+    // Render button to start segmentation
     return (
       <div>
         <p>No mask found, press button below to start segmentation.</p>
@@ -141,15 +157,44 @@ export default function ProjectPage() {
       </div>
     );
   }
-
   return (
     <>
-      <pre>{JSON.stringify(project)}</pre>
-      <p>{`Error: ${error}`}</p>
-      {(medSamMask.length === 0 || medSamMask === null) &&
-      (editableMask.length === 0 || editableMask === null) ? (
+      <div className="space-y-4 p-4">
+        <details className="rounded-md border">
+          <summary className="cursor-pointer bg-gray-50 p-3 font-semibold">
+            Project Info (Click to expand)
+          </summary>
+          <pre className="overflow-auto p-4 text-sm whitespace-pre-wrap">
+            {JSON.stringify(project, null, 2)}
+          </pre>
+        </details>
+
+        <p className="text-red-600">{`Error: ${error}`}</p>
+
         <RequestSegmentationButton />
-      ) : null}
+
+        {medSamMask && medSamMask.length > 0 && (
+          <details className="rounded-md border">
+            <summary className="cursor-pointer bg-blue-50 p-3 font-semibold">
+              AI Masks ({medSamMask.length}) (Click to expand)
+            </summary>
+            <pre className="max-h-96 overflow-auto p-4 text-sm whitespace-pre-wrap">
+              {JSON.stringify(medSamMask, null, 2)}
+            </pre>
+          </details>
+        )}
+
+        {editableMask && editableMask.length > 0 && (
+          <details className="rounded-md border">
+            <summary className="cursor-pointer bg-green-50 p-3 font-semibold">
+              Editable Masks ({editableMask.length}) (Click to expand)
+            </summary>
+            <pre className="max-h-96 overflow-auto p-4 text-sm whitespace-pre-wrap">
+              {JSON.stringify(editableMask, null, 2)}
+            </pre>
+          </details>
+        )}
+      </div>
     </>
   );
 }
