@@ -38,6 +38,44 @@ export enum ComponentBoundingBoxesClass {
 }
 
 /**
+ * Job status enum matching backend JobStatus
+ */
+export enum JobStatus {
+  PENDING = "PENDING",
+  IN_PROGRESS = "IN_PROGRESS", 
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED"
+}
+
+/**
+ * Interface for individual job data returned from /user-check-jobs endpoint
+ */
+export interface UserJob {
+  jobId: string;           // job.uuid from backend
+  projectId: string;       // job.projectid from backend (mapped to camelCase)
+  status: JobStatus;       // job.status (JobStatus enum values)
+  queuePosition: number | null; // Position in queue if status is PENDING, null otherwise
+}
+
+/**
+ * Interface for the complete response from /segmentation/user-check-jobs endpoint
+ */
+export interface UserJobsResponse {
+  success: boolean;
+  activeJobCount: number;  // Count of jobs with PENDING or IN_PROGRESS status
+  totalJobs: number;       // Total number of jobs returned (up to 20)
+  jobs: UserJob[];         // Array of user's jobs
+}
+
+/**
+ * Error response interface for failed requests
+ */
+export interface UserJobsErrorResponse {
+  success: false;
+  message: string;
+}
+
+/**
  * SegmentationMask is the metadata for a segmentation mask associated with a project.
  */
 export interface SegmentationMask {
@@ -88,5 +126,5 @@ interface Job {
  * Multiple Jobs per User (expected response from Jobs api)
  */
 export interface UserJobs {
-  
+
 }

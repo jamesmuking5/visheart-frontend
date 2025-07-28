@@ -332,6 +332,16 @@ export const segmentationApi = {
       throw error;
     }
   },
+
+  // Get user's job status and queue information
+  getUserJobs: async () => {
+    try {
+      const response = await api.get("/segmentation/user-check-jobs");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 // Define interfaces for the admin-specific responses
