@@ -58,7 +58,7 @@ export interface SegmentationMaskContent {
 }
 
 /**
- * Slice data interface
+ * Slice data interface (in FrameData)
  */
 export interface SliceData {
   sliceindex: number;

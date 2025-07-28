@@ -6,6 +6,8 @@ import { projectApi, segmentationApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Loader2, Heart, ArrowLeft } from "lucide-react";
 import { decodeSegmentationMasks, DecodedMasks } from "@/lib/decode-RLE";
+import { Stage, Layer, Image as KonvaImage } from "react-konva";
+import Konva from "konva";
 
 // Types
 import {
@@ -17,6 +19,13 @@ import {
   EditableMask,
   SegmentationMask,
 } from "@/types/project";
+
+// Constants for mask visualization
+const CLASS_COLORS = {
+  lvc: { r: 255, g: 0, b: 0, a: 180 }, // Red - Left Ventricle Cavity
+  rv: { r: 0, g: 255, b: 0, a: 180 }, // Green - Right Ventricle
+  myo: { r: 0, g: 0, b: 255, a: 180 }, // Blue - Myocardium
+} as const;
 
 export default function ProjectPage() {
   const params = useParams();
@@ -32,7 +41,6 @@ export default function ProjectPage() {
     aiMasks: {},
     manualMasks: {},
   });
-  const [userJobs, setUserJobs] = useState<UserJob[]>([]);
   const [activeJobCount, setActiveJobCount] = useState<number>(0);
   const [projectActiveJobs, setProjectActiveJobs] = useState<UserJob[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -101,7 +109,6 @@ export default function ProjectPage() {
           // );
 
           // Clear job states since we have masks
-          setUserJobs([]);
           setActiveJobCount(0);
           setProjectActiveJobs([]);
         } else {
@@ -115,7 +122,6 @@ export default function ProjectPage() {
             const jobsResponse: UserJobsResponse =
               await segmentationApi.getUserJobs();
             if (jobsResponse.success) {
-              setUserJobs(jobsResponse.jobs);
               setActiveJobCount(jobsResponse.activeJobCount);
 
               // Filter jobs for this specific project
@@ -206,20 +212,14 @@ export default function ProjectPage() {
     fetchProjectData();
   }, [projectId]);
 
-  // Canvas component for displaying decoded masks
+  // Canvas component for displaying decoded masks using Konva
   const MaskTestCanvas = () => {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const stageRef = useRef<Konva.Stage>(null);
     const [currentFrame, setCurrentFrame] = useState<number>(0);
     const [currentSlice, setCurrentSlice] = useState<number>(0);
     const [availableFrames, setAvailableFrames] = useState<number[]>([]);
     const [availableSlices, setAvailableSlices] = useState<number[]>([]);
-
-    // Constants for mask visualization
-    const CLASS_COLORS = {
-      lvc: [255, 0, 0, 180] as const, // Red - Left Ventricle Cavity
-      rv: [0, 255, 0, 180] as const, // Green - Right Ventricle
-      myo: [0, 0, 255, 180] as const, // Blue - Myocardium
-    } as const;
+    const [maskImages, setMaskImages] = useState<HTMLImageElement[]>([]);
 
     // Extract available frames and slices from mask keys
     useEffect(() => {
@@ -250,32 +250,19 @@ export default function ProjectPage() {
       if (!sortedSlices.includes(currentSlice) && sortedSlices.length > 0) {
         setCurrentSlice(sortedSlices[0]);
       }
-    }, [decodedMasks, currentFrame, currentSlice]);
+    }, [currentFrame, currentSlice]);
 
+    // Create mask images for Konva
     useEffect(() => {
       if (
         !project?.dimensions ||
         Object.keys(decodedMasks.aiMasks).length === 0
       ) {
+        setMaskImages([]);
         return;
       }
 
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
       const { width, height } = project.dimensions;
-      canvas.width = width;
-      canvas.height = height;
-
-      // Clear canvas
-      ctx.fillStyle = "black";
-      ctx.fillRect(0, 0, width, height);
-
-      // Create ImageData for the canvas
-      const imageData = ctx.createImageData(width, height);
 
       // Filter masks for current frame and slice
       const currentMasks = Object.entries(decodedMasks.aiMasks).filter(
@@ -290,7 +277,10 @@ export default function ProjectPage() {
 
       // console.log(
       //   `Rendering ${currentMasks.length} AI masks for frame ${currentFrame}, slice ${currentSlice}`,
-      // );      // Draw each mask based on its class label
+      // );
+
+      const images: HTMLImageElement[] = [];
+
       currentMasks.forEach(([maskKey, maskData]) => {
         // Extract class name from mask key
         const classMatch = maskKey.match(/_([^_]+)$/);
@@ -306,29 +296,52 @@ export default function ProjectPage() {
 
         const color = CLASS_COLORS[className as keyof typeof CLASS_COLORS];
 
+        // Create canvas for this mask
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+
+        if (!ctx) return;
+
+        // Create ImageData for the mask
+        const imageData = ctx.createImageData(width, height);
+
         for (let i = 0; i < maskData.length; i++) {
           if (maskData[i] > 0) {
             const pixelIndex = i * 4;
-            // Only paint if pixel is not already painted (to see overlaps)
-            if (imageData.data[pixelIndex + 3] === 0) {
-              imageData.data[pixelIndex] = color[0]; // R
-              imageData.data[pixelIndex + 1] = color[1]; // G
-              imageData.data[pixelIndex + 2] = color[2]; // B
-              imageData.data[pixelIndex + 3] = color[3]; // A
-            }
+            imageData.data[pixelIndex] = color.r; // R
+            imageData.data[pixelIndex + 1] = color.g; // G
+            imageData.data[pixelIndex + 2] = color.b; // B
+            imageData.data[pixelIndex + 3] = color.a; // A
           }
         }
 
+        // Draw the imageData to canvas
+        ctx.putImageData(imageData, 0, 0);
+
+        // Convert canvas to image
+        const img = new Image();
+        img.onload = () => {
+          images.push(img);
+          if (images.length === currentMasks.length) {
+            setMaskImages([...images]);
+          }
+        };
+        img.src = canvas.toDataURL();
+
         // console.log(
-        //   `Painted ${className} mask with color [${color.join(", ")}]`,
+        //   `Painted ${className} mask with color [${color.r}, ${color.g}, ${color.b}]`,
         // );
       });
 
-      // Draw the imageData to canvas
-      ctx.putImageData(imageData, 0, 0);
-    }, [project, decodedMasks, currentFrame, currentSlice]);
+      // If no masks to process, clear images
+      if (currentMasks.length === 0) {
+        setMaskImages([]);
+      }
+    }, [currentFrame, currentSlice]);
 
-    // Don't render if no masks available
+    // Don't render if no masks available or missing dimensions
     if (
       !project?.dimensions ||
       Object.keys(decodedMasks.aiMasks).length === 0
@@ -385,13 +398,28 @@ export default function ProjectPage() {
           </div>
         </div>
 
-        {/* Canvas */}
+        {/* Konva Stage */}
         <div className="rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
-          <canvas
-            ref={canvasRef}
-            className="h-auto max-w-full border border-gray-300 dark:border-gray-600"
-            style={{ maxWidth: "100%", height: "auto" }}
-          />
+          <Stage
+            width={project.dimensions!.width}
+            height={project.dimensions!.height}
+            ref={stageRef}
+            className="border border-gray-300 dark:border-gray-600"
+            style={{ maxWidth: "100%", height: "auto", background: "black" }}
+          >
+            <Layer>
+              {maskImages.map((img, index) => (
+                <KonvaImage
+                  key={index}
+                  image={img}
+                  x={0}
+                  y={0}
+                  width={project.dimensions!.width}
+                  height={project.dimensions!.height}
+                />
+              ))}
+            </Layer>
+          </Stage>
           <div className="text-muted-foreground mt-2 space-y-1 text-sm">
             <p>
               Showing AI masks for Frame {currentFrame + 1}, Slice{" "}
@@ -402,8 +430,8 @@ export default function ProjectPage() {
               {availableSlices.length} slices
             </p>
             <p>
-              Canvas size: {project.dimensions.width} ×{" "}
-              {project.dimensions.height}
+              Canvas size: {project.dimensions!.width} ×{" "}
+              {project.dimensions!.height}
             </p>
             <div className="mt-2 flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1">
@@ -437,58 +465,81 @@ export default function ProjectPage() {
     // Check if there are ANY jobs (any status) for this project
     const hasAnyJobs = projectActiveJobs.length > 0;
 
-    // Hide button if there are any jobs for this project
-    if (hasAnyJobs) {
-      const pendingJobs = getJobsByStatus(JobStatus.PENDING);
-      const inProgressJobs = getJobsByStatus(JobStatus.IN_PROGRESS);
-      const completedJobs = getJobsByStatus(JobStatus.COMPLETED);
-      const failedJobs = getJobsByStatus(JobStatus.FAILED);
+    // Only show button if BOTH conditions are true:
+    // 1. No masks found for this projectId
+    // 2. No UserJobs with this projectId
+    const shouldShowButton = !maskFound && !hasAnyJobs;
 
-      return (
-        <div className="space-y-2">
-          {(pendingJobs.length > 0 || inProgressJobs.length > 0) && (
-            <p className="text-blue-600 dark:text-blue-400">
-              Segmentation in progress...
-            </p>
-          )}
-          {completedJobs.length > 0 && (
+    // If button shouldn't be shown, display job status information instead
+    if (!shouldShowButton) {
+      // If we have masks, show different message
+      if (maskFound) {
+        return (
+          <div className="space-y-2">
             <p className="text-green-600 dark:text-green-400">
-              Segmentation completed
+              Segmentation masks already exist for this project.
             </p>
-          )}
-          {failedJobs.length > 0 && (
-            <p className="text-red-600 dark:text-red-400">
-              Segmentation failed
+            <p className="text-muted-foreground text-sm">
+              AI segmentation has been completed. Use the viewer above to
+              explore the results.
             </p>
-          )}
+          </div>
+        );
+      }
 
-          {pendingJobs.length > 0 && (
-            <p className="text-muted-foreground text-sm">
-              {pendingJobs.length} job(s) pending (Queue position:{" "}
-              {pendingJobs[0].queuePosition})
-            </p>
-          )}
-          {inProgressJobs.length > 0 && (
-            <p className="text-muted-foreground text-sm">
-              {inProgressJobs.length} job(s) currently processing
-            </p>
-          )}
-          {completedJobs.length > 0 && (
-            <p className="text-muted-foreground text-sm">
-              {completedJobs.length} job(s) completed
-            </p>
-          )}
-          {failedJobs.length > 0 && (
-            <p className="text-muted-foreground text-sm">
-              {failedJobs.length} job(s) failed
-            </p>
-          )}
+      // If we have jobs, show job status
+      if (hasAnyJobs) {
+        const pendingJobs = getJobsByStatus(JobStatus.PENDING);
+        const inProgressJobs = getJobsByStatus(JobStatus.IN_PROGRESS);
+        const completedJobs = getJobsByStatus(JobStatus.COMPLETED);
+        const failedJobs = getJobsByStatus(JobStatus.FAILED);
 
-          <p className="text-muted-foreground text-sm">
-            Segmentation already initiated for this project. Button disabled.
-          </p>
-        </div>
-      );
+        return (
+          <div className="space-y-2">
+            {(pendingJobs.length > 0 || inProgressJobs.length > 0) && (
+              <p className="text-blue-600 dark:text-blue-400">
+                Segmentation in progress...
+              </p>
+            )}
+            {completedJobs.length > 0 && (
+              <p className="text-green-600 dark:text-green-400">
+                Segmentation completed
+              </p>
+            )}
+            {failedJobs.length > 0 && (
+              <p className="text-red-600 dark:text-red-400">
+                Segmentation failed
+              </p>
+            )}
+
+            {pendingJobs.length > 0 && (
+              <p className="text-muted-foreground text-sm">
+                {pendingJobs.length} job(s) pending (Queue position:{" "}
+                {pendingJobs[0].queuePosition})
+              </p>
+            )}
+            {inProgressJobs.length > 0 && (
+              <p className="text-muted-foreground text-sm">
+                {inProgressJobs.length} job(s) currently processing
+              </p>
+            )}
+            {completedJobs.length > 0 && (
+              <p className="text-muted-foreground text-sm">
+                {completedJobs.length} job(s) completed
+              </p>
+            )}
+            {failedJobs.length > 0 && (
+              <p className="text-muted-foreground text-sm">
+                {failedJobs.length} job(s) failed
+              </p>
+            )}
+
+            <p className="text-muted-foreground text-sm">
+              Segmentation already initiated for this project. Button disabled.
+            </p>
+          </div>
+        );
+      }
     }
 
     // Function to handle starting segmentation
@@ -512,35 +563,39 @@ export default function ProjectPage() {
       }
     };
 
-    // Render button to start segmentation
-    return (
-      <div className="space-y-4">
-        <p className="text-foreground">
-          {maskFound
-            ? "Start a new AI segmentation job to generate additional masks."
-            : "No segmentation masks found. Start AI segmentation to generate masks."}
-        </p>
-        {segmentationError && (
-          <div className="rounded bg-red-100 p-3 text-red-700 dark:bg-red-900/20 dark:text-red-400">
-            {segmentationError}
-          </div>
-        )}{" "}
-        <Button
-          onClick={handleStartSegmentation}
-          variant="secondary"
-          disabled={isStartingSegmentation}
-        >
-          {isStartingSegmentation ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Starting Segmentation...
-            </>
-          ) : (
-            "Start AI Segmentation"
+    // Only render button if both conditions are met: no masks AND no jobs
+    if (shouldShowButton) {
+      return (
+        <div className="space-y-4">
+          <p className="text-foreground">
+            No segmentation masks found. Start AI segmentation to generate
+            masks.
+          </p>
+          {segmentationError && (
+            <div className="rounded bg-red-100 p-3 text-red-700 dark:bg-red-900/20 dark:text-red-400">
+              {segmentationError}
+            </div>
           )}
-        </Button>
-      </div>
-    );
+          <Button
+            onClick={handleStartSegmentation}
+            variant="secondary"
+            disabled={isStartingSegmentation}
+          >
+            {isStartingSegmentation ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Starting Segmentation...
+              </>
+            ) : (
+              "Start AI Segmentation"
+            )}
+          </Button>
+        </div>
+      );
+    }
+
+    // If we reach here, button should not be shown (handled by earlier returns)
+    return null;
   };
 
   if (loading) {
@@ -621,6 +676,10 @@ export default function ProjectPage() {
             </p>
             <p className="text-foreground">
               Has Any Project Jobs: {(projectActiveJobs.length > 0).toString()}
+            </p>
+            <p className="text-foreground">
+              Should Show Button (No Masks + No Jobs):{" "}
+              {(!maskFound && projectActiveJobs.length === 0).toString()}
             </p>
             <p className="text-foreground">
               Is Starting Segmentation: {isStartingSegmentation.toString()}
