@@ -28,7 +28,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -633,8 +632,8 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex gap-2">
                     <Link
-                      href={`/projects/${project.projectId}`}
-                      alt={`Open project ${project.name}`}
+                      href={`/project/${project.projectId}`}
+                      title={`Open project ${project.name}`}
                       className="flex-1"
                     >
                       <Button size="sm" className="w-full flex-1">

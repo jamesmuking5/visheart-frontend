@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { authApi } from "@/lib/api";
 
@@ -13,7 +12,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -74,7 +72,7 @@ interface RegistrationFormProps {
    * Optional callback function called when registration is successful
    * @param userData - The registered user data returned from the API
    */
-  onSuccess?: (userData: any) => void;
+  onSuccess?: (userData: unknown) => void;
   /**
    * Optional CSS class name for custom styling
    */
@@ -371,7 +369,6 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   className = "",
 }) => {
   // --- Hooks ---
-  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
 
   // --- Auto-detect guest upgrade mode ---
