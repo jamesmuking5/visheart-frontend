@@ -3,39 +3,11 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { projectApi } from "@/lib/api";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Heart, Download, Scissors, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Loader2, Heart, ArrowLeft } from "lucide-react";
 
-interface ProjectInfo {
-  projectId: string;
-  name: string;
-  description: string;
-  isSaved: boolean;
-  filesize: number;
-  filetype: string;
-  dimensions?: {
-    width: number;
-    height: number;
-    depth: number;
-  };
-  voxelsize?: {
-    x: number;
-    y: number;
-    z: number;
-  };
-  createdAt: string;
-  updatedAt: string;
-}
+// Types
+import { ProjectInfo } from "@/types/project";
 
 export default function ProjectPage() {
   const params = useParams();
@@ -43,6 +15,7 @@ export default function ProjectPage() {
   const projectId = params.projectId as string;
 
   const [project, setProject] = useState<ProjectInfo | null>(null);
+  const [segmentationMasks, setSegmentationMasks] = useState<any[]|null>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -138,137 +111,8 @@ export default function ProjectPage() {
   }
 
   return (
-    <ProtectedRoute allowedRoles={["user", "admin", "guest"]}>
-      <div className="container mx-auto space-y-6 py-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push("/dashboard")}
-                className="p-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-              <h1 className="text-3xl font-bold">{project.name}</h1>
-              {project.isSaved && <Badge variant="secondary">Saved</Badge>}
-            </div>
-            <p className="text-muted-foreground">Project ID: {projectId}</p>
-          </div>
-        </div>
-
-        {/* Project Info Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Project Information</CardTitle>
-            <CardDescription>{project.description}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <h4 className="text-muted-foreground text-sm font-medium">
-                  File Type
-                </h4>
-                <p className="font-mono text-sm">
-                  {project.filetype.toUpperCase()}
-                </p>
-              </div>
-              <div>
-                <h4 className="text-muted-foreground text-sm font-medium">
-                  File Size
-                </h4>
-                <p className="font-mono text-sm">
-                  {formatFileSize(project.filesize)}
-                </p>
-              </div>
-              <div>
-                <h4 className="text-muted-foreground text-sm font-medium">
-                  Created
-                </h4>
-                <p className="text-sm">{formatDate(project.createdAt)}</p>
-              </div>
-              {project.dimensions && (
-                <div>
-                  <h4 className="text-muted-foreground text-sm font-medium">
-                    Dimensions
-                  </h4>
-                  <p className="font-mono text-sm">
-                    {project.dimensions.width} × {project.dimensions.height} ×{" "}
-                    {project.dimensions.depth}
-                  </p>
-                </div>
-              )}
-              {project.voxelsize && (
-                <div>
-                  <h4 className="text-muted-foreground text-sm font-medium">
-                    Voxel Size
-                  </h4>
-                  <p className="font-mono text-sm">
-                    {project.voxelsize.x} × {project.voxelsize.y} ×{" "}
-                    {project.voxelsize.z}
-                  </p>
-                </div>
-              )}
-              <div>
-                <h4 className="text-muted-foreground text-sm font-medium">
-                  Last Updated
-                </h4>
-                <p className="text-sm">{formatDate(project.updatedAt)}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Action Cards */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {/* Segmentation Card */}
-          <Card className="cursor-pointer transition-shadow hover:shadow-md">
-            <Link href={`/project/${projectId}/segmentation`}>
-              <CardHeader className="text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/20">
-                  <Scissors className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                </div>
-                <CardTitle className="text-lg">Segmentation</CardTitle>
-                <CardDescription>
-                  Start AI or manual segmentation on this project
-                </CardDescription>
-              </CardHeader>
-            </Link>
-          </Card>
-
-          {/* Results Card */}
-          <Card className="cursor-pointer transition-shadow hover:shadow-md">
-            <Link href={`/project/${projectId}/results`}>
-              <CardHeader className="text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
-                  <Heart className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </div>
-                <CardTitle className="text-lg">Results</CardTitle>
-                <CardDescription>
-                  View and manage segmentation results
-                </CardDescription>
-              </CardHeader>
-            </Link>
-          </Card>
-
-          {/* Export Card */}
-          <Card className="cursor-pointer transition-shadow hover:shadow-md">
-            <Link href={`/project/${projectId}/export`}>
-              <CardHeader className="text-center">
-                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/20">
-                  <Download className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                </div>
-                <CardTitle className="text-lg">Export</CardTitle>
-                <CardDescription>
-                  Export segmentation data in various formats
-                </CardDescription>
-              </CardHeader>
-            </Link>
-          </Card>
-        </div>
-      </div>
-    </ProtectedRoute>
+    <>
+      <pre>{JSON.stringify(project)}</pre>
+    </>
   );
 }
