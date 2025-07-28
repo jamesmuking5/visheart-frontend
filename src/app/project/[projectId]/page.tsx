@@ -50,8 +50,9 @@ export default function ProjectPage() {
             setMedSamMask(aiMasks);
             setEditableMask(manualMasks);
           } else {
+             setMaskFound(false);
             // If no masks, check for job first. If no job means no segmentation started, ask if want
-            await 
+           
           }
         } else {
           setError(response.message || "Project not found");
