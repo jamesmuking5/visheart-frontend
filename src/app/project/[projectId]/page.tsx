@@ -6,7 +6,7 @@ import { projectApi, segmentationApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Loader2, Heart, ArrowLeft } from "lucide-react";
 import { decodeSegmentationMasks, DecodedMasks } from "@/lib/decode-RLE";
-import { Stage, Layer, Image as KonvaImage } from "react-konva";
+import { Stage, Layer, Shape } from "react-konva";
 import Konva from "konva";
 
 // Types
@@ -219,7 +219,6 @@ export default function ProjectPage() {
     const [currentSlice, setCurrentSlice] = useState<number>(0);
     const [availableFrames, setAvailableFrames] = useState<number[]>([]);
     const [availableSlices, setAvailableSlices] = useState<number[]>([]);
-    const [maskImages, setMaskImages] = useState<HTMLImageElement[]>([]);
 
     // Extract available frames and slices from mask keys
     useEffect(() => {
@@ -252,35 +251,37 @@ export default function ProjectPage() {
       }
     }, [currentFrame, currentSlice]);
 
-    // Create mask images for Konva
-    useEffect(() => {
-      if (
-        !project?.dimensions ||
-        Object.keys(decodedMasks.aiMasks).length === 0
-      ) {
-        setMaskImages([]);
-        return;
-      }
+    // Don't render if no masks available or missing dimensions
+    if (
+      !project?.dimensions ||
+      Object.keys(decodedMasks.aiMasks).length === 0
+    ) {
+      return null;
+    }
 
-      const { width, height } = project.dimensions;
+    const { width, height } = project.dimensions;
 
-      // Filter masks for current frame and slice
-      const currentMasks = Object.entries(decodedMasks.aiMasks).filter(
-        ([maskKey]) => {
-          const match = maskKey.match(/frame_(\d+)_slice_(\d+)/);
-          if (!match) return false;
-          const frameNum = parseInt(match[1], 10);
-          const sliceNum = parseInt(match[2], 10);
-          return frameNum === currentFrame && sliceNum === currentSlice;
-        },
-      );
+    // Filter masks for current frame and slice
+    const currentMasks = Object.entries(decodedMasks.aiMasks).filter(
+      ([maskKey]) => {
+        const match = maskKey.match(/frame_(\d+)_slice_(\d+)/);
+        if (!match) return false;
+        const frameNum = parseInt(match[1], 10);
+        const sliceNum = parseInt(match[2], 10);
+        return frameNum === currentFrame && sliceNum === currentSlice;
+      },
+    );
 
-      // console.log(
-      //   `Rendering ${currentMasks.length} AI masks for frame ${currentFrame}, slice ${currentSlice}`,
-      // );
+    // Konva Shape render function for painting masks directly
+    const renderMasks = (context: Konva.Context) => {
+      const ctx = context._context;
 
-      const images: HTMLImageElement[] = [];
+      if (!ctx) return;
 
+      // Create composite ImageData for all masks
+      const imageData = ctx.createImageData(width, height);
+
+      // Paint all current masks onto the same ImageData
       currentMasks.forEach(([maskKey, maskData]) => {
         // Extract class name from mask key
         const classMatch = maskKey.match(/_([^_]+)$/);
@@ -290,64 +291,53 @@ export default function ProjectPage() {
           !className ||
           !CLASS_COLORS[className as keyof typeof CLASS_COLORS]
         ) {
-          // console.warn(`Unknown or missing class label for mask: ${maskKey}`);
           return; // Skip masks with unknown classes
         }
 
         const color = CLASS_COLORS[className as keyof typeof CLASS_COLORS];
 
-        // Create canvas for this mask
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-
-        if (!ctx) return;
-
-        // Create ImageData for the mask
-        const imageData = ctx.createImageData(width, height);
-
+        // Paint pixels with class color
         for (let i = 0; i < maskData.length; i++) {
           if (maskData[i] > 0) {
             const pixelIndex = i * 4;
-            imageData.data[pixelIndex] = color.r; // R
-            imageData.data[pixelIndex + 1] = color.g; // G
-            imageData.data[pixelIndex + 2] = color.b; // B
-            imageData.data[pixelIndex + 3] = color.a; // A
+
+            // Use alpha blending for overlapping masks
+            const existingAlpha = imageData.data[pixelIndex + 3];
+            if (existingAlpha === 0) {
+              // No existing pixel, paint directly
+              imageData.data[pixelIndex] = color.r; // R
+              imageData.data[pixelIndex + 1] = color.g; // G
+              imageData.data[pixelIndex + 2] = color.b; // B
+              imageData.data[pixelIndex + 3] = color.a; // A
+            } else {
+              // Blend with existing pixel (simple additive blending)
+              const alpha = color.a / 255;
+              const invAlpha = 1 - alpha;
+
+              imageData.data[pixelIndex] = Math.min(
+                255,
+                imageData.data[pixelIndex] * invAlpha + color.r * alpha,
+              );
+              imageData.data[pixelIndex + 1] = Math.min(
+                255,
+                imageData.data[pixelIndex + 1] * invAlpha + color.g * alpha,
+              );
+              imageData.data[pixelIndex + 2] = Math.min(
+                255,
+                imageData.data[pixelIndex + 2] * invAlpha + color.b * alpha,
+              );
+              imageData.data[pixelIndex + 3] = Math.min(
+                255,
+                existingAlpha + color.a,
+              );
+            }
           }
         }
-
-        // Draw the imageData to canvas
-        ctx.putImageData(imageData, 0, 0);
-
-        // Convert canvas to image
-        const img = new Image();
-        img.onload = () => {
-          images.push(img);
-          if (images.length === currentMasks.length) {
-            setMaskImages([...images]);
-          }
-        };
-        img.src = canvas.toDataURL();
-
-        // console.log(
-        //   `Painted ${className} mask with color [${color.r}, ${color.g}, ${color.b}]`,
-        // );
       });
 
-      // If no masks to process, clear images
-      if (currentMasks.length === 0) {
-        setMaskImages([]);
-      }
-    }, [currentFrame, currentSlice]);
-
-    // Don't render if no masks available or missing dimensions
-    if (
-      !project?.dimensions ||
-      Object.keys(decodedMasks.aiMasks).length === 0
-    ) {
-      return null;
-    }
+      // Draw the composite ImageData to Konva context
+      ctx.putImageData(imageData, 0, 0);
+    };
 
     return (
       <div className="space-y-4">
@@ -408,16 +398,12 @@ export default function ProjectPage() {
             style={{ maxWidth: "100%", height: "auto", background: "black" }}
           >
             <Layer>
-              {maskImages.map((img, index) => (
-                <KonvaImage
-                  key={index}
-                  image={img}
-                  x={0}
-                  y={0}
-                  width={project.dimensions!.width}
-                  height={project.dimensions!.height}
-                />
-              ))}
+              <Shape
+                sceneFunc={renderMasks}
+                width={project.dimensions!.width}
+                height={project.dimensions!.height}
+                key={`${currentFrame}-${currentSlice}`} // Re-render when frame/slice changes
+              />
             </Layer>
           </Stage>
           <div className="text-muted-foreground mt-2 space-y-1 text-sm">
@@ -433,6 +419,7 @@ export default function ProjectPage() {
               Canvas size: {project.dimensions!.width} ×{" "}
               {project.dimensions!.height}
             </p>
+            <p>Current masks: {currentMasks.length} for this frame/slice</p>
             <div className="mt-2 flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1">
                 <div className="h-3 w-3 rounded bg-red-500"></div>
