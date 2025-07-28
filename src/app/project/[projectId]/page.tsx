@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { projectApi } from "@/lib/api";
+import { projectApi, segmentationApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Loader2, Heart, ArrowLeft } from "lucide-react";
 
@@ -15,13 +15,15 @@ export default function ProjectPage() {
   const projectId = params.projectId as string;
 
   const [project, setProject] = useState<ProjectInfo | null>(null);
-  const [segmentationMasks, setSegmentationMasks] = useState<any[]|null>([]);
+  const [medSamMask, setMedSamMask] = useState<any[] | null>([]);
+  const [editableMask, setEditableMask] = useState<any[] | null>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!projectId) return;
 
+    // Fetch project information
     const fetchProject = async () => {
       try {
         setLoading(true);
@@ -29,6 +31,17 @@ export default function ProjectPage() {
 
         if (response.success && response.project) {
           setProject(response.project);
+
+          // Fetch segmentation masks and break to MedSAM output mask and editable mask
+          const masksResponse =
+            await segmentationApi.getSegmentationResults(projectId);
+          if (masksResponse.success) {
+            // TODO: HANDLE MASK (BREAK INTO MEDSAM AND EDITABLE MASK)
+            console.log("Masks response:", masksResponse);
+          } else {
+            // If no masks, ask if want to start segmentation (check if mask is null)
+            console.warn("No segmentation masks found for this project.");
+          }
         } else {
           setError(response.message || "Project not found");
         }
@@ -75,6 +88,25 @@ export default function ProjectPage() {
     });
   };
 
+  // Component to ask if want to start segmentation if no masks found
+  const RequestSegmentationButton = () => {
+    const handleStartSegmentation = () => {
+      try {
+        segmentationApi.startSegmentation(projectId);
+      } catch (error) {
+        console.error("Error starting segmentation:", error);
+      }
+    };
+    return (
+      <div>
+        <p>No mask found, press button below to start segmentation.</p>
+        <Button onClick={handleStartSegmentation} variant="primary">
+          Start Segmentation
+        </Button>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -113,6 +145,10 @@ export default function ProjectPage() {
   return (
     <>
       <pre>{JSON.stringify(project)}</pre>
+      <p>{`Error: ${error}`}</p>
+      {medSamMask.length === 0 && editableMask.length === 0 ? (
+        <RequestSegmentationButton />
+      ) : null}
     </>
   );
 }
