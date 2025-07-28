@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { projectApi, segmentationApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Loader2, Heart, ArrowLeft } from "lucide-react";
@@ -209,6 +209,227 @@ export default function ProjectPage() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  // Simple canvas component to test decoded masks
+  const MaskTestCanvas = () => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const [currentFrame, setCurrentFrame] = useState(0);
+    const [currentSlice, setCurrentSlice] = useState(0);
+    const [availableFrames, setAvailableFrames] = useState<number[]>([]);
+    const [availableSlices, setAvailableSlices] = useState<number[]>([]);
+
+    // Extract available frames and slices from mask keys
+    useEffect(() => {
+      if (Object.keys(decodedMasks.aiMasks).length === 0) return;
+
+      const frames = new Set<number>();
+      const slices = new Set<number>();
+
+      Object.keys(decodedMasks.aiMasks).forEach((maskKey) => {
+        // Parse mask key: ai_mask_0_frame_0_slice_0_class
+        const match = maskKey.match(/frame_(\d+)_slice_(\d+)/);
+        if (match) {
+          frames.add(parseInt(match[1], 10));
+          slices.add(parseInt(match[2], 10));
+        }
+      });
+
+      const sortedFrames = Array.from(frames).sort((a, b) => a - b);
+      const sortedSlices = Array.from(slices).sort((a, b) => a - b);
+
+      setAvailableFrames(sortedFrames);
+      setAvailableSlices(sortedSlices);
+
+      // Reset to first available frame/slice if current selection is invalid
+      if (!sortedFrames.includes(currentFrame) && sortedFrames.length > 0) {
+        setCurrentFrame(sortedFrames[0]);
+      }
+      if (!sortedSlices.includes(currentSlice) && sortedSlices.length > 0) {
+        setCurrentSlice(sortedSlices[0]);
+      }
+    }, [decodedMasks, currentFrame, currentSlice]);
+
+    useEffect(() => {
+      if (
+        !project?.dimensions ||
+        Object.keys(decodedMasks.aiMasks).length === 0
+      ) {
+        return;
+      }
+
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const { width, height } = project.dimensions;
+      canvas.width = width;
+      canvas.height = height;
+
+      // Clear canvas
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, width, height);
+
+      // Create ImageData for the canvas
+      const imageData = ctx.createImageData(width, height);
+
+      // Filter masks for current frame and slice
+      const currentMasks = Object.entries(decodedMasks.aiMasks).filter(
+        ([maskKey]) => {
+          const match = maskKey.match(/frame_(\d+)_slice_(\d+)/);
+          if (!match) return false;
+          const frameNum = parseInt(match[1], 10);
+          const sliceNum = parseInt(match[2], 10);
+          return frameNum === currentFrame && sliceNum === currentSlice;
+        },
+      );
+
+      // Define colors based on actual class labels
+      const classColors = {
+        lvc: [255, 0, 0, 180], // Red - Left Ventricle Cavity
+        rv: [0, 255, 0, 180], // Green - Right Ventricle
+        myo: [0, 0, 255, 180], // Blue - Myocardium
+      };
+
+      console.log(
+        `Rendering ${currentMasks.length} AI masks for frame ${currentFrame}, slice ${currentSlice}`,
+      );
+
+      // Draw each mask based on its class label
+      currentMasks.forEach(([maskKey, maskData]) => {
+        // Extract class name from mask key
+        const classMatch = maskKey.match(/_([^_]+)$/);
+        const className = classMatch ? classMatch[1] : null;
+
+        if (!className || !classColors[className as keyof typeof classColors]) {
+          console.warn(`Unknown or missing class label for mask: ${maskKey}`);
+          return; // Skip masks with unknown classes
+        }
+
+        const color = classColors[className as keyof typeof classColors];
+
+        for (let i = 0; i < maskData.length; i++) {
+          if (maskData[i] > 0) {
+            const pixelIndex = i * 4;
+            // Only paint if pixel is not already painted (to see overlaps)
+            if (imageData.data[pixelIndex + 3] === 0) {
+              imageData.data[pixelIndex] = color[0]; // R
+              imageData.data[pixelIndex + 1] = color[1]; // G
+              imageData.data[pixelIndex + 2] = color[2]; // B
+              imageData.data[pixelIndex + 3] = color[3]; // A
+            }
+          }
+        }
+
+        console.log(
+          `Painted ${className} mask with color [${color.join(", ")}]`,
+        );
+      });
+
+      // Draw the imageData to canvas
+      ctx.putImageData(imageData, 0, 0);
+    }, [project, decodedMasks, currentFrame, currentSlice]);
+
+    // Don't render if no masks available
+    if (
+      !project?.dimensions ||
+      Object.keys(decodedMasks.aiMasks).length === 0
+    ) {
+      return null;
+    }
+
+    return (
+      <div className="space-y-4">
+        <h3 className="text-foreground font-semibold">
+          MedSAM AI Segmentation Viewer
+        </h3>
+
+        {/* Frame and Slice Controls */}
+        <div className="grid grid-cols-1 gap-4 rounded-lg border bg-gray-50 p-4 md:grid-cols-2 dark:bg-gray-800">
+          {/* Frame Slider */}
+          <div className="space-y-2">
+            <label className="text-foreground text-sm font-medium">
+              Frame: {currentFrame + 1} (of {availableFrames.length})
+            </label>
+            <input
+              type="range"
+              min={Math.min(...availableFrames)}
+              max={Math.max(...availableFrames)}
+              value={currentFrame}
+              onChange={(e) => setCurrentFrame(parseInt(e.target.value, 10))}
+              disabled={availableFrames.length <= 1}
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
+            />
+            <div className="text-muted-foreground flex justify-between text-xs">
+              <span>{Math.min(...availableFrames) + 1}</span>
+              <span>{Math.max(...availableFrames) + 1}</span>
+            </div>
+          </div>
+
+          {/* Slice Slider */}
+          <div className="space-y-2">
+            <label className="text-foreground text-sm font-medium">
+              Slice: {currentSlice + 1} (of {availableSlices.length})
+            </label>
+            <input
+              type="range"
+              min={Math.min(...availableSlices)}
+              max={Math.max(...availableSlices)}
+              value={currentSlice}
+              onChange={(e) => setCurrentSlice(parseInt(e.target.value, 10))}
+              disabled={availableSlices.length <= 1}
+              className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
+            />
+            <div className="text-muted-foreground flex justify-between text-xs">
+              <span>{Math.min(...availableSlices) + 1}</span>
+              <span>{Math.max(...availableSlices) + 1}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Canvas */}
+        <div className="rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
+          <canvas
+            ref={canvasRef}
+            className="h-auto max-w-full border border-gray-300 dark:border-gray-600"
+            style={{ maxWidth: "100%", height: "auto" }}
+          />
+          <div className="text-muted-foreground mt-2 space-y-1 text-sm">
+            <p>
+              Showing AI masks for Frame {currentFrame + 1}, Slice{" "}
+              {currentSlice + 1}
+            </p>
+            <p>
+              Available: {availableFrames.length} frames,{" "}
+              {availableSlices.length} slices
+            </p>
+            <p>
+              Canvas size: {project.dimensions.width} ×{" "}
+              {project.dimensions.height}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-1">
+                <div className="h-3 w-3 rounded bg-red-500"></div>
+                <span>LVC (Left Ventricle Cavity)</span>
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <div className="h-3 w-3 rounded bg-green-500"></div>
+                <span>RV (Right Ventricle)</span>
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <div className="h-3 w-3 rounded bg-blue-500"></div>
+                <span>MYO (Myocardium)</span>
+              </span>
+            </div>
+            <p className="text-muted-foreground mt-1 text-xs">
+              Colors assigned based on class labels: lvc, rv, myo
+            </p>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // Component to ask if want to start segmentation if no masks found
@@ -422,6 +643,8 @@ export default function ProjectPage() {
         </div>
 
         <RequestSegmentationButton />
+
+        <MaskTestCanvas />
 
         {projectActiveJobs.length > 0 && (
           <details className="rounded-md border">
