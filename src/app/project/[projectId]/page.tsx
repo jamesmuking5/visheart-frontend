@@ -8,6 +8,7 @@ import { Loader2, Heart, ArrowLeft } from "lucide-react";
 import { decodeSegmentationMasks, DecodedMasks } from "@/lib/decode-RLE";
 import { Stage, Layer, Shape } from "react-konva";
 import Konva from "konva";
+import { tarImageCache, TarFetchDebugInfo } from "@/lib/tar-image-cache";
 
 // Types
 import {
@@ -50,6 +51,79 @@ export default function ProjectPage() {
   );
   const [isStartingSegmentation, setIsStartingSegmentation] =
     useState<boolean>(false);
+
+  // Tar image cache state
+  const [tarDebugInfo, setTarDebugInfo] = useState<TarFetchDebugInfo | null>(
+    null,
+  );
+  const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
+  const [isLoadingImages, setIsLoadingImages] = useState<boolean>(false);
+  const [imageLoadingProgress, setImageLoadingProgress] = useState<number>(0);
+
+  // Function to load project images from tar file
+  const loadProjectImages = async (projectId: string) => {
+    try {
+      setIsLoadingImages(true);
+      setImageLoadingProgress(0);
+
+      // Initialize tar cache if not already done
+      await tarImageCache.init();
+
+      // Fetch and extract images
+      const result = await tarImageCache.fetchAndExtractProjectImages(
+        projectId,
+        projectApi.getProjectPresignedUrl,
+      );
+
+      // Update debug info
+      setTarDebugInfo(tarImageCache.getDebugInfo());
+
+      if (result.success) {
+        console.log(
+          `[ProjectPage] Successfully loaded ${result.extractedImages} images`,
+        );
+
+        // Get available frames and slices for preloading current view
+        const { frames, slices } =
+          await tarImageCache.getAvailableFramesAndSlices(projectId);
+        if (frames.length > 0 && slices.length > 0) {
+          // Preload first frame/slice image
+          const imageUrl = await tarImageCache.getImageURL(
+            projectId,
+            frames[0],
+            slices[0],
+          );
+          if (imageUrl) {
+            setImageUrls(
+              (prev) =>
+                new Map(prev.set(`${frames[0]}_${slices[0]}`, imageUrl)),
+            );
+          }
+        }
+      } else {
+        console.error(`[ProjectPage] Failed to load images:`, result.errors);
+      }
+
+      setImageLoadingProgress(100);
+    } catch (error) {
+      console.error(`[ProjectPage] Error loading project images:`, error);
+      setTarDebugInfo({
+        presignedUrlFetched: false,
+        presignedUrl: null,
+        presignedUrlExpiry: null,
+        tarFileFetched: false,
+        tarFileSize: 0,
+        extractionStarted: false,
+        extractionCompleted: false,
+        totalImagesFound: 0,
+        imagesStored: 0,
+        cacheErrors: [error instanceof Error ? error.message : "Unknown error"],
+        processingTime: 0,
+      });
+    } finally {
+      setIsLoadingImages(false);
+    }
+  };
 
   useEffect(() => {
     if (!projectId) return;
@@ -96,13 +170,16 @@ export default function ProjectPage() {
           // Decode RLE masks if project dimensions are available
           if (response.project.dimensions) {
             const decoded = decodeSegmentationMasks(aiMasks, manualMasks, {
-              width: response.project.dimensions.width,
               height: response.project.dimensions.height,
+              width: response.project.dimensions.width,
             });
             setDecodedMasks(decoded);
           } else {
             // console.warn("Project dimensions not available for mask decoding");
           }
+
+          // 3. Start loading tar images in background
+          loadProjectImages(projectId);
 
           // console.log(
           //   `Found ${aiMasks.length} AI masks and ${manualMasks.length} manual masks`,
@@ -219,10 +296,37 @@ export default function ProjectPage() {
     const [currentSlice, setCurrentSlice] = useState<number>(0);
     const [availableFrames, setAvailableFrames] = useState<number[]>([]);
     const [availableSlices, setAvailableSlices] = useState<number[]>([]);
+    const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+
+    // Load image for current frame/slice
+    const loadCurrentImage = async (frame: number, slice: number) => {
+      try {
+        const imageUrl = await tarImageCache.getImageURL(
+          projectId,
+          frame,
+          slice,
+        );
+        setCurrentImageUrl(imageUrl);
+
+        // Cache the URL for future use
+        if (imageUrl) {
+          setImageUrls(
+            (prev) => new Map(prev.set(`${frame}_${slice}`, imageUrl)),
+          );
+        }
+      } catch (error) {
+        console.error(
+          `[MaskTestCanvas] Failed to load image for frame ${frame}, slice ${slice}:`,
+          error,
+        );
+        setCurrentImageUrl(null);
+      }
+    };
 
     // Extract available frames and slices from mask keys
+    const aiMasksLength = Object.keys(decodedMasks.aiMasks).length;
     useEffect(() => {
-      if (Object.keys(decodedMasks.aiMasks).length === 0) return;
+      if (aiMasksLength === 0) return;
 
       const frames = new Set<number>();
       const slices = new Set<number>();
@@ -249,7 +353,14 @@ export default function ProjectPage() {
       if (!sortedSlices.includes(currentSlice) && sortedSlices.length > 0) {
         setCurrentSlice(sortedSlices[0]);
       }
-    }, [currentFrame, currentSlice]);
+    }, [aiMasksLength, currentFrame, currentSlice]);
+
+    // Load image when frame/slice changes
+    useEffect(() => {
+      if (availableFrames.length > 0 && availableSlices.length > 0) {
+        loadCurrentImage(currentFrame, currentSlice);
+      }
+    }, [currentFrame, currentSlice, availableFrames, availableSlices]);
 
     // Don't render if no masks available or missing dimensions
     if (
@@ -272,12 +383,8 @@ export default function ProjectPage() {
       },
     );
 
-    // Konva Shape render function for painting masks directly
-    const renderMasks = (context: Konva.Context) => {
-      const ctx = context._context;
-
-      if (!ctx) return;
-
+    // Helper function to draw masks on canvas
+    const drawMasksOnCanvas = (ctx: CanvasRenderingContext2D) => {
       // Create composite ImageData for all masks
       const imageData = ctx.createImageData(width, height);
 
@@ -335,8 +442,29 @@ export default function ProjectPage() {
         }
       });
 
-      // Draw the composite ImageData to Konva context
+      // Draw the composite mask overlay
       ctx.putImageData(imageData, 0, 0);
+    };
+
+    // Konva Shape render function for painting masks directly
+    const renderMasks = (context: Konva.Context) => {
+      const ctx = context._context;
+
+      if (!ctx) return;
+
+      // Draw background image if available
+      if (currentImageUrl) {
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, width, height);
+          // Re-draw masks on top of image
+          drawMasksOnCanvas(ctx);
+        };
+        img.src = currentImageUrl;
+      } else {
+        // No background image, just draw masks
+        drawMasksOnCanvas(ctx);
+      }
     };
 
     return (
@@ -683,6 +811,66 @@ export default function ProjectPage() {
                 Segmentation Error: {segmentationError}
               </p>
             )}
+
+            {/* Tar Image Cache Debug Info */}
+            <div className="mt-3 border-t pt-2">
+              <h4 className="text-foreground mb-1 text-sm font-semibold">
+                Image Cache Debug Info:
+              </h4>
+              <p className="text-foreground text-xs">
+                Is Loading Images: {isLoadingImages.toString()}
+              </p>
+              <p className="text-foreground text-xs">
+                Loading Progress: {imageLoadingProgress}%
+              </p>
+              <p className="text-foreground text-xs">
+                Cached Image URLs: {imageUrls.size}
+              </p>
+              {tarDebugInfo && (
+                <>
+                  <p className="text-foreground text-xs">
+                    Presigned URL Fetched:{" "}
+                    {tarDebugInfo.presignedUrlFetched.toString()}
+                  </p>
+                  {tarDebugInfo.presignedUrl && (
+                    <p className="text-foreground text-xs break-all">
+                      Presigned URL: {tarDebugInfo.presignedUrl}
+                    </p>
+                  )}
+                  {tarDebugInfo.presignedUrlExpiry && (
+                    <p className="text-foreground text-xs">
+                      URL Expires:{" "}
+                      {new Date(
+                        tarDebugInfo.presignedUrlExpiry,
+                      ).toLocaleString()}
+                    </p>
+                  )}
+                  <p className="text-foreground text-xs">
+                    Tar File Fetched: {tarDebugInfo.tarFileFetched.toString()}
+                  </p>
+                  <p className="text-foreground text-xs">
+                    Tar File Size:{" "}
+                    {(tarDebugInfo.tarFileSize / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                  <p className="text-foreground text-xs">
+                    Extraction Completed:{" "}
+                    {tarDebugInfo.extractionCompleted.toString()}
+                  </p>
+                  <p className="text-foreground text-xs">
+                    Images Found/Stored: {tarDebugInfo.totalImagesFound}/
+                    {tarDebugInfo.imagesStored}
+                  </p>
+                  <p className="text-foreground text-xs">
+                    Processing Time: {tarDebugInfo.processingTime.toFixed(0)}ms
+                  </p>
+                  {tarDebugInfo.cacheErrors.length > 0 && (
+                    <p className="text-xs text-red-600">
+                      Cache Errors: {tarDebugInfo.cacheErrors.join(", ")}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
 

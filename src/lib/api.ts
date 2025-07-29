@@ -227,6 +227,18 @@ export const projectApi = {
       throw error;
     }
   },
+
+  // Get presigned URL for project tar file
+  getProjectPresignedUrl: async (projectId: string) => {
+    try {
+      const response = await api.get("/project/get-project-presigned-url", {
+        params: { projectId },
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 // Segmentation functions
