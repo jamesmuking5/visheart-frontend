@@ -385,8 +385,16 @@ export default function ProjectPage() {
 
     // Helper function to draw masks on canvas
     const drawMasksOnCanvas = (ctx: CanvasRenderingContext2D) => {
-      // Create composite ImageData for all masks
-      const imageData = ctx.createImageData(width, height);
+      // Create a temporary canvas to prepare the mask overlay
+      const maskCanvas = document.createElement("canvas");
+      maskCanvas.width = width;
+      maskCanvas.height = height;
+      const maskCtx = maskCanvas.getContext("2d");
+
+      if (!maskCtx) return;
+
+      // Create composite ImageData for all masks (IMPORTANT: This swaps the width/height when rendering)
+      const imageData = maskCtx.createImageData(height, width);
 
       // Paint all current masks onto the same ImageData
       currentMasks.forEach(([maskKey, maskData]) => {
@@ -442,8 +450,11 @@ export default function ProjectPage() {
         }
       });
 
-      // Draw the composite mask overlay
-      ctx.putImageData(imageData, 0, 0);
+      // Put the blended mask data onto the temporary canvas
+      maskCtx.putImageData(imageData, 0, 0);
+
+      // Draw the temporary canvas onto the main context
+      ctx.drawImage(maskCanvas, 0, 0, width, height);
     };
 
     // Konva Shape render function for painting masks directly
