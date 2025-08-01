@@ -64,11 +64,11 @@ class TarImageCacheDB {
 
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
-        
+
         // Create object store if it doesn't exist
         if (!db.objectStoreNames.contains(this.storeName)) {
           const store = db.createObjectStore(this.storeName, { keyPath: 'id' });
-          
+
           // Create indexes for efficient querying
           store.createIndex('projectId', 'projectId', { unique: false });
           store.createIndex('frameIndex', 'frameIndex', { unique: false });
@@ -85,9 +85,9 @@ class TarImageCacheDB {
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
-      
+
       const request = store.put(entry);
-      
+
       request.onsuccess = () => resolve();
       request.onerror = () => reject(new Error('Failed to store image'));
     });
@@ -99,9 +99,9 @@ class TarImageCacheDB {
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.storeName], 'readonly');
       const store = transaction.objectStore(this.storeName);
-      
+
       const request = store.get(id);
-      
+
       request.onsuccess = () => resolve(request.result || null);
       request.onerror = () => reject(new Error('Failed to get image'));
     });
@@ -114,9 +114,9 @@ class TarImageCacheDB {
       const transaction = this.db!.transaction([this.storeName], 'readonly');
       const store = transaction.objectStore(this.storeName);
       const index = store.index('projectId');
-      
+
       const request = index.getAll(projectId);
-      
+
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(new Error('Failed to get images by project'));
     });
@@ -126,19 +126,19 @@ class TarImageCacheDB {
     if (!this.db) throw new Error('Database not initialized');
 
     const images = await this.getImagesByProject(projectId);
-    
+
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
-      
+
       let deleted = 0;
       const total = images.length;
-      
+
       if (total === 0) {
         resolve();
         return;
       }
-      
+
       images.forEach(image => {
         const deleteRequest = store.delete(image.id);
         deleteRequest.onsuccess = () => {
@@ -156,9 +156,9 @@ class TarImageCacheDB {
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.storeName], 'readonly');
       const store = transaction.objectStore(this.storeName);
-      
+
       const request = store.count();
-      
+
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(new Error('Failed to get cache size'));
     });
@@ -171,7 +171,7 @@ function extractIndicesFromFilename(filename: string): { frame: number; slice: n
   // slice_001_frame_000.jpg
   // frame_000_slice_001.dcm
   // img_f000_s001.png
-  
+
   const patterns = [
     /slice_(\d+)_frame_(\d+)/i,
     /frame_(\d+)_slice_(\d+)/i,
@@ -205,7 +205,7 @@ function extractIndicesFromFilename(filename: string): { frame: number; slice: n
     hash = ((hash << 5) - hash) + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
-  
+
   return { frame: Math.abs(hash) % 100, slice: Math.abs(hash >> 16) % 100 };
 }
 
@@ -265,7 +265,7 @@ export class TarImageCache {
       // Step 1: Get presigned URL
       console.log(`[TarImageCache] Fetching presigned URL for project ${projectId}`);
       const presignedResponse = await getPresignedUrl(projectId);
-      
+
       if (!presignedResponse.success || !presignedResponse.presignedUrl) {
         this.debugInfo.cacheErrors.push(`Failed to get presigned URL: ${presignedResponse.message || 'Unknown error'}`);
         return {
@@ -284,7 +284,7 @@ export class TarImageCache {
       // Step 2: Fetch tar file
       console.log(`[TarImageCache] Fetching tar file from presigned URL`);
       const tarResponse = await fetch(presignedResponse.presignedUrl);
-      
+
       if (!tarResponse.ok) {
         this.debugInfo.cacheErrors.push(`Failed to fetch tar file: ${tarResponse.status} ${tarResponse.statusText}`);
         return {
@@ -303,16 +303,16 @@ export class TarImageCache {
       // Step 3: Extract and store images
       console.log(`[TarImageCache] Extracting tar file (${tarBlob.size} bytes)`);
       const extractionResult = await this.extractAndStoreImages(projectId, tarBlob);
-      
+
       this.debugInfo.processingTime = performance.now() - startTime;
-      
+
       return extractionResult;
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       this.debugInfo.cacheErrors.push(`Extraction failed: ${errorMessage}`);
       this.debugInfo.processingTime = performance.now() - startTime;
-      
+
       return {
         success: false,
         totalImages: 0,
@@ -332,20 +332,20 @@ export class TarImageCache {
 
       // Convert blob to array buffer for js-untar
       const arrayBuffer = await tarBlob.arrayBuffer();
-      
+
       // Dynamic import of js-untar v2.0.0
       console.log(`[TarImageCache] Attempting to import js-untar...`);
       const untarModule = await import('js-untar');
       console.log(`[TarImageCache] js-untar module:`, untarModule);
-      
+
       // js-untar v2.0.0 exports untar as the default export
       const untar = untarModule.default || untarModule.untar || untarModule;
       console.log(`[TarImageCache] untar function:`, typeof untar);
-      
+
       if (typeof untar !== 'function') {
         throw new Error(`js-untar did not export a function. Got: ${typeof untar}. Available exports: ${Object.keys(untarModule).join(', ')}`);
       }
-      
+
       console.log(`[TarImageCache] Calling untar with ${arrayBuffer.byteLength} bytes...`);
       const files = await untar(arrayBuffer);
       console.log(`[TarImageCache] Extracted ${files.length} files from tar`);
@@ -367,9 +367,9 @@ export class TarImageCache {
         try {
           const { frame, slice } = extractIndicesFromFilename(file.name);
           const imageId = `${projectId}_f${frame}_s${slice}`;
-          
-          const blob = new Blob([file.buffer], { 
-            type: this.getMimeType(file.name) 
+
+          const blob = new Blob([file.buffer], {
+            type: this.getMimeType(file.name)
           });
 
           const entry: ImageCacheEntry = {
@@ -411,7 +411,7 @@ export class TarImageCache {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error(`[TarImageCache] Extraction failed:`, error);
       this.debugInfo.cacheErrors.push(`Extraction error: ${errorMessage}`);
-      
+
       return {
         success: false,
         totalImages: 0,

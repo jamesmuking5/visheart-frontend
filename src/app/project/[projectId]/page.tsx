@@ -28,6 +28,7 @@ const CLASS_COLORS = {
   myo: { r: 0, g: 0, b: 255, a: 180 }, // Blue - Myocardium
 } as const;
 
+// Main component for the project page
 export default function ProjectPage() {
   const params = useParams();
   const router = useRouter();
@@ -35,16 +36,18 @@ export default function ProjectPage() {
 
   // State management
   const [project, setProject] = useState<ProjectInfo | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
   const [maskFound, setMaskFound] = useState<boolean>(false);
+  // Stores encoded masks from API
   const [medSamMask, setMedSamMask] = useState<MedSAMask[]>([]);
   const [editableMask, setEditableMask] = useState<EditableMask[]>([]);
+  // Stores the decoded masks for rendering
   const [decodedMasks, setDecodedMasks] = useState<DecodedMasks>({
     aiMasks: {},
     manualMasks: {},
   });
   const [activeJobCount, setActiveJobCount] = useState<number>(0);
   const [projectActiveJobs, setProjectActiveJobs] = useState<UserJob[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [segmentationError, setSegmentationError] = useState<string | null>(
     null,
@@ -66,7 +69,7 @@ export default function ProjectPage() {
       setIsLoadingImages(true);
       setImageLoadingProgress(0);
 
-      // Initialize tar cache if not already done
+      // Initialize tar cache
       await tarImageCache.init();
 
       // Fetch and extract images
@@ -131,6 +134,7 @@ export default function ProjectPage() {
     // Fetch project information, masks, and jobs
     const fetchProjectData = async () => {
       try {
+        // 0. Reset states
         setLoading(true);
         setError(null);
         setSegmentationError(null);
@@ -152,7 +156,7 @@ export default function ProjectPage() {
           masksResponse.segmentations &&
           masksResponse.segmentations.length > 0
         ) {
-          // Masks found - separate them
+          // If masks found - separate them
           setMaskFound(true);
 
           const aiMasks = masksResponse.segmentations.filter(
@@ -164,10 +168,11 @@ export default function ProjectPage() {
               mask.isMedSAMOutput === false,
           );
 
+          // Set the RLE masks in state
           setMedSamMask(aiMasks);
           setEditableMask(manualMasks);
 
-          // Decode RLE masks if project dimensions are available
+          // 3. Start decoding RLE masks if project dimensions are available
           if (response.project.dimensions) {
             const decoded = decodeSegmentationMasks(aiMasks, manualMasks, {
               height: response.project.dimensions.height,
@@ -175,10 +180,12 @@ export default function ProjectPage() {
             });
             setDecodedMasks(decoded);
           } else {
-            // console.warn("Project dimensions not available for mask decoding");
+            throw new Error(
+              "Project dimensions not available for mask decoding",
+            );
           }
 
-          // 3. Start loading tar images in background
+          // 4. Start loading tar images in background
           loadProjectImages(projectId);
 
           // console.log(
@@ -201,22 +208,11 @@ export default function ProjectPage() {
             if (jobsResponse.success) {
               setActiveJobCount(jobsResponse.activeJobCount);
 
-              // Filter jobs for this specific project
-              // console.log("All jobs:", jobsResponse.jobs);
-              // console.log("Current projectId:", projectId);
-
+              // Filter jobs with this projectId
               const projectJobs = jobsResponse.jobs.filter((job) => {
-                // console.log(
-                //   `Comparing job.projectId (${job.projectId}) with projectId (${projectId})`,
-                // );
                 return job.projectId === projectId;
               });
               setProjectActiveJobs(projectJobs);
-
-              // console.log(
-              //   `Found ${projectJobs.length} jobs for project ${projectId}:`,
-              //   projectJobs,
-              // );
 
               // Check for completed jobs - if they exist but no masks, throw error
               const completedJobs = projectJobs.filter(
@@ -239,15 +235,15 @@ export default function ProjectPage() {
               }
 
               // Check for active jobs specifically
-              // const activeJobs = projectJobs.filter(
-              //   (job) =>
-              //     job.status === JobStatus.PENDING ||
-              //     job.status === JobStatus.IN_PROGRESS,
-              // );
-              // console.log(
-              //   `Found ${activeJobs.length} active jobs for project ${projectId}:`,
-              //   activeJobs,
-              // );
+              const activeJobs = projectJobs.filter(
+                (job) =>
+                  job.status === JobStatus.PENDING ||
+                  job.status === JobStatus.IN_PROGRESS,
+              );
+              console.log(
+                `Found ${activeJobs.length} active jobs for project ${projectId}:`,
+                activeJobs,
+              );
             }
           } catch (jobError) {
             if (
