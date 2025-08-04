@@ -1,16 +1,25 @@
 "use client";
 
+// Core React and Next.js imports
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
+
+// API layer: Project data and segmentation job management
 import { projectApi, segmentationApi } from "@/lib/api";
+
+// UI components
 import { Button } from "@/components/ui/button";
 import { Loader2, Heart, ArrowLeft } from "lucide-react";
+
+// Data processing: RLE mask decoding and TAR image caching
 import { decodeSegmentationMasks, DecodedMasks } from "@/lib/decode-RLE";
-import { Stage, Layer, Shape } from "react-konva";
-import Konva from "konva";
 import { tarImageCache, TarFetchDebugInfo } from "@/lib/tar-image-cache";
 
-// Types
+// Canvas rendering for medical image visualization
+import { Stage, Layer, Shape } from "react-konva";
+import Konva from "konva";
+
+// Type definitions
 import {
   ProjectInfo,
   UserJob,
@@ -21,41 +30,51 @@ import {
   SegmentationMask,
 } from "@/types/project";
 
-// Constants for mask visualization
+// Color mapping for cardiac anatomy visualization
 const CLASS_COLORS = {
   lvc: { r: 255, g: 0, b: 0, a: 180 }, // Red - Left Ventricle Cavity
   rv: { r: 0, g: 255, b: 0, a: 180 }, // Green - Right Ventricle
   myo: { r: 0, g: 0, b: 255, a: 180 }, // Blue - Myocardium
 } as const;
 
-// Main component for the project page
+/**
+ * Main Project Page Component
+ *
+ * DATA FLOW:
+ * 1. Load project info → Check for existing masks
+ * 2. If masks exist: Decode RLE → Load TAR images → Render canvas
+ * 3. If no masks: Check job status → Show start button or job progress
+ * 4. Canvas renders: Background image + segmentation overlays
+ */
 export default function ProjectPage() {
   const params = useParams();
   const router = useRouter();
   const projectId = params.projectId as string;
 
-  // State management
+  // Core project state
   const [project, setProject] = useState<ProjectInfo | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Mask data pipeline: API → RLE encoded → Decoded for rendering
   const [maskFound, setMaskFound] = useState<boolean>(false);
-  // Stores encoded masks from API
-  const [medSamMask, setMedSamMask] = useState<MedSAMask[]>([]);
-  const [editableMask, setEditableMask] = useState<EditableMask[]>([]);
-  // Stores the decoded masks for rendering
+  const [medSamMask, setMedSamMask] = useState<MedSAMask[]>([]); // Raw AI masks
+  const [editableMask, setEditableMask] = useState<EditableMask[]>([]); // User-edited masks
   const [decodedMasks, setDecodedMasks] = useState<DecodedMasks>({
     aiMasks: {},
     manualMasks: {},
   });
+
+  // Job tracking for segmentation processing queue
   const [activeJobCount, setActiveJobCount] = useState<number>(0);
   const [projectActiveJobs, setProjectActiveJobs] = useState<UserJob[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [segmentationError, setSegmentationError] = useState<string | null>(
     null,
   );
   const [isStartingSegmentation, setIsStartingSegmentation] =
     useState<boolean>(false);
 
-  // Tar image cache state
+  // Image cache: TAR file → Individual images → Canvas rendering
   const [tarDebugInfo, setTarDebugInfo] = useState<TarFetchDebugInfo | null>(
     null,
   );
@@ -63,34 +82,29 @@ export default function ProjectPage() {
   const [isLoadingImages, setIsLoadingImages] = useState<boolean>(false);
   const [imageLoadingProgress, setImageLoadingProgress] = useState<number>(0);
 
-  // Function to load project images from tar file
+  // Image loading pipeline: TAR download → Extract → Cache → Render
   const loadProjectImages = async (projectId: string) => {
     try {
       setIsLoadingImages(true);
       setImageLoadingProgress(0);
 
-      // Initialize tar cache
       await tarImageCache.init();
 
-      // Fetch and extract images
+      // Download and extract TAR archive containing medical images
       const result = await tarImageCache.fetchAndExtractProjectImages(
         projectId,
         projectApi.getProjectPresignedUrl,
       );
 
-      // Update debug info
       setTarDebugInfo(tarImageCache.getDebugInfo());
 
       if (result.success) {
-        console.log(
-          `[ProjectPage] Successfully loaded ${result.extractedImages} images`,
-        );
+        console.log(`[ProjectPage] Loaded ${result.extractedImages} images`);
 
-        // Get available frames and slices for preloading current view
+        // Preload first image for immediate display
         const { frames, slices } =
           await tarImageCache.getAvailableFramesAndSlices(projectId);
         if (frames.length > 0 && slices.length > 0) {
-          // Preload first frame/slice image
           const imageUrl = await tarImageCache.getImageURL(
             projectId,
             frames[0],
@@ -128,18 +142,25 @@ export default function ProjectPage() {
     }
   };
 
+  /**
+   * Main data loading effect - orchestrates the entire data pipeline
+   *
+   * FLOW: Project Info → Masks → Jobs → Images
+   * 1. Fetch project metadata
+   * 2. Check for existing segmentation masks
+   * 3. If masks found: Decode RLE → Load images
+   * 4. If no masks: Check job status → Show appropriate UI
+   */
   useEffect(() => {
     if (!projectId) return;
 
-    // Fetch project information, masks, and jobs
     const fetchProjectData = async () => {
       try {
-        // 0. Reset states
         setLoading(true);
-        setError(null);
-        setSegmentationError(null);
+        setError(null); // project
+        setSegmentationError(null); //.mask
 
-        // 1. Fetch project information
+        // Step 1: Get project information (required for everything else)
         const response = await projectApi.getProjectInfo(projectId);
         if (!response.success || !response.project) {
           setError(response.message || "Project not found");
@@ -147,16 +168,12 @@ export default function ProjectPage() {
         }
         setProject(response.project);
 
-        // 2. Fetch segmentation masks first
+        // Step 2: Check for existing masks (determines UI flow)
         const masksResponse =
           await segmentationApi.getSegmentationResults(projectId);
 
-        if (
-          masksResponse.success &&
-          masksResponse.segmentations &&
-          masksResponse.segmentations.length > 0
-        ) {
-          // If masks found - separate them
+        if (masksResponse.success && masksResponse.segmentations?.length > 0) {
+          // MASKS FOUND → Decode and visualize
           setMaskFound(true);
 
           const aiMasks = masksResponse.segmentations.filter(
@@ -168,53 +185,47 @@ export default function ProjectPage() {
               mask.isMedSAMOutput === false,
           );
 
-          // Set the RLE masks in state
           setMedSamMask(aiMasks);
           setEditableMask(manualMasks);
 
-          // 3. Start decoding RLE masks if project dimensions are available
+          // Step 3: Decode RLE masks for canvas rendering
           if (response.project.dimensions) {
             const decoded = decodeSegmentationMasks(aiMasks, manualMasks, {
               height: response.project.dimensions.height,
               width: response.project.dimensions.width,
             });
-            setDecodedMasks(decoded);
+            setDecodedMasks(decoded); // has both decoded AI and manual masks
           } else {
             throw new Error(
               "Project dimensions not available for mask decoding",
             );
           }
 
-          // 4. Start loading tar images in background
+          // Step 4: Load background images for visualization
           loadProjectImages(projectId);
 
-          // console.log(
-          //   `Found ${aiMasks.length} AI masks and ${manualMasks.length} manual masks`,
-          // );
-
-          // Clear job states since we have masks
+          // Basically don't care about jobs here since we have masks
           setActiveJobCount(0);
           setProjectActiveJobs([]);
         } else {
-          // No masks found - check job status
+          // NO MASKS → Check job status
           setMaskFound(false);
           setMedSamMask([]);
           setEditableMask([]);
 
-          // 3. Fetch user jobs only if no masks exist
+          // Trace from jobs
           try {
             const jobsResponse: UserJobsResponse =
               await segmentationApi.getUserJobs();
             if (jobsResponse.success) {
               setActiveJobCount(jobsResponse.activeJobCount);
 
-              // Filter jobs with this projectId
-              const projectJobs = jobsResponse.jobs.filter((job) => {
-                return job.projectId === projectId;
-              });
+              const projectJobs = jobsResponse.jobs.filter(
+                (job) => job.projectId === projectId,
+              );
               setProjectActiveJobs(projectJobs);
 
-              // Check for completed jobs - if they exist but no masks, throw error
+              // Data validation: completed jobs should have masks
               const completedJobs = projectJobs.filter(
                 (job) => job.status === JobStatus.COMPLETED,
               );
@@ -224,7 +235,7 @@ export default function ProjectPage() {
 
               if (completedJobs.length > 0) {
                 throw new Error(
-                  `Processing error: Found ${completedJobs.length} completed job(s) but no segmentation masks. This indicates a server-side processing issue.`,
+                  `Processing error: Found ${completedJobs.length} completed job(s) but no masks. Server-side issue.`,
                 );
               }
 
@@ -234,7 +245,6 @@ export default function ProjectPage() {
                 );
               }
 
-              // Check for active jobs specifically
               const activeJobs = projectJobs.filter(
                 (job) =>
                   job.status === JobStatus.PENDING ||
@@ -250,14 +260,10 @@ export default function ProjectPage() {
               jobError instanceof Error &&
               jobError.message.includes("Processing error")
             ) {
-              // Re-throw processing errors
               throw jobError;
             }
-            // console.warn("Failed to fetch user jobs:", jobError);
-            // Don't fail the entire fetch if jobs fail for other reasons
+            // Don't fail entire fetch for job API issues
           }
-
-          // console.warn("No segmentation masks found for this project.");
         }
       } catch (err: unknown) {
         console.error("Error fetching project data:", err);
@@ -285,16 +291,24 @@ export default function ProjectPage() {
     fetchProjectData();
   }, [projectId]);
 
-  // Canvas component for displaying decoded masks using Konva
+  /**
+   * Canvas Component - Renders medical images with segmentation overlays
+   *
+   * RENDERING FLOW:
+   * 1. Extract frame/slice navigation from mask data
+   * 2. Load background image for current frame/slice
+   * 3. Filter masks matching current view
+   * 4. Render: Background image → Colored mask overlays
+   */
   const MaskTestCanvas = () => {
     const stageRef = useRef<Konva.Stage>(null);
+
+    // Navigation state for 4D medical data (frame, slice, height, width)
     const [currentFrame, setCurrentFrame] = useState<number>(0);
     const [currentSlice, setCurrentSlice] = useState<number>(0);
     const [availableFrames, setAvailableFrames] = useState<number[]>([]);
     const [availableSlices, setAvailableSlices] = useState<number[]>([]);
-    const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
-
-    // Load image for current frame/slice
+    const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null); // Load specific image from cache for current frame/slice
     const loadCurrentImage = async (frame: number, slice: number) => {
       try {
         const imageUrl = await tarImageCache.getImageURL(
@@ -304,7 +318,6 @@ export default function ProjectPage() {
         );
         setCurrentImageUrl(imageUrl);
 
-        // Cache the URL for future use
         if (imageUrl) {
           setImageUrls(
             (prev) => new Map(prev.set(`${frame}_${slice}`, imageUrl)),
@@ -319,7 +332,8 @@ export default function ProjectPage() {
       }
     };
 
-    // Extract available frames and slices from mask keys
+    // Extract navigation dimensions from mask keys
+    // Pattern: "ai_mask_0_frame_X_slice_Y_class" → Extract X, Y for navigation
     const aiMasksLength = Object.keys(decodedMasks.aiMasks).length;
     useEffect(() => {
       if (aiMasksLength === 0) return;
@@ -328,7 +342,6 @@ export default function ProjectPage() {
       const slices = new Set<number>();
 
       Object.keys(decodedMasks.aiMasks).forEach((maskKey) => {
-        // Parse mask key: ai_mask_0_frame_0_slice_0_class
         const match = maskKey.match(/frame_(\d+)_slice_(\d+)/);
         if (match) {
           frames.add(parseInt(match[1], 10));
@@ -342,7 +355,7 @@ export default function ProjectPage() {
       setAvailableFrames(sortedFrames);
       setAvailableSlices(sortedSlices);
 
-      // Reset to first available frame/slice if current selection is invalid
+      // Reset invalid selections to first available
       if (!sortedFrames.includes(currentFrame) && sortedFrames.length > 0) {
         setCurrentFrame(sortedFrames[0]);
       }
@@ -351,14 +364,14 @@ export default function ProjectPage() {
       }
     }, [aiMasksLength, currentFrame, currentSlice]);
 
-    // Load image when frame/slice changes
+    // Reactive image loading when navigation changes
     useEffect(() => {
       if (availableFrames.length > 0 && availableSlices.length > 0) {
         loadCurrentImage(currentFrame, currentSlice);
       }
     }, [currentFrame, currentSlice, availableFrames, availableSlices]);
 
-    // Don't render if no masks available or missing dimensions
+    // Guard: Don't render without essential data
     if (
       !project?.dimensions ||
       Object.keys(decodedMasks.aiMasks).length === 0
@@ -368,7 +381,7 @@ export default function ProjectPage() {
 
     const { width, height } = project.dimensions;
 
-    // Filter masks for current frame and slice
+    // Filter masks for current view (only matching frame/slice)
     const currentMasks = Object.entries(decodedMasks.aiMasks).filter(
       ([maskKey]) => {
         const match = maskKey.match(/frame_(\d+)_slice_(\d+)/);
@@ -379,9 +392,8 @@ export default function ProjectPage() {
       },
     );
 
-    // Helper function to draw masks on canvas
+    // Mask rendering pipeline: Create overlay → Paint pixels → Composite
     const drawMasksOnCanvas = (ctx: CanvasRenderingContext2D) => {
-      // Create a temporary canvas to prepare the mask overlay
       const maskCanvas = document.createElement("canvas");
       maskCanvas.width = width;
       maskCanvas.height = height;
@@ -389,12 +401,10 @@ export default function ProjectPage() {
 
       if (!maskCtx) return;
 
-      // Create composite ImageData for all masks (IMPORTANT: This swaps the width/height when rendering)
       const imageData = maskCtx.createImageData(height, width);
 
-      // Paint all current masks onto the same ImageData
+      // Paint each mask with its anatomical class color
       currentMasks.forEach(([maskKey, maskData]) => {
-        // Extract class name from mask key
         const classMatch = maskKey.match(/_([^_]+)$/);
         const className = classMatch ? classMatch[1] : null;
 
@@ -402,26 +412,25 @@ export default function ProjectPage() {
           !className ||
           !CLASS_COLORS[className as keyof typeof CLASS_COLORS]
         ) {
-          return; // Skip masks with unknown classes
+          return;
         }
 
         const color = CLASS_COLORS[className as keyof typeof CLASS_COLORS];
 
-        // Paint pixels with class color
+        // Paint mask pixels with alpha blending for overlaps
         for (let i = 0; i < maskData.length; i++) {
           if (maskData[i] > 0) {
             const pixelIndex = i * 4;
-
-            // Use alpha blending for overlapping masks
             const existingAlpha = imageData.data[pixelIndex + 3];
+
             if (existingAlpha === 0) {
-              // No existing pixel, paint directly
-              imageData.data[pixelIndex] = color.r; // R
-              imageData.data[pixelIndex + 1] = color.g; // G
-              imageData.data[pixelIndex + 2] = color.b; // B
-              imageData.data[pixelIndex + 3] = color.a; // A
+              // Direct paint
+              imageData.data[pixelIndex] = color.r;
+              imageData.data[pixelIndex + 1] = color.g;
+              imageData.data[pixelIndex + 2] = color.b;
+              imageData.data[pixelIndex + 3] = color.a;
             } else {
-              // Blend with existing pixel (simple additive blending)
+              // Alpha blend for overlapping masks
               const alpha = color.a / 255;
               const invAlpha = 1 - alpha;
 
@@ -446,31 +455,24 @@ export default function ProjectPage() {
         }
       });
 
-      // Put the blended mask data onto the temporary canvas
       maskCtx.putImageData(imageData, 0, 0);
-
-      // Draw the temporary canvas onto the main context
       ctx.drawImage(maskCanvas, 0, 0, width, height);
     };
 
-    // Konva Shape render function for painting masks directly
+    // Konva render function: Background image → Mask overlays
     const renderMasks = (context: Konva.Context) => {
       const ctx = context._context;
-
       if (!ctx) return;
 
-      // Draw background image if available
       if (currentImageUrl) {
         const img = new Image();
         img.onload = () => {
-          ctx.drawImage(img, 0, 0, width, height);
-          // Re-draw masks on top of image
-          drawMasksOnCanvas(ctx);
+          ctx.drawImage(img, 0, 0, width, height); // Background
+          drawMasksOnCanvas(ctx); // Overlays
         };
         img.src = currentImageUrl;
       } else {
-        // No background image, just draw masks
-        drawMasksOnCanvas(ctx);
+        drawMasksOnCanvas(ctx); // Masks only
       }
     };
 
@@ -496,6 +498,7 @@ export default function ProjectPage() {
               disabled={availableFrames.length <= 1}
               className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
             />
+
             <div className="text-muted-foreground flex justify-between text-xs">
               <span>{Math.min(...availableFrames) + 1}</span>
               <span>{Math.max(...availableFrames) + 1}</span>
@@ -578,23 +581,21 @@ export default function ProjectPage() {
     );
   };
 
-  // Component for segmentation request button
+  /**
+   * Segmentation Button Component
+   *
+   * UI FLOW: Check state → Show appropriate UI
+   * - Masks exist: Show completion message
+   * - Jobs active: Show progress status
+   * - Neither: Show start button
+   */
   const RequestSegmentationButton = () => {
-    // Helper functions for job filtering
     const getJobsByStatus = (status: JobStatus) =>
       projectActiveJobs.filter((job) => job.status === status);
-
-    // Check if there are ANY jobs (any status) for this project
     const hasAnyJobs = projectActiveJobs.length > 0;
-
-    // Only show button if BOTH conditions are true:
-    // 1. No masks found for this projectId
-    // 2. No UserJobs with this projectId
     const shouldShowButton = !maskFound && !hasAnyJobs;
 
-    // If button shouldn't be shown, display job status information instead
     if (!shouldShowButton) {
-      // If we have masks, show different message
       if (maskFound) {
         return (
           <div className="space-y-2">
@@ -602,14 +603,13 @@ export default function ProjectPage() {
               Segmentation masks already exist for this project.
             </p>
             <p className="text-muted-foreground text-sm">
-              AI segmentation has been completed. Use the viewer above to
-              explore the results.
+              AI segmentation completed. Use the viewer above to explore
+              results.
             </p>
           </div>
         );
       }
 
-      // If we have jobs, show job status
       if (hasAnyJobs) {
         const pendingJobs = getJobsByStatus(JobStatus.PENDING);
         const inProgressJobs = getJobsByStatus(JobStatus.IN_PROGRESS);
@@ -636,13 +636,13 @@ export default function ProjectPage() {
 
             {pendingJobs.length > 0 && (
               <p className="text-muted-foreground text-sm">
-                {pendingJobs.length} job(s) pending (Queue position:{" "}
+                {pendingJobs.length} job(s) pending (Queue:{" "}
                 {pendingJobs[0].queuePosition})
               </p>
             )}
             {inProgressJobs.length > 0 && (
               <p className="text-muted-foreground text-sm">
-                {inProgressJobs.length} job(s) currently processing
+                {inProgressJobs.length} job(s) processing
               </p>
             )}
             {completedJobs.length > 0 && (
@@ -657,35 +657,30 @@ export default function ProjectPage() {
             )}
 
             <p className="text-muted-foreground text-sm">
-              Segmentation already initiated for this project. Button disabled.
+              Segmentation already initiated. Button disabled.
             </p>
           </div>
         );
       }
     }
 
-    // Function to handle starting segmentation
+    // Start segmentation job → Refresh page to show new state
     const handleStartSegmentation = async () => {
-      if (isStartingSegmentation) return; // Prevent multiple clicks
+      if (isStartingSegmentation) return;
 
       try {
         setIsStartingSegmentation(true);
-        // console.log("Starting segmentation for project:", projectId);
-
         const response = await segmentationApi.startSegmentation(projectId);
         if (response) {
-          // console.log("Segmentation started successfully:", response);
-          // Refresh the page to show the new job status
-          window.location.reload();
+          window.location.reload(); // Refresh to show job status
         }
       } catch (error) {
         console.error("Error starting segmentation:", error);
         setSegmentationError("Failed to start segmentation. Please try again.");
-        setIsStartingSegmentation(false); // Re-enable button on error
+        setIsStartingSegmentation(false);
       }
     };
 
-    // Only render button if both conditions are met: no masks AND no jobs
     if (shouldShowButton) {
       return (
         <div className="space-y-4">
@@ -716,10 +711,10 @@ export default function ProjectPage() {
       );
     }
 
-    // If we reach here, button should not be shown (handled by earlier returns)
     return null;
   };
 
+  // Loading and error states
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -754,9 +749,20 @@ export default function ProjectPage() {
       </div>
     );
   }
+  /**
+   * Main Render - Project page with interactive components
+   *
+   * LAYOUT FLOW:
+   * 1. Collapsible project info (debugging)
+   * 2. Debug state panel (development)
+   * 3. Action button (start segmentation or show status)
+   * 4. Interactive canvas (mask visualization)
+   * 5. Data inspection panels (debugging)
+   */
   return (
     <>
       <div className="space-y-4 p-4">
+        {/* Project metadata */}
         <details className="rounded-md border">
           <summary className="text-foreground cursor-pointer bg-gray-50 p-3 font-semibold dark:bg-gray-800">
             Project Info (Click to expand)
@@ -766,28 +772,24 @@ export default function ProjectPage() {
           </pre>
         </details>
 
-        {/* Debug info */}
+        {/* Development debug panel */}
         <div className="rounded-md border bg-yellow-50 p-3 dark:bg-yellow-900/20">
           <h3 className="text-foreground mb-2 font-semibold">Debug Info</h3>
           <div className="space-y-1 text-sm">
             <p className="text-foreground">
               Mask Found: {maskFound.toString()}
             </p>
+            <p className="text-foreground">AI Masks: {medSamMask.length}</p>
             <p className="text-foreground">
-              AI Masks Count: {medSamMask.length}
+              Manual Masks: {editableMask.length}
             </p>
+            <p className="text-foreground">Active Jobs: {activeJobCount}</p>
             <p className="text-foreground">
-              Manual Masks Count: {editableMask.length}
-            </p>
-            <p className="text-foreground">
-              Active Jobs Count: {activeJobCount}
-            </p>
-            <p className="text-foreground">
-              Project Active Jobs: {projectActiveJobs.length}
+              Project Jobs: {projectActiveJobs.length}
             </p>
             <p className="text-foreground">Project ID: {projectId}</p>
             <p className="text-foreground">
-              Has Active Project Jobs:{" "}
+              Has Active Jobs:{" "}
               {projectActiveJobs
                 .some(
                   (job) =>
@@ -797,14 +799,11 @@ export default function ProjectPage() {
                 .toString()}
             </p>
             <p className="text-foreground">
-              Has Any Project Jobs: {(projectActiveJobs.length > 0).toString()}
-            </p>
-            <p className="text-foreground">
-              Should Show Button (No Masks + No Jobs):{" "}
+              Show Button:{" "}
               {(!maskFound && projectActiveJobs.length === 0).toString()}
             </p>
             <p className="text-foreground">
-              Is Starting Segmentation: {isStartingSegmentation.toString()}
+              Starting Segmentation: {isStartingSegmentation.toString()}
             </p>
             <p className="text-foreground">
               Decoded AI Masks: {Object.keys(decodedMasks.aiMasks).length}
@@ -819,89 +818,74 @@ export default function ProjectPage() {
               </p>
             )}
 
-            {/* Tar Image Cache Debug Info */}
+            {/* Image cache status */}
             <div className="mt-3 border-t pt-2">
               <h4 className="text-foreground mb-1 text-sm font-semibold">
-                Image Cache Debug Info:
+                Image Cache Status:
               </h4>
               <p className="text-foreground text-xs">
-                Is Loading Images: {isLoadingImages.toString()}
+                Loading: {isLoadingImages.toString()}
               </p>
               <p className="text-foreground text-xs">
-                Loading Progress: {imageLoadingProgress}%
+                Progress: {imageLoadingProgress}%
               </p>
               <p className="text-foreground text-xs">
-                Cached Image URLs: {imageUrls.size}
+                Cached URLs: {imageUrls.size}
               </p>
               {tarDebugInfo && (
                 <>
                   <p className="text-foreground text-xs">
-                    Presigned URL Fetched:{" "}
-                    {tarDebugInfo.presignedUrlFetched.toString()}
-                  </p>
-                  {tarDebugInfo.presignedUrl && (
-                    <p className="text-foreground text-xs break-all">
-                      Presigned URL: {tarDebugInfo.presignedUrl}
-                    </p>
-                  )}
-                  {tarDebugInfo.presignedUrlExpiry && (
-                    <p className="text-foreground text-xs">
-                      URL Expires:{" "}
-                      {new Date(
-                        tarDebugInfo.presignedUrlExpiry,
-                      ).toLocaleString()}
-                    </p>
-                  )}
-                  <p className="text-foreground text-xs">
-                    Tar File Fetched: {tarDebugInfo.tarFileFetched.toString()}
+                    URL Fetched: {tarDebugInfo.presignedUrlFetched.toString()}
                   </p>
                   <p className="text-foreground text-xs">
-                    Tar File Size:{" "}
-                    {(tarDebugInfo.tarFileSize / 1024 / 1024).toFixed(2)} MB
+                    TAR Fetched: {tarDebugInfo.tarFileFetched.toString()}
                   </p>
                   <p className="text-foreground text-xs">
-                    Extraction Completed:{" "}
-                    {tarDebugInfo.extractionCompleted.toString()}
+                    Size: {(tarDebugInfo.tarFileSize / 1024 / 1024).toFixed(2)}{" "}
+                    MB
                   </p>
                   <p className="text-foreground text-xs">
-                    Images Found/Stored: {tarDebugInfo.totalImagesFound}/
+                    Extracted: {tarDebugInfo.extractionCompleted.toString()}
+                  </p>
+                  <p className="text-foreground text-xs">
+                    Images: {tarDebugInfo.totalImagesFound}/
                     {tarDebugInfo.imagesStored}
                   </p>
                   <p className="text-foreground text-xs">
-                    Processing Time: {tarDebugInfo.processingTime.toFixed(0)}ms
+                    Time: {tarDebugInfo.processingTime.toFixed(0)}ms
                   </p>
-                  {tarDebugInfo.cacheErrors.length > 0 && (
-                    <p className="text-xs text-red-600">
-                      Cache Errors: {tarDebugInfo.cacheErrors.join(", ")}
-                    </p>
-                  )}
                 </>
               )}
             </div>
           </div>
         </div>
 
+        {/* Main user actions */}
         <RequestSegmentationButton />
 
+        {/* Interactive visualization */}
         <MaskTestCanvas />
 
+        {/* Data inspection panels for debugging */}
+
+        {/* Active job monitoring */}
         {projectActiveJobs.length > 0 && (
           <details className="rounded-md border">
             <summary className="text-foreground cursor-pointer bg-purple-50 p-3 font-semibold dark:bg-purple-900/20">
-              Project Jobs ({projectActiveJobs.length}) (Click to expand)
+              Project Jobs ({projectActiveJobs.length})
             </summary>
             <div className="space-y-2 p-4">
               {projectActiveJobs.map((job) => (
                 <div key={job.jobId} className="rounded border p-2">
                   <p className="text-foreground">
-                    <strong>Job ID:</strong> {job.jobId}
+                    <strong>ID:</strong> {job.jobId}
                   </p>
                   <p className="text-foreground">
                     <strong>Status:</strong> {job.status}
                   </p>
                   {job.queuePosition && (
                     <p className="text-foreground">
-                      <strong>Queue Position:</strong> {job.queuePosition}
+                      <strong>Queue:</strong> {job.queuePosition}
                     </p>
                   )}
                 </div>
@@ -910,10 +894,11 @@ export default function ProjectPage() {
           </details>
         )}
 
+        {/* Raw AI mask data */}
         {medSamMask.length > 0 && (
           <details className="rounded-md border">
             <summary className="text-foreground cursor-pointer bg-blue-50 p-3 font-semibold dark:bg-blue-900/20">
-              AI Masks ({medSamMask.length}) (Click to expand)
+              AI Masks ({medSamMask.length})
             </summary>
             <pre className="max-h-96 overflow-auto p-4 text-sm whitespace-pre-wrap">
               {JSON.stringify(medSamMask, null, 2)}
@@ -921,10 +906,11 @@ export default function ProjectPage() {
           </details>
         )}
 
+        {/* Manual mask data */}
         {editableMask.length > 0 && (
           <details className="rounded-md border">
             <summary className="text-foreground cursor-pointer bg-green-50 p-3 font-semibold dark:bg-green-900/20">
-              Editable Masks ({editableMask.length}) (Click to expand)
+              Editable Masks ({editableMask.length})
             </summary>
             <pre className="max-h-96 overflow-auto p-4 text-sm whitespace-pre-wrap">
               {JSON.stringify(editableMask, null, 2)}
@@ -932,13 +918,13 @@ export default function ProjectPage() {
           </details>
         )}
 
+        {/* Processed mask statistics */}
         {(Object.keys(decodedMasks.aiMasks).length > 0 ||
           Object.keys(decodedMasks.manualMasks).length > 0) && (
           <details className="rounded-md border">
             <summary className="text-foreground cursor-pointer bg-orange-50 p-3 font-semibold dark:bg-orange-900/20">
               Decoded Masks (AI: {Object.keys(decodedMasks.aiMasks).length},
-              Manual: {Object.keys(decodedMasks.manualMasks).length}) (Click to
-              expand)
+              Manual: {Object.keys(decodedMasks.manualMasks).length})
             </summary>
             <div className="space-y-4 p-4">
               {Object.keys(decodedMasks.aiMasks).length > 0 && (
@@ -950,9 +936,9 @@ export default function ProjectPage() {
                     {Object.entries(decodedMasks.aiMasks).map(([key, mask]) => (
                       <div key={key} className="text-muted-foreground text-sm">
                         <span className="font-mono text-xs">{key}</span>:
-                        <span className="ml-2">Size: {mask.length} pixels</span>
+                        <span className="ml-2">Size: {mask.length}</span>
                         <span className="ml-2">
-                          Non-zero: {mask.filter((v) => v > 0).length}
+                          Active: {mask.filter((v) => v > 0).length}
                         </span>
                       </div>
                     ))}
@@ -973,11 +959,9 @@ export default function ProjectPage() {
                           className="text-muted-foreground text-sm"
                         >
                           <span className="font-mono text-xs">{key}</span>:
+                          <span className="ml-2">Size: {mask.length}</span>
                           <span className="ml-2">
-                            Size: {mask.length} pixels
-                          </span>
-                          <span className="ml-2">
-                            Non-zero: {mask.filter((v) => v > 0).length}
+                            Active: {mask.filter((v) => v > 0).length}
                           </span>
                         </div>
                       ),
