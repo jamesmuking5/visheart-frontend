@@ -16,8 +16,7 @@ import { decodeSegmentationMasks, DecodedMasks } from "@/lib/decode-RLE";
 import { tarImageCache, TarFetchDebugInfo } from "@/lib/tar-image-cache";
 
 // Canvas rendering for medical image visualization
-import { Stage, Layer, Shape } from "react-konva";
-import Konva from "konva";
+// Removed Konva - using plain Canvas API for better performance with Uint8 masks
 
 // Type definitions
 import {
@@ -301,14 +300,17 @@ export default function ProjectPage() {
    * 4. Render: Background image → Colored mask overlays
    */
   const MaskTestCanvas = () => {
-    const stageRef = useRef<Konva.Stage>(null);
+    const canvasRef = useRef<HTMLCanvasElement>(null);
 
     // Navigation state for 4D medical data (frame, slice, height, width)
     const [currentFrame, setCurrentFrame] = useState<number>(0);
     const [currentSlice, setCurrentSlice] = useState<number>(0);
     const [availableFrames, setAvailableFrames] = useState<number[]>([]);
     const [availableSlices, setAvailableSlices] = useState<number[]>([]);
-    const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null); // Load specific image from cache for current frame/slice
+    const [backgroundImage, setBackgroundImage] =
+      useState<HTMLImageElement | null>(null);
+
+    // Load specific image from cache for current frame/slice
     const loadCurrentImage = async (frame: number, slice: number) => {
       try {
         const imageUrl = await tarImageCache.getImageURL(
@@ -316,19 +318,29 @@ export default function ProjectPage() {
           frame,
           slice,
         );
-        setCurrentImageUrl(imageUrl);
 
         if (imageUrl) {
           setImageUrls(
             (prev) => new Map(prev.set(`${frame}_${slice}`, imageUrl)),
           );
+
+          // Preload the image for immediate rendering
+          const img = new Image();
+          img.onload = () => {
+            setBackgroundImage(img);
+          };
+          img.onerror = () => {
+            console.error(`[MaskTestCanvas] Failed to load image: ${imageUrl}`);
+            setBackgroundImage(null);
+          };
+          img.src = imageUrl;
         }
       } catch (error) {
         console.error(
           `[MaskTestCanvas] Failed to load image for frame ${frame}, slice ${slice}:`,
           error,
         );
-        setCurrentImageUrl(null);
+        setBackgroundImage(null);
       }
     };
 
@@ -371,16 +383,6 @@ export default function ProjectPage() {
       }
     }, [currentFrame, currentSlice, availableFrames, availableSlices]);
 
-    // Guard: Don't render without essential data
-    if (
-      !project?.dimensions ||
-      Object.keys(decodedMasks.aiMasks).length === 0
-    ) {
-      return null;
-    }
-
-    const { width, height } = project.dimensions;
-
     // Filter masks for current view (only matching frame/slice)
     const currentMasks = Object.entries(decodedMasks.aiMasks).filter(
       ([maskKey]) => {
@@ -392,89 +394,114 @@ export default function ProjectPage() {
       },
     );
 
-    // Mask rendering pipeline: Create overlay → Paint pixels → Composite
-    const drawMasksOnCanvas = (ctx: CanvasRenderingContext2D) => {
-      const maskCanvas = document.createElement("canvas");
-      maskCanvas.width = width;
-      maskCanvas.height = height;
-      const maskCtx = maskCanvas.getContext("2d");
+    // Trigger re-render when data changes
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas || !project?.dimensions) return;
 
-      if (!maskCtx) return;
-
-      const imageData = maskCtx.createImageData(height, width);
-
-      // Paint each mask with its anatomical class color
-      currentMasks.forEach(([maskKey, maskData]) => {
-        const classMatch = maskKey.match(/_([^_]+)$/);
-        const className = classMatch ? classMatch[1] : null;
-
-        if (
-          !className ||
-          !CLASS_COLORS[className as keyof typeof CLASS_COLORS]
-        ) {
-          return;
-        }
-
-        const color = CLASS_COLORS[className as keyof typeof CLASS_COLORS];
-
-        // Paint mask pixels with alpha blending for overlaps
-        for (let i = 0; i < maskData.length; i++) {
-          if (maskData[i] > 0) {
-            const pixelIndex = i * 4;
-            const existingAlpha = imageData.data[pixelIndex + 3];
-
-            if (existingAlpha === 0) {
-              // Direct paint
-              imageData.data[pixelIndex] = color.r;
-              imageData.data[pixelIndex + 1] = color.g;
-              imageData.data[pixelIndex + 2] = color.b;
-              imageData.data[pixelIndex + 3] = color.a;
-            } else {
-              // Alpha blend for overlapping masks
-              const alpha = color.a / 255;
-              const invAlpha = 1 - alpha;
-
-              imageData.data[pixelIndex] = Math.min(
-                255,
-                imageData.data[pixelIndex] * invAlpha + color.r * alpha,
-              );
-              imageData.data[pixelIndex + 1] = Math.min(
-                255,
-                imageData.data[pixelIndex + 1] * invAlpha + color.g * alpha,
-              );
-              imageData.data[pixelIndex + 2] = Math.min(
-                255,
-                imageData.data[pixelIndex + 2] * invAlpha + color.b * alpha,
-              );
-              imageData.data[pixelIndex + 3] = Math.min(
-                255,
-                existingAlpha + color.a,
-              );
-            }
-          }
-        }
-      });
-
-      maskCtx.putImageData(imageData, 0, 0);
-      ctx.drawImage(maskCanvas, 0, 0, width, height);
-    };
-
-    // Konva render function: Background image → Mask overlays
-    const renderMasks = (context: Konva.Context) => {
-      const ctx = context._context;
+      const ctx = canvas.getContext("2d");
       if (!ctx) return;
 
-      if (currentImageUrl) {
-        const img = new Image();
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0, width, height); // Background
-          drawMasksOnCanvas(ctx); // Overlays
-        };
-        img.src = currentImageUrl;
-      } else {
-        drawMasksOnCanvas(ctx); // Masks only
+      const { width, height } = project.dimensions;
+
+      // Set canvas size
+      canvas.width = width;
+      canvas.height = height;
+
+      // Clear canvas
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "black";
+      ctx.fillRect(0, 0, width, height);
+
+      // Draw background image if available
+      if (backgroundImage) {
+        ctx.drawImage(backgroundImage, 0, 0, width, height);
       }
-    };
+
+      // Draw masks as overlays
+      if (currentMasks.length > 0) {
+        // Create ImageData for efficient pixel manipulation
+        // Note: Using height, width to match the mask data encoding
+        const imageData = ctx.createImageData(height, width);
+
+        // If there's a background image, get its pixel data first
+        if (backgroundImage) {
+          // Create temporary canvas to get background pixels
+          const tempCanvas = document.createElement("canvas");
+          tempCanvas.width = width;
+          tempCanvas.height = height;
+          const tempCtx = tempCanvas.getContext("2d");
+          if (tempCtx) {
+            tempCtx.drawImage(backgroundImage, 0, 0, width, height);
+            const bgImageData = tempCtx.getImageData(0, 0, width, height);
+            imageData.data.set(bgImageData.data);
+          }
+        }
+
+        // Paint each mask with its anatomical class color
+        currentMasks.forEach(([maskKey, maskData]) => {
+          const classMatch = maskKey.match(/_([^_]+)$/);
+          const className = classMatch ? classMatch[1] : null;
+
+          if (
+            !className ||
+            !CLASS_COLORS[className as keyof typeof CLASS_COLORS]
+          ) {
+            return;
+          }
+
+          const color = CLASS_COLORS[className as keyof typeof CLASS_COLORS];
+
+          // Efficient pixel painting with alpha blending
+          for (let i = 0; i < maskData.length; i++) {
+            if (maskData[i] > 0) {
+              const pixelIndex = i * 4;
+              const existingAlpha = imageData.data[pixelIndex + 3];
+
+              if (existingAlpha === 0) {
+                // Direct paint for transparent pixels
+                imageData.data[pixelIndex] = color.r;
+                imageData.data[pixelIndex + 1] = color.g;
+                imageData.data[pixelIndex + 2] = color.b;
+                imageData.data[pixelIndex + 3] = color.a;
+              } else {
+                // Alpha blend for overlapping masks
+                const alpha = color.a / 255;
+                const invAlpha = 1 - alpha;
+
+                imageData.data[pixelIndex] = Math.min(
+                  255,
+                  imageData.data[pixelIndex] * invAlpha + color.r * alpha,
+                );
+                imageData.data[pixelIndex + 1] = Math.min(
+                  255,
+                  imageData.data[pixelIndex + 1] * invAlpha + color.g * alpha,
+                );
+                imageData.data[pixelIndex + 2] = Math.min(
+                  255,
+                  imageData.data[pixelIndex + 2] * invAlpha + color.b * alpha,
+                );
+                imageData.data[pixelIndex + 3] = Math.min(
+                  255,
+                  existingAlpha + color.a,
+                );
+              }
+            }
+          }
+        });
+
+        // Render the final composited image
+        ctx.putImageData(imageData, 0, 0);
+      }
+    }, [backgroundImage, currentMasks]);
+
+    // Guard: Don't render without essential data
+    if (
+      !project?.dimensions ||
+      Object.keys(decodedMasks.aiMasks).length === 0
+    ) {
+      return null;
+    }
 
     return (
       <div className="space-y-4">
@@ -526,24 +553,18 @@ export default function ProjectPage() {
           </div>
         </div>
 
-        {/* Konva Stage */}
+        {/* Canvas Container */}
         <div className="rounded-lg border bg-gray-50 p-4 dark:bg-gray-800">
-          <Stage
-            width={project.dimensions!.width}
-            height={project.dimensions!.height}
-            ref={stageRef}
+          <canvas
+            ref={canvasRef}
             className="border border-gray-300 dark:border-gray-600"
-            style={{ maxWidth: "100%", height: "auto", background: "black" }}
-          >
-            <Layer>
-              <Shape
-                sceneFunc={renderMasks}
-                width={project.dimensions!.width}
-                height={project.dimensions!.height}
-                key={`${currentFrame}-${currentSlice}`} // Re-render when frame/slice changes
-              />
-            </Layer>
-          </Stage>
+            style={{
+              maxWidth: "100%",
+              height: "auto",
+              background: "black",
+              imageRendering: "pixelated", // Crisp rendering for medical images
+            }}
+          />
           <div className="text-muted-foreground mt-2 space-y-1 text-sm">
             <p>
               Showing AI masks for Frame {currentFrame + 1}, Slice{" "}
