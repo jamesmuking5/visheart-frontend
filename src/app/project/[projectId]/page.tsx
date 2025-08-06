@@ -409,7 +409,7 @@ export default function ProjectPage() {
       canvas.height = height;
 
       // Clear canvas
-      ctx.clearRect(0, 0, width, height);
+      ctx.clearRect(0, 0, width, height); // Inverted due to our coordinate system
       ctx.fillStyle = "black";
       ctx.fillRect(0, 0, width, height);
 
