@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Heart, ArrowLeft } from "lucide-react";
 
-interface NoProjectFoundProps {
-  message?: string; // Optional error message to display
+interface ErrorProjectProps {
+  error?: string; // Optional error message to display
 }
 
 /**
@@ -15,7 +15,7 @@ interface NoProjectFoundProps {
  * @param error - Optional error message to display
  * @returns A component that displays a "Project Not Found" message with an option to return to the dashboard.
  */
-export const NoProjectFound = ({ message }: NoProjectFoundProps) => {
+export const ErrorProject = ({ error }: ErrorProjectProps) => {
   const router = useRouter();
 
   return (
@@ -29,7 +29,7 @@ export const NoProjectFound = ({ message }: NoProjectFoundProps) => {
             Project Not Found
           </h1>
           <p className="text-muted-foreground">
-            {message ? message : "The requested project could not be found."}
+            {error ? error : "An unknown error has occured."}
           </p>
         </div>
         <Button onClick={() => router.push("/dashboard")}>
