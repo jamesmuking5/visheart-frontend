@@ -2,34 +2,50 @@
 "use client";
 
 import { RefreshCw } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { useEffect, useState } from "react";
 
 // Type for loading state
 import { LoadingStage } from "@/types/project(test)";
-
 export const LoadingProject = ({ loadingStage }: { loadingStage: LoadingStage }) => {
-  let defaultMessage = "Loading...";
+  const [progress, setProgress] = useState(0);
+  const [message, setMessage] = useState("Loading...");
 
-  switch (loadingStage) {
-    case "project":
-      defaultMessage = "Loading project data...";
-      break;
-    case "mask":
-      defaultMessage = "Loading segmentation masks...";
-      break;
-    case "job":
-      defaultMessage = "Loading job data...";
-      break;
-    default:
-      // Should not reach here, but just in case
-      break;
-  }
+  // Progress bar incrementing for each stage
+  useEffect(() => {
+    switch (loadingStage) {
+      case "project":
+        setProgress(20);
+        setMessage("Loading project data...");
+        break;
+      case "mask":
+        setProgress(40);
+        setMessage("Loading segmentation masks...");
+        break;
+      case "job":
+        setProgress(60);
+        setMessage("Loading job data...");
+        break;
+      case "idle":
+        // Progress does not change
+        setMessage("Awaiting next action...");
+        break;
+      case "done":
+        setProgress(100);
+        setMessage("All tasks completed.");
+        break;
+      default:
+        break;
+    }
+  }, [loadingStage]);
 
   return (
-    <div className="flex h-64 items-center justify-center">
+    <div className="flex flex-col h-64 items-center justify-center">
       <div className="flex items-center space-x-2">
         <RefreshCw className="text-foreground h-4 w-4 animate-spin" />
-        <span className="text-foreground text-sm">{defaultMessage}</span>
+        <span className="text-foreground text-sm">{message}</span>
       </div>
+      <Progress className="w-1/4 mt-4" value={progress} />
     </div>
   );
 };

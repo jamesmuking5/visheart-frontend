@@ -23,7 +23,7 @@ export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
 
-  const [loading, setLoading] = useState<LoadingStage | null>("idle"); // Page loading
+  const [loading, setLoading] = useState<LoadingStage>("idle"); // Page loading
 
   // General state variables
   const [error, setError] = useState<string | null>(null); // Page error state
