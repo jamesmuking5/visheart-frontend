@@ -162,33 +162,36 @@ export interface BaseSegmentationMask {
 }
 
 /**
- * Interface for MedSAM (AI-generated) segmentation masks.
- * Extends BaseSegmentationMask with isMedSAMOutput set to true.
- * 
- * @interface MedSAMask
- * @extends BaseSegmentationMask
- * @property {true} isMedSAMOutput - Always true for MedSAM masks.
+ * Interface representing a decoded mask for a project.
+ * This is used to store decoded segmentation masks for rendering.
+ * Dimensions can be fetched from the project data.
+ * @interface DecodedMask
+ * @property {DecodedMaskFrameData[]} frames - Array of decoded frame data.
  */
-export interface MedSamMask extends BaseSegmentationMask {
-    isMedSAMOutput: true;
+export interface DecodedMask {
+    frames: DecodedMaskFrameData[];
 }
 
 /**
- * Interface for editable (manual) segmentation masks.
- * Extends BaseSegmentationMask with isMedSAMOutput set to false.
- * 
- * @interface EditableMask
- * @extends BaseSegmentationMask
- * @property {false} isMedSAMOutput - Always false for editable masks.
+ * Interface representing a decoded frame of a mask.
+ * @interface DecodedMaskFrameData
+ * @property {number} frameindex - Index of the frame.
+ * @property {DecodedMaskSliceData[]} slices - Array of decoded slice data.
  */
-export interface EditableMask extends BaseSegmentationMask {
-    isMedSAMOutput: false;
+interface DecodedMaskFrameData {
+    frameindex: number;
+    slices: DecodedMaskSliceData[];
 }
 
 /**
- * Union type for segmentation masks returned from API responses.
- * Can be either a MedSAM (AI-generated) mask or an editable (manual) mask.
- * 
- * @typedef {MedSAMask | EditableMask} SegmentationMask
+ * Interface representing a decoded slice of a mask.
+ * @interface DecodedMaskSliceData
+ * @property {number} sliceindex - Index of the slice.
+ * @property {ComponentBoundingBoxesClass} class - Class of the component (e.g., RV, MYO, LVC).
+ * @property {Uint8Array} mask - Decoded mask as a Uint8Array.
  */
-export type SegmentationMask = MedSamMask | EditableMask;
+interface DecodedMaskSliceData {
+    sliceindex: number;
+    class: ComponentBoundingBoxesClass;
+    mask: Uint8Array; // Decoded mask as a Uint8Array
+}

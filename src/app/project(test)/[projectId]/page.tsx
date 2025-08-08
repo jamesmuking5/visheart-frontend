@@ -12,6 +12,7 @@ import { LoadingProject } from "@/components/project(test)/LoadingProject";
 
 // Custom utilities
 import { projectApi, segmentationApi } from "@/lib/api";
+import { decodeSegmentationMasks } from "@/lib/decode-RLE(test)";
 
 // Type definitions
 import * as ProjectTypes from "@/types/project(test)";
@@ -71,8 +72,9 @@ export default function ProjectPage() {
 
   // 2. If projectId exists, check if segmentation masks exist (useEffect relies on projectData)
   // If masks exist, fetch and decode right away
+  const [hasMasks, setHasMasks] = useState<boolean>(false); // State to track if masks exist, if not, check jobs
   const [undecodedMasks, setUndecodedMasks] = useState<ProjectTypes.BaseSegmentationMask[] | null>(null);
-  const [decodedMasks, setDecodedMasks] = useState<ProjectTypes.BaseSegmentationMask[] | null>(null);
+  const decodedMasks = useRef<Record<string, Uint8Array> | null>(null); // Decoded masks state
   const [segmentationError, setSegmentationError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -92,19 +94,22 @@ export default function ProjectPage() {
         console.log("Segmentation masks response:", response);
 
         // If masks not found in backend, set mask error state, but not project/page error
-        if (!response.success) { 
+        if (!response.success) {
+          setHasMasks(false);
           setSegmentationError(response.message);
           setDecodedMasks(null);
           console.warn("No masks found:", response.message);
           return;
         }
+        setHasMasks(true);
 
         // Set into undecoded masks state, then start decoding
         setUndecodedMasks(response.segmentations);
         console.log("Undecoded masks:", response.segmentations);
 
-        // Decode the masks 
-        
+        // Decode the masks
+        const decodedMasks = decodeSegmentationMasks(response.segmentations, projectData?.dimensions?.width || 0, projectData?.dimensions?.height || 0).masks;
+        console.log("Decoded masks:", decodedMasks);
       })
       .catch((error: unknown) => {
         setSegmentationError("Failed to fetch segmentation masks.");
@@ -128,5 +133,6 @@ export default function ProjectPage() {
   // if (segmentationError) return <ErrorProject error={segmentationError} />;
 
   if (projectData) console.log(projectData.projectId);
+  if (decodedMasks) console.log("Decoded masks in state:", Object.keys(decodedMasks).length);
   return projectData ? <ShowProjectData project={projectData} /> : null;
 }
