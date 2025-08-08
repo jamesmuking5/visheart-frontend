@@ -18,6 +18,7 @@ import * as ProjectTypes from "@/types/project(test)";
 
 // Type for Loading
 import { LoadingStage } from "@/types/project(test)";
+import { set } from "react-hook-form";
 
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -37,6 +38,7 @@ export default function ProjectPage() {
     if (!projectId) {
       setProjectData(null);
       setError("Project ID is missing.");
+      setLoading("done");
       return;
     }
 
@@ -44,6 +46,13 @@ export default function ProjectPage() {
     projectApi
       .getProjectInfo(projectId)
       .then((response) => {
+        // If backend cannot find project, set error state, end loading
+        if (!response.success) {
+          setError(response.message);
+          setLoading("done");
+          return;
+        }
+
         // Handle project data
         setProjectData(response.project);
         console.log("Verifying project data:", response.project);
@@ -62,15 +71,16 @@ export default function ProjectPage() {
 
   // 2. If projectId exists, check if segmentation masks exist (useEffect relies on projectData)
   // If masks exist, fetch and decode right away
+  const [undecodedMasks, setUndecodedMasks] = useState<ProjectTypes.BaseSegmentationMask[] | null>(null);
   const [decodedMasks, setDecodedMasks] = useState<ProjectTypes.BaseSegmentationMask[] | null>(null);
   const [segmentationError, setSegmentationError] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading("mask"); // Set loading state for segmentation masks
 
-    if (!projectId) {
-      setDecodedMasks(null);
-      setSegmentationError("Project ID is missing.");
+    // If there is an error fetching project data, do not proceed with fetching masks
+    if (error || !projectId) {
+      setLoading("done");
       return;
     }
 
@@ -79,8 +89,22 @@ export default function ProjectPage() {
       .getSegmentationResults(projectId)
       .then((response) => {
         // Handle segmentation masks (todo: decode them)
-        setDecodedMasks(response.masks);
-        console.log("Segmentation masks fetched:", response.masks);
+        console.log("Segmentation masks response:", response);
+
+        // If masks not found in backend, set mask error state, but not project/page error
+        if (!response.success) { 
+          setSegmentationError(response.message);
+          setDecodedMasks(null);
+          console.warn("No masks found:", response.message);
+          return;
+        }
+
+        // Set into undecoded masks state, then start decoding
+        setUndecodedMasks(response.segmentations);
+        console.log("Undecoded masks:", response.segmentations);
+
+        // Decode the masks 
+        
       })
       .catch((error: unknown) => {
         setSegmentationError("Failed to fetch segmentation masks.");
@@ -92,7 +116,7 @@ export default function ProjectPage() {
           setLoading("done");
         }, 500);
       });
-  }, [projectData, projectId]);
+  }, [projectData, projectId, error]);
 
   // Missing projectId handling (to do)
   if (!projectId) return <NoProjectFound message="Project ID is missing." />;
@@ -100,7 +124,8 @@ export default function ProjectPage() {
   if (loading !== "done") return <LoadingProject loadingStage={loading} />;
   // Error states (project, masks, jobs)
   if (error) return <ErrorProject error={error} />;
-  if (segmentationError) return <ErrorProject error={segmentationError} />;
+  // Todo: if no masks, check jobs, and if no jobs, show start segmentation button
+  // if (segmentationError) return <ErrorProject error={segmentationError} />;
 
   if (projectData) console.log(projectData.projectId);
   return projectData ? <ShowProjectData project={projectData} /> : null;

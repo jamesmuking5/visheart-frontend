@@ -45,7 +45,7 @@ export const LoadingProject = ({ loadingStage }: { loadingStage: LoadingStage })
         <RefreshCw className="text-foreground h-4 w-4 animate-spin" />
         <span className="text-foreground text-sm">{message}</span>
       </div>
-      <Progress className="w-1/4 mt-4" value={progress} />
+      <Progress className="w-1/4 h-1 mt-4" value={progress} />
     </div>
   );
 };
