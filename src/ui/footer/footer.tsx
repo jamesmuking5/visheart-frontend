@@ -95,11 +95,6 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/doc" className="text-muted-foreground hover:text-primary transition-colors duration-200 flex items-center">
-                  Documentation
-                </Link>
-              </li>
-              <li>
                 <button 
                   onClick={() => scrollToSection('faq-section')}
                   className="text-muted-foreground hover:text-primary transition-colors duration-200 flex items-center"
@@ -180,7 +175,7 @@ export default function Footer() {
         <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-sm text-muted-foreground text-center md:text-left">
-              © {new Date().getFullYear()} VisHeart. All rights reserved. 
+              © {new Date().getFullYear()} VisHeart. All Rights Reserved. 
             </div>
             <div className="flex items-center space-x-6 text-sm">
               <Link href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200">
