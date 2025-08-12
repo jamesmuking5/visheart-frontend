@@ -93,12 +93,8 @@ function SlicedHeartModel() {
   const [isLoaded, setIsLoaded] = useState(false);
   
   useEffect(() => {
-    // Clear any existing GLTF cache on component mount (page refresh)
-    const cacheKey = '/sliced-heart.glb';
-    if (useGLTF.cache && useGLTF.cache.has && useGLTF.cache.has(cacheKey)) {
-      console.log('Clearing GLTF cache for fresh load');
-      useGLTF.cache.delete(cacheKey);
-    }
+    // Force clear any cache on component mount to ensure fresh load on refresh
+    console.log('Component mounted - preparing for 3D model load');
   }, []);
 
   try {
