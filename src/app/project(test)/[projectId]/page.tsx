@@ -75,6 +75,7 @@ export default function ProjectPage() {
   const [undecodedMasks, setUndecodedMasks] = useState<ProjectTypes.BaseSegmentationMask[] | null>(null); //
   const [segmentationError, setSegmentationError] = useState<string | null>(null);
   const decodedMasks = useRef<Record<string, Uint8Array> | null>(null); // Decoded masks state
+  const [maskFetchDone, setMaskFetchDone] = useState<boolean>(false); // Track when mask fetch completes
 
   useEffect(() => {
     setLoading("mask"); // Set loading state for segmentation masks
@@ -84,6 +85,9 @@ export default function ProjectPage() {
       setLoading("done");
       return;
     }
+
+    // Reset mask fetch done when project changes
+    setMaskFetchDone(false);
 
     // Fetch segmentation masks for the project
     segmentationApi
@@ -101,10 +105,12 @@ export default function ProjectPage() {
           console.warn("No masks found:", response.message);
           return;
         }
-        setHasMasks(true);
 
         // Set into undecoded masks state, then start decoding
         setUndecodedMasks(response.segmentations);
+        // Determine if masks actually exist (non-empty set)
+        const hasAnyMasks = Array.isArray(response.segmentations) && response.segmentations.length > 0;
+        setHasMasks(hasAnyMasks);
         console.log("Undecoded masks:", response.segmentations);
 
         // Decode the masks
@@ -119,11 +125,71 @@ export default function ProjectPage() {
         // Simulate a delay for loading state (todo)
         setTimeout(() => {
           setLoading("done");
+          setMaskFetchDone(true); // mark mask fetch as completed
         }, 500);
       });
   }, [projectData, projectId, error]);
 
-  // 3.
+  // 3. If no masks exist, check if jobs exist
+  // If jobs exist, filter by the status, if in_progress, segmentation already running, so do not show start segmentation button
+  // If job completed, logical error, since we should have masks, throw error (?) or recommend to re-create project
+  // If no jobs exist, show start segmentation button
+  const [jobs, setJobs] = useState<ProjectTypes.UserJob[] | null>(null); // Jobs data state
+  const [jobsError, setJobsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // If masks are present, clear any previous job error about missing results
+    if (hasMasks && jobsError) {
+      setJobsError(null);
+    }
+
+    // Only fetch jobs if mask fetch is done, we don't have masks, and project data is loaded
+    // Don't block on segmentationError (e.g., 'No masks found')
+    if (maskFetchDone && !hasMasks && projectData && projectId) {
+      setLoading("job"); // Set loading state for job data
+
+      // Fetch jobs for the current user
+      segmentationApi
+        .getUserJobs()
+        .then((response) => {
+          console.log("Jobs response:", response);
+
+          // Handle job fetch error
+          if (!response.success) {
+            setJobsError(response.message);
+            console.warn("Failed to fetch jobs:", response.message);
+            setJobs(null);
+            return;
+          }
+
+          // Filter jobs by current project ID
+          const projectJobs = response.jobs.filter((job: ProjectTypes.UserJob) => job.projectId === projectId);
+          setJobs(projectJobs);
+          console.log(`Found ${projectJobs.length} jobs for project ${projectId}:`, projectJobs);
+
+          // Check for logical errors: completed jobs should have masks
+          const completedJobs = projectJobs.filter((job: ProjectTypes.UserJob) => job.status === ProjectTypes.JobStatus.COMPLETED);
+          if (completedJobs.length > 0 && !hasMasks) {
+            console.warn(`Warning: Found ${completedJobs.length} completed job(s) but no masks for project ${projectId}. This may indicate a server-side issue.`);
+            setJobsError(`Found completed segmentation job(s) but no results. Please contact support or try re-running segmentation.`);
+          }
+        })
+        .catch((error: unknown) => {
+          setJobsError("Failed to fetch job data.");
+          console.error("Error fetching jobs:", error);
+          setJobs(null);
+        })
+        .finally(() => {
+          setLoading("done");
+        });
+    } else if (!maskFetchDone) {
+      // wait for mask fetch to complete before deciding about jobs
+      return;
+    } else {
+      // If we have masks or there's an error, no need to fetch jobs
+      setLoading("done");
+    }
+  }, [maskFetchDone, hasMasks, projectData, segmentationError, projectId]);
 
   // Missing projectId handling (to do)
   if (!projectId) return <NoProjectFound message="Project ID is missing." />;
@@ -136,5 +202,5 @@ export default function ProjectPage() {
 
   if (projectData) console.log(projectData.projectId);
   if (decodedMasks.current) console.log("Decoded masks in state:", Object.keys(decodedMasks.current).length);
-  return projectData ? <ShowProjectData project={projectData} hasMasks={hasMasks} /> : null;
+  return projectData ? <ShowProjectData project={projectData} hasMasks={hasMasks} decodedMasks={decodedMasks.current} masks={undecodedMasks} jobs={jobs} jobsError={jobsError} /> : null;
 }
