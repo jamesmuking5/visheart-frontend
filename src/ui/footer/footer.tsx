@@ -27,12 +27,12 @@ export default function Footer() {
             className="space-y-4"
           >
             <div className="flex items-center space-x-2">
-              <Heart className="h-6 w-6 text-red-500" />
-              <h2 className="text-xl font-bold bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
+              <Heart className="h-8 w-8 text-red-500" />
+              <h2 className="text-2xl font-bold bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
                 VisHeart
               </h2>
             </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
+            <p className="text-base text-muted-foreground leading-relaxed">
               Advanced AI-powered cardiac segmentation platform bridging the gap between research and clinical practice.
             </p>
             <div className="flex space-x-3">
@@ -74,11 +74,11 @@ export default function Footer() {
             transition={{ duration: 0.6, delay: 0.1 }}
             viewport={{ once: true }}
           >
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <FileText className="h-4 w-4 mr-2 text-primary" />
+            <h3 className="text-xl font-semibold mb-4 flex items-center">
+              <FileText className="h-5 w-5 mr-2 text-primary" />
               Platform
             </h3>
-            <ul className="space-y-3 text-sm">
+            <ul className="space-y-3 text-base">
               <li>
                 <Link href="/" className="text-muted-foreground hover:text-primary transition-colors duration-200 flex items-center">
                   Home
@@ -112,11 +112,11 @@ export default function Footer() {
             transition={{ duration: 0.6, delay: 0.2 }}
             viewport={{ once: true }}
           >
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <Brain className="h-4 w-4 mr-2 text-primary" />
+            <h3 className="text-xl font-semibold mb-4 flex items-center">
+              <Brain className="h-5 w-5 mr-2 text-primary" />
               AI Tools
             </h3>
-            <ul className="space-y-3 text-sm">
+            <ul className="space-y-3 text-base">
               <li>
                 <Link href="/cardiac-segmentation" className="text-muted-foreground hover:text-primary transition-colors duration-200 flex items-center">
                   2D Cardiac Segmentation
@@ -125,7 +125,7 @@ export default function Footer() {
               <li>
                 <span className="text-muted-foreground/60 flex items-center">
                   3D Cardiac Segmentation
-                  <span className="ml-2 text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded dark:bg-orange-900/20 dark:text-orange-400">
+                  <span className="ml-2 text-sm bg-orange-100 text-orange-600 px-2 py-1 rounded dark:bg-orange-900/20 dark:text-orange-400">
                     Coming Soon
                   </span>
                 </span>
@@ -140,21 +140,21 @@ export default function Footer() {
             transition={{ duration: 0.6, delay: 0.3 }}
             viewport={{ once: true }}
           >
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-              <HelpCircle className="h-4 w-4 mr-2 text-primary" />
+            <h3 className="text-xl font-semibold mb-4 flex items-center">
+              <HelpCircle className="h-5 w-5 mr-2 text-primary" />
               Support
             </h3>
-            <div className="space-y-3 text-sm">
+            <div className="space-y-3 text-base">
               <div className="flex items-center text-muted-foreground">
-                <Mail className="h-4 w-4 mr-2 text-primary" />
+                <Mail className="h-5 w-5 mr-2 text-primary" />
                 <span>support@visheart.com</span>
               </div>
               <div className="flex items-center text-muted-foreground">
-                <Phone className="h-4 w-4 mr-2 text-primary" />
+                <Phone className="h-5 w-5 mr-2 text-primary" />
                 <span>+60 12-345 6789</span>
               </div>
               <div className="flex items-start text-muted-foreground">
-                <MapPin className="h-4 w-4 mr-2 text-primary mt-0.5 flex-shrink-0" />
+                <MapPin className="h-5 w-5 mr-2 text-primary mt-0.5 flex-shrink-0" />
                 <div>
                   <p>Swinburne University</p>
                   <p>Kuching, Sarawak</p>
@@ -174,10 +174,10 @@ export default function Footer() {
         {/* Divider */}
         <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <div className="text-sm text-muted-foreground text-center md:text-left">
+            <div className="text-base text-muted-foreground text-center md:text-left">
               © {new Date().getFullYear()} VisHeart. All Rights Reserved. 
             </div>
-            <div className="flex items-center space-x-6 text-sm">
+            <div className="flex items-center space-x-6 text-base">
               <Link href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200">
                 Privacy Policy
               </Link>
