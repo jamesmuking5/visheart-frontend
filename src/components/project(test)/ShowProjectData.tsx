@@ -166,9 +166,7 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="text-muted-foreground text-sm">Masks found but not decoded yet.</div>
-                  )}
+                  ) : null}
 
                   {masks && masks.length > 0 && (
                     <div className="space-y-2">
