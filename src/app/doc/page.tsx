@@ -130,9 +130,35 @@ function LoadingModel() {
 
 const DocPage = () => {
   const [modelKey, setModelKey] = useState(0);
+  const [mountKey, setMountKey] = useState(0);
 
   const handleModelReset = useCallback(() => {
     setModelKey(prev => prev + 1);
+  }, []);
+
+  // Force remount on page refresh by using a mount key
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Clear any potential cached data before unload
+      console.log('Page unloading - cleaning up 3D resources');
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Page became visible again (could be from refresh)
+        setTimeout(() => {
+          setMountKey(prev => prev + 1);
+        }, 100);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   return (
@@ -149,18 +175,20 @@ const DocPage = () => {
           <ErrorBoundary
             fallback={ModelErrorFallback}
             onReset={handleModelReset}
-            resetKeys={[modelKey]}
+            resetKeys={[modelKey, mountKey]}
           >
             <Suspense fallback={<LoadingModel />}>
               <Canvas 
+                key={`canvas-${mountKey}`} // Force Canvas remount
                 camera={{ position: [0, 0, 5], fov: 50 }}
                 onCreated={({ gl }) => {
                   gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                  console.log('Canvas created successfully');
                 }}
               >
                 <ambientLight intensity={0.7} />
                 <directionalLight position={[5, 5, 5]} intensity={1} />
-                <SlicedHeartModel />
+                <SlicedHeartModel key={`model-${mountKey}-${modelKey}`} />
                 <OrbitControls 
                   enablePan={true} 
                   enableZoom={true} 
@@ -173,7 +201,7 @@ const DocPage = () => {
           </ErrorBoundary>
         </div>
         <p className="text-sm text-gray-600 mt-2">
-          Use mouse to rotate, zoom, and pan around the 3D model.
+          Use mouse to rotate, zoom, and pan around the 3D model. If the model doesn't load, try refreshing the page.
         </p>
       </section>
     </div>
