@@ -16,6 +16,8 @@ import { LoadingProject } from "@/components/project(test)/LoadingProject";
 import { ErrorProject } from "@/components/project(test)/ErrorProject";
 import { SegmentationSidebar } from "@/components/segmentation/segmentation-sidebar";
 
+import type { AnatomicalLabel, HistoryEntry } from "@/types/segmentation";
+ 
 const ImageCanvas = dynamic(
   () => import("@/components/segmentation/image-canvas").then((mod) => mod.ImageCanvas),
   { 
@@ -26,24 +28,7 @@ const ImageCanvas = dynamic(
       </div>
     )
   }
-);
-
-// Enhanced History Entry Interface
-interface HistoryEntry {
-  id: string;
-  type: 'brush' | 'eraser' | 'clear' | 'import' | 'checkpoint';
-  description: string;
-  timestamp: number;
-  thumbnail?: string;
-  frameSlice?: string;
-  checkpointNumber?: number;
-  maskChanges?: {
-    added: number;
-    removed: number;
-    label: string;
-  };
-  masksSnapshot: Record<string, Uint8Array>; // Full state snapshot
-}
+); 
 
 export default function SegmentationResultsPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -57,7 +42,7 @@ export default function SegmentationResultsPage() {
   const [decodedMasks, setDecodedMasks] = useState<Record<string, Uint8Array> | null>(null);
 
   // UI state
-  const [activeLabel, setActiveLabel] = useState<'lvc' | 'rv' | 'myo'>('lvc');
+  const [activeLabel, setActiveLabel] = useState<AnatomicalLabel>('lvc');
   const [tool, setTool] = useState<string>("brush");
   const [brushSize, setBrushSize] = useState<number>(10);
   const [opacity, setOpacity] = useState<number>(1);
@@ -81,7 +66,8 @@ export default function SegmentationResultsPage() {
     type: HistoryEntry['type'],
     description: string,
     masksSnapshot: Record<string, Uint8Array>,
-    maskChanges?: HistoryEntry['maskChanges']
+    maskChanges?: HistoryEntry['maskChanges'],
+    componentLabel?: AnatomicalLabel 
   ): HistoryEntry => {
     // Calculate checkpoint number if this is a checkpoint
     let checkpointNumber: number | undefined;
@@ -98,7 +84,8 @@ export default function SegmentationResultsPage() {
       frameSlice: `Frame ${currentFrame + 1}, Slice ${currentSlice + 1}`,
       checkpointNumber,
       maskChanges,
-      masksSnapshot: { ...masksSnapshot } // Deep copy
+      masksSnapshot: { ...masksSnapshot }, // Deep copy
+      componentLabel
     };
   }, [currentFrame, currentSlice]);
 
@@ -129,7 +116,8 @@ export default function SegmentationResultsPage() {
       actionType,
       description || `${actionType} action on ${activeLabel.toUpperCase()}`,
       newMasks,
-      maskChanges
+      maskChanges,
+      activeLabel
     );
 
     // Truncate future history if we're not at the end

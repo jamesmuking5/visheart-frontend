@@ -1,0 +1,175 @@
+import type { ProjectData } from "@/types/project(test)";
+
+// Centralized anatomical label definitions
+export const ANATOMICAL_LABELS = ['lvc', 'rv', 'myo'] as const;
+export type AnatomicalLabel = typeof ANATOMICAL_LABELS[number];
+
+// Centralized color mapping using CSS custom properties
+export const LABEL_COLORS: Record<AnatomicalLabel, string> = {
+  'lvc': '#ef4444', // Red - Left Ventricle Cavity
+  'rv': '#3b82f6',  // Blue - Right Ventricle  
+  'myo': '#22c55e'  // Green - Myocardium
+} as const;
+
+export const LABEL_NAMES: Record<AnatomicalLabel, string> = {
+  'lvc': 'Left Ventricle Cavity',
+  'rv': 'Right Ventricle',
+  'myo': 'Myocardium'
+} as const;
+
+// Tool type definitions
+export const DRAWING_TOOLS = [
+  'select', 'brush', 'eraser', 'label', 'rectangle', 
+  'circle', 'measure', 'zoom', 'pan'
+] as const;
+export type DrawingTool = typeof DRAWING_TOOLS[number];
+
+export const BRUSH_HARDNESS = ['soft', 'medium', 'hard'] as const;
+export type BrushHardness = typeof BRUSH_HARDNESS[number];
+
+// History entry interface with proper typing
+export interface HistoryEntry {
+  id: string;
+  type: 'brush' | 'eraser' | 'clear' | 'import' | 'checkpoint' | 'undo' | 'redo';
+  description: string;
+  timestamp: number;
+  frameSlice: string;
+  checkpointNumber?: number;
+  maskChanges?: {
+    added: number;
+    removed: number;
+    label: AnatomicalLabel;
+  };
+  masksSnapshot: Record<string, Uint8Array>;
+  componentLabel?: AnatomicalLabel;
+}
+
+// Component prop interfaces
+export interface DrawingPanelProps {
+  tool: DrawingTool;
+  setTool: (tool: DrawingTool) => void;
+  brushSize: number;
+  setBrushSize: (size: number) => void;
+  opacity: number;
+  setOpacity: (opacity: number) => void;
+  hardness: BrushHardness;
+  setHardness: (h: BrushHardness) => void;
+  activeLabel: AnatomicalLabel;
+  setActiveLabel: (label: AnatomicalLabel) => void;
+  handleUndo: () => void;
+  handleRedo: () => void;
+  handleClear: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  canClear: boolean;
+}
+
+export interface ImageCanvasProps {
+  projectData: ProjectData;
+  decodedMasks: Record<string, Uint8Array>;
+  onMaskUpdate: (
+    masks: Record<string, Uint8Array>, 
+    actionType?: 'brush' | 'eraser' | 'clear',
+    description?: string
+  ) => void;
+  currentFrame: number;
+  currentSlice: number;
+  onFrameChange: (frame: number) => void;
+  onSliceChange: (slice: number) => void;
+  width: number;
+  height: number;
+  activeLabel: AnatomicalLabel;
+  tool: DrawingTool;
+  brushSize: number;
+  opacity: number;
+  hardness: BrushHardness;
+}
+
+export interface HistoryPanelProps {
+  onClear: () => void;
+  onExport: () => void;
+  onCheckpoint: () => void;
+  onHistoryStepChange?: (step: number) => void;
+  currentFrame: number;
+  currentSlice: number;
+  currentHistoryStep: number;
+  historyData: HistoryEntry[];
+}
+
+export interface SegmentationSidebarProps {
+  projectData: ProjectData;
+  decodedMasks: Record<string, Uint8Array>;
+  tool: DrawingTool;
+  setTool: (tool: DrawingTool) => void;
+  brushSize: number;
+  setBrushSize: (size: number) => void;
+  opacity: number;
+  setOpacity: (opacity: number) => void;
+  hardness: BrushHardness;
+  setHardness: (h: BrushHardness) => void;
+  activeLabel: AnatomicalLabel;
+  setActiveLabel: (label: AnatomicalLabel) => void;
+  handleUndo: () => void;
+  handleRedo: () => void;
+  handleClear: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  canClear: boolean;
+  hasUnsavedChanges: boolean;
+  onSave: () => void;
+  currentFrame: number;
+  currentSlice: number;
+  totalFrames: number;
+  totalSlices: number;
+  onFrameChange?: (frame: number) => void;
+  onSliceChange?: (slice: number) => void;
+  historyData: HistoryEntry[];
+  currentHistoryStep?: number;
+  onHistoryStepChange?: (step: number) => void;
+  onHistoryClear?: () => void;
+  onHistoryExport?: () => void;
+  onHistoryCheckpoint?: () => void;
+}
+
+// Utility constants
+export const HARDNESS_TO_BLUR: Record<BrushHardness, number> = {
+  soft: 15,
+  medium: 7,
+  hard: 0,
+} as const;
+
+export const PERFORMANCE_CONSTANTS = {
+  MAX_HISTORY_ENTRIES: 50,
+  DRAW_THROTTLE_MS: 16, // ~60fps
+  SLOW_OPERATION_THRESHOLD_MS: 100,
+  IMAGE_LOAD_TIMEOUT_MS: 10000,
+} as const;
+
+// Add the missing utility functions
+export const createMaskKey = (frame: number, slice: number, label: AnatomicalLabel): string => 
+  `mask_${frame}_${slice}_${label}`;
+
+export const parseMaskKey = (key: string): { frame: number; slice: number; label: AnatomicalLabel } | null => {
+  const match = key.match(/mask_(\d+)_(\d+)_(\w+)/);
+  if (!match) return null;
+  
+  const [, frameStr, sliceStr, label] = match;
+  return {
+    frame: parseInt(frameStr, 10),
+    slice: parseInt(sliceStr, 10),
+    label: label as AnatomicalLabel
+  };
+};
+
+// Utility functions for better error handling
+export const isValidAnatomicalLabel = (label: string): label is AnatomicalLabel => {
+  return ANATOMICAL_LABELS.includes(label as AnatomicalLabel);
+};
+
+export const isValidDrawingTool = (tool: string): tool is DrawingTool => {
+  return DRAWING_TOOLS.includes(tool as DrawingTool);
+};
+
+export const isValidBrushHardness = (hardness: string): hardness is BrushHardness => {
+  return BRUSH_HARDNESS.includes(hardness as BrushHardness);
+};

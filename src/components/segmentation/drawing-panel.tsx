@@ -18,37 +18,41 @@ import {
   Move 
 } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { cn } from "@/lib/utils";
 
-interface DrawingPanelProps {
-  tool: string;
-  setTool: (tool: string) => void;
-  brushSize: number;
-  setBrushSize: (size: number) => void;
-  opacity: number;
-  setOpacity: (opacity: number) => void;
-  hardness: "soft" | "medium" | "hard";
-  setHardness: (h: "soft" | "medium" | "hard") => void; 
-  activeLabel: string;
-  setActiveLabel: (label: string) => void;
-  handleUndo: () => void;
-  handleRedo: () => void;
-  handleClear: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
-  canClear: boolean;
-}
+// Import shared types and constants
+import type { 
+  DrawingPanelProps, 
+  AnatomicalLabel,
+  DrawingTool,
+  BrushHardness 
+} from "@/types/segmentation";
+import { 
+  LABEL_COLORS, 
+  LABEL_NAMES,
+  DRAWING_TOOLS,
+  BRUSH_HARDNESS
+} from "@/types/segmentation";
 
-const LABEL_COLORS = {
-  'lvc': '#ef4444', // Red
-  'rv': '#3b82f6',  // Blue  
-  'myo': '#22c55e'  // Green
-};
+// Memoized tool configuration
+const TOOL_CONFIG: Record<DrawingTool, { icon: React.ComponentType<any>; label: string; shortcut?: string }> = {
+  select: { icon: MousePointer2, label: 'Select' },
+  brush: { icon: Brush, label: 'Brush', shortcut: 'B' },
+  eraser: { icon: Eraser, label: 'Eraser', shortcut: 'E' },
+  label: { icon: Type, label: 'Label' },
+  rectangle: { icon: Square, label: 'Rectangle' },
+  circle: { icon: Circle, label: 'Circle' },
+  measure: { icon: Ruler, label: 'Measure' },
+  zoom: { icon: Search, label: 'Zoom' },
+  pan: { icon: Move, label: 'Pan' },
+} as const;
 
-const LABEL_NAMES = {
-  'lvc': 'Left Ventricle Cavity',
-  'rv': 'Right Ventricle',
-  'myo': 'Myocardium'
-};
+// Memoized tool grid layout
+const TOOL_GRID_LAYOUT: DrawingTool[][] = [
+  ['select', 'brush', 'eraser'],
+  ['label', 'rectangle', 'circle'],
+  ['measure', 'zoom', 'pan']
+];
 
 export function DrawingPanel({
   tool,
@@ -67,323 +71,179 @@ export function DrawingPanel({
   canUndo,
   canRedo,
   canClear,
-}: DrawingPanelProps) {  
+}: DrawingPanelProps) {
+
+  // Memoized label selection handler
+  const handleLabelChange = React.useCallback((value: string) => {
+    if (value && value in LABEL_COLORS) {
+      setActiveLabel(value as AnatomicalLabel);
+    }
+  }, [setActiveLabel]);
+
+  // Memoized tool selection handler
+  const handleToolChange = React.useCallback((value: string) => {
+    if (value && DRAWING_TOOLS.includes(value as DrawingTool)) {
+      setTool(value as DrawingTool);
+    }
+  }, [setTool]);
+
+  // Memoized hardness handler
+  const handleHardnessChange = React.useCallback((value: string) => {
+    if (value && BRUSH_HARDNESS.includes(value as BrushHardness)) {
+      setHardness(value as BrushHardness);
+    }
+  }, [setHardness]);
 
   return (
     <div className="flex flex-col gap-6 p-4">
       {/* Label Selection */}
       <div>
         <div className="text-lg font-semibold mb-4 text-foreground">Active Label</div>
-        <div className="flex gap-2 justify-center">
-          <ToggleGroup
-            type="single"
-            value={activeLabel}
-            onValueChange={(value: string) => value && setActiveLabel(value)}
-            aria-label="Anatomical Label"
-            className="flex rounded-lg border border-border overflow-hidden w-full"
-          >
-            {Object.entries(LABEL_COLORS).map(([key, color]) => (
-              <ToggleGroupItem
-                key={key}
-                value={key}
-                aria-label={LABEL_NAMES[key as keyof typeof LABEL_NAMES]}
-                variant="outline"
-                className={`
-                  flex-1 flex items-center justify-center px-4 py-2
-                  font-semibold
-                  data-[state=on]:bg-opacity-20
-                  data-[state=on]:border-current
-                  border-r border-border last:border-r-0
-                  focus:z-10
-                `}
-                style={{ 
-                  color: activeLabel === key ? color : undefined,
-                  backgroundColor: activeLabel === key ? `${color}20` : undefined,
-                  borderColor: activeLabel === key ? color : undefined
-                }}
-              >
-                <span 
-                  className="w-3 h-3 rounded-full mr-2 flex-shrink-0" 
-                  style={{ backgroundColor: color }} 
-                />
-                {key.toUpperCase()}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </div>
+        <ToggleGroup
+          type="single"
+          value={activeLabel}
+          onValueChange={handleLabelChange}
+          aria-label="Anatomical Label"
+          className="flex rounded-lg border border-border overflow-hidden w-full"
+        >
+          {Object.entries(LABEL_COLORS).map(([key, color]) => (
+            <ToggleGroupItem
+              key={key}
+              value={key}
+              aria-label={LABEL_NAMES[key as AnatomicalLabel]}
+              variant="outline" 
+              className={cn(
+                "flex-1 flex items-center justify-center px-4 py-2",
+                "font-semibold transition-colors",
+                "data-[state=on]:bg-opacity-20 data-[state=on]:border-current",
+                "border-r border-border last:border-r-0",
+                "focus:z-10"
+              )}
+              style={{ 
+                color: activeLabel === key ? color : undefined,
+                backgroundColor: activeLabel === key ? `${color}20` : undefined,
+                borderColor: activeLabel === key ? color : undefined
+              }}
+            >
+              <span 
+                className="w-3 h-3 rounded-full mr-2 flex-shrink-0" 
+                style={{ backgroundColor: color }} 
+              />
+              {key.toUpperCase()}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
       </div>
       
-      {/* Tool Selection - Enhanced with all tools */}
+      {/* Tool Selection with Grid Layout */}
       <div>
         <div className="text-lg font-semibold mb-4 text-foreground">Drawing Tools</div>
-        <div className="flex justify-center w-full">
-          <ToggleGroup
-            type="single"
-            value={tool}
-            onValueChange={(value: string) => value && setTool(value)}
-            aria-label="Tool"
-            className="grid grid-cols-3 gap-2 mb-6 max-w-xl"
-          >
-            {/* Row 1: Selection, Brush, Eraser */}
-            <ToggleGroupItem
-              value="select"
-              aria-label="Select"
-              className={`
-                h-20 w-20 flex flex-col items-center justify-center rounded-lg
-                border-2 border-border
-                transition-colors
-                hover:bg-primary/10
-                data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-lg data-[state=on]:border-primary
-                data-[state=off]:text-foreground
-                focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring
-              `}
-            >
-              <MousePointer2 style={{ width: "22px", height: "22px" }} className="mb-1" />
-              <span className="text-sm">Select</span>
-            </ToggleGroupItem>
+        <div className="grid grid-cols-3 gap-2 max-w-xl mx-auto">
+          {TOOL_GRID_LAYOUT.flat().map((toolKey) => {
+            const config = TOOL_CONFIG[toolKey];
+            const IconComponent = config.icon;
             
-            <ToggleGroupItem
-              value="brush"
-              aria-label="Brush"
-              className={`
-                h-20 w-20 flex flex-col items-center justify-center rounded-lg
-                border-2 border-border
-                transition-colors
-                hover:bg-primary/10
-                data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-lg data-[state=on]:border-primary
-                data-[state=off]:text-foreground
-                focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring
-              `}
-            >
-              <Brush style={{ width: "22px", height: "22px" }} className="mb-1" />
-              <span className="text-sm">Brush</span>
-            </ToggleGroupItem>
-            
-            <ToggleGroupItem
-              value="eraser"
-              aria-label="Eraser"
-              className={`
-                h-20 w-20 flex flex-col items-center justify-center rounded-lg
-                border-2 border-border
-                transition-colors
-                hover:bg-primary/10
-                data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-lg data-[state=on]:border-primary
-                data-[state=off]:text-foreground
-                focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring
-              `}
-            >
-              <Eraser style={{ width: "22px", height: "22px" }} className="mb-1" />
-              <span className="text-sm">Eraser</span>
-            </ToggleGroupItem>
-
-            {/* Row 2: Label, Rectangle, Circle */}
-            <ToggleGroupItem
-              value="label"
-              aria-label="Label"
-              className={`
-                h-20 w-20 flex flex-col items-center justify-center rounded-lg
-                border-2 border-border
-                transition-colors
-                hover:bg-primary/10
-                data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-lg data-[state=on]:border-primary
-                data-[state=off]:text-foreground
-                focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring
-              `}
-            >
-              <Type style={{ width: "22px", height: "22px" }} className="mb-1" />
-              <span className="text-sm">Label</span>
-            </ToggleGroupItem>
-            
-            <ToggleGroupItem
-              value="rectangle"
-              aria-label="Rectangle"
-              className={`
-                h-20 w-20 flex flex-col items-center justify-center rounded-lg
-                border-2 border-border
-                transition-colors
-                hover:bg-primary/10
-                data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-lg data-[state=on]:border-primary
-                data-[state=off]:text-foreground
-                focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring
-              `}
-            >
-              <Square style={{ width: "22px", height: "22px" }} className="mb-1" />
-              <span className="text-sm">Rectangle</span>
-            </ToggleGroupItem>
-            
-            <ToggleGroupItem
-              value="circle"
-              aria-label="Circle"
-              className={`
-                h-20 w-20 flex flex-col items-center justify-center rounded-lg
-                border-2 border-border
-                transition-colors
-                hover:bg-primary/10
-                data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-lg data-[state=on]:border-primary
-                data-[state=off]:text-foreground
-                focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring
-              `}
-            >
-              <Circle style={{ width: "22px", height: "22px" }} className="mb-1" />
-              <span className="text-sm">Circle</span>
-            </ToggleGroupItem>
-
-            {/* Row 3: Measure, Zoom, Pan */}
-            <ToggleGroupItem
-              value="measure"
-              aria-label="Measure"
-              className={`
-                h-20 w-20 flex flex-col items-center justify-center rounded-lg
-                border-2 border-border
-                transition-colors
-                hover:bg-primary/10
-                data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-lg data-[state=on]:border-primary
-                data-[state=off]:text-foreground
-                focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring
-              `}
-            >
-              <Ruler style={{ width: "22px", height: "22px" }} className="mb-1" />
-              <span className="text-sm">Measure</span>
-            </ToggleGroupItem>
-            
-            <ToggleGroupItem
-              value="zoom"
-              aria-label="Zoom"
-              className={`
-                h-20 w-20 flex flex-col items-center justify-center rounded-lg
-                border-2 border-border
-                transition-colors
-                hover:bg-primary/10
-                data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-lg data-[state=on]:border-primary
-                data-[state=off]:text-foreground
-                focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring
-              `}
-            >
-              <Search style={{ width: "22px", height: "22px" }} className="mb-1" />
-              <span className="text-sm">Zoom</span>
-            </ToggleGroupItem>
-            
-            <ToggleGroupItem
-              value="pan"
-              aria-label="Pan"
-              className={`
-                h-20 w-20 flex flex-col items-center justify-center rounded-lg
-                border-2 border-border
-                transition-colors
-                hover:bg-primary/10
-                data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-lg data-[state=on]:border-primary
-                data-[state=off]:text-foreground
-                focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring
-              `}
-            >
-              <Move style={{ width: "22px", height: "22px" }} className="mb-1" />
-              <span className="text-sm">Pan</span>
-            </ToggleGroupItem>
-          </ToggleGroup>
+            return (
+              <button
+                key={toolKey}
+                onClick={() => setTool(toolKey)}
+                aria-label={`${config.label}${config.shortcut ? ` (${config.shortcut})` : ''}`}
+                className={cn(
+                  "h-20 w-20 flex flex-col items-center justify-center rounded-lg",
+                  "border-2 border-border transition-colors",
+                  "hover:bg-primary/10",
+                  "focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring",
+                  tool === toolKey 
+                    ? "bg-primary text-primary-foreground shadow-lg border-primary" 
+                    : "text-foreground"
+                )}
+              >
+                <IconComponent className="w-5 h-5 mb-1" />
+                <span className="text-xs font-medium">{config.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Enhanced Brush Settings Box */}
-      <div className="bg-muted rounded-xl p-5 shadow-inner mb-4">
-        <h3 className="text-lg font-semibold mb-4 text-foreground">Brush Settings</h3>
-        
-        {/* Size */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-foreground mb-2 block">
-              Brush Size
-            </label>
-            <span className="text-sm font-medium text-foreground mb-2 block">
-              {brushSize}px
-            </span>
+      {/* Brush Settings - Only show for relevant tools */}
+      {(tool === 'brush' || tool === 'eraser') && (
+        <div className="bg-muted rounded-xl p-5 shadow-inner">
+          <h3 className="text-lg font-semibold mb-4 text-foreground">Brush Settings</h3>
+          
+          {/* Size */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-foreground">
+                Brush Size
+              </label>
+              <span className="text-sm font-medium text-foreground">
+                {brushSize}px
+              </span>
+            </div>
+            <Slider
+              value={[brushSize]}
+              onValueChange={(v) => setBrushSize(v[0])}
+              min={1}
+              max={50}
+              step={1}
+              className="[&>span:first-child]:border [&>span:first-child]:border-border"
+            />
           </div>
-          <Slider
-            value={[brushSize]}
-            onValueChange={(v) => setBrushSize(v[0])}
-            min={1}
-            max={50}
-            step={1}
-            className="[&>span:first-child]:border [&>span:first-child]:border-border"
-          />
-        </div>
 
-        {/* Opacity */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium text-foreground mb-2 block">
-              Opacity
-            </label>
-            <span className="text-sm font-medium text-foreground mb-2 block">
-              {`${Math.round((opacity ?? 1) * 100)}%`}
-            </span>
+          {/* Opacity */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-foreground">
+                Opacity
+              </label>
+              <span className="text-sm font-medium text-foreground">
+                {Math.round(opacity * 100)}%
+              </span>
+            </div>
+            <Slider
+              value={[opacity * 100]}
+              onValueChange={(v) => setOpacity(v[0] / 100)}
+              min={10}
+              max={100}
+              step={1}
+              className="[&>span:first-child]:border [&>span:first-child]:border-border"
+            />
           </div>
-          <Slider
-            value={[typeof opacity === "number" ? opacity * 100 : 100]}
-            onValueChange={(v) => setOpacity((v[0] ?? 100) / 100)}
-            min={0}
-            max={100}
-            step={1}
-            className="[&>span:first-child]:border [&>span:first-child]:border-border"
-          />
-        </div>
 
-        {/* Enhanced Hardness */}
-        <div>
-          <label className="text-sm font-medium text-foreground mb-3 block">Brush Hardness</label>
-          <ToggleGroup
-            type="single"
-            value={hardness}
-            onValueChange={(v: string) => v && setHardness(v as "soft" | "medium" | "hard")}
-            className="flex justify-center border border-border rounded-xl overflow-hidden w-full"
-            aria-label="Brush Hardness"
-          >
-            <ToggleGroupItem
-              value="soft"
-              className={`
-                flex-1 py-3 text-sm font-semibold transition-colors
-                bg-transparent
-                hover:bg-primary/20
-                data-[state=on]:bg-primary data-[state=on]:text-primary-foreground
-                data-[state=off]:text-foreground
-                border-0
-                focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring
-              `}
+          {/* Hardness */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-3 block">
+              Brush Hardness
+            </label>
+            <ToggleGroup
+              type="single"
+              value={hardness}
+              onValueChange={handleHardnessChange}
+              className="flex rounded-xl border border-border overflow-hidden w-full"
+              aria-label="Brush Hardness"
             >
-              Soft
-            </ToggleGroupItem>
-            <ToggleGroupItem
-              value="medium"
-              className={`
-                flex-1 py-3 text-sm font-semibold transition-colors
-                bg-transparent
-                hover:bg-primary/20
-                data-[state=on]:bg-primary data-[state=on]:text-primary-foreground
-                data-[state=off]:text-foreground
-                border-0
-                focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring
-              `}
-            >
-              Medium
-            </ToggleGroupItem>
-            <ToggleGroupItem
-              value="hard"
-              className={`
-                flex-1 py-3 text-sm font-semibold transition-colors
-                bg-transparent
-                hover:bg-primary/20
-                data-[state=on]:bg-primary data-[state=on]:text-primary-foreground
-                data-[state=off]:text-foreground
-                border-0
-                focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring
-              `}
-            >
-              Hard
-            </ToggleGroupItem>
-          </ToggleGroup>
+              {BRUSH_HARDNESS.map((level) => (
+                <ToggleGroupItem
+                  key={level}
+                  value={level}
+                  className={cn(
+                    "flex-1 py-3 text-sm font-semibold transition-colors",
+                    "bg-transparent hover:bg-primary/20",
+                    "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground",
+                    "data-[state=off]:text-foreground border-0",
+                    "focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring"
+                  )}
+                >
+                  {level.charAt(0).toUpperCase() + level.slice(1)}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Enhanced Actions */}
+      {/* Actions */}
       <div>
         <div className="text-lg font-semibold mb-4 text-foreground">Actions</div>
         <div className="flex flex-col gap-3">
@@ -391,11 +251,11 @@ export function DrawingPanel({
             variant="outline"
             onClick={handleUndo}
             disabled={!canUndo}
-            title="Undo (Ctrl+Z)"
             className="w-full justify-start"
+            aria-label="Undo last action (Ctrl+Z)"
           >
-            <Undo2 className="w-5 h-5" />
-            <span className="ml-2">Undo</span>
+            <Undo2 className="w-4 h-4 mr-2" />
+            Undo
             <span className="text-xs text-muted-foreground ml-auto">Ctrl+Z</span>
           </Button>
           
@@ -403,11 +263,11 @@ export function DrawingPanel({
             variant="outline"
             onClick={handleRedo}
             disabled={!canRedo}
-            title="Redo (Ctrl+Shift+Z)"
             className="w-full justify-start"
+            aria-label="Redo last action (Ctrl+Y)"
           >
-            <Redo2 className="w-5 h-5" />
-            <span className="ml-2">Redo</span>
+            <Redo2 className="w-4 h-4 mr-2" />
+            Redo
             <span className="text-xs text-muted-foreground ml-auto">Ctrl+Y</span>
           </Button>
           
@@ -415,16 +275,16 @@ export function DrawingPanel({
             variant="destructive"
             onClick={handleClear}
             disabled={!canClear}
-            title="Clear All (Del)"
             className="w-full justify-start"
+            aria-label="Clear current mask (Delete)"
           >
-            <Trash2 className="w-5 h-5" />
-            <span className="ml-2">Clear All</span>
+            <Trash2 className="w-4 h-4 mr-2" />
+            Clear Current
             <span className="text-xs text-muted-foreground ml-auto">Del</span>
           </Button>
         </div>
       </div>
-
+      
       {/* Tool Tips */}
       <div className="mt-4 p-3 bg-muted/50 rounded-lg">
         <h4 className="text-sm font-medium text-foreground mb-2">Tool Tips</h4>

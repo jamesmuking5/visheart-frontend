@@ -1,33 +1,158 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { Stage, Layer, Line, Image as KonvaImage } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { Slider } from "@/components/ui/slider";
-import type { ProjectData } from "@/types/project(test)";
+import { cn } from "@/lib/utils";
 
-interface ImageCanvasProps {
-  projectData: ProjectData;
-  decodedMasks: Record<string, Uint8Array>;
-  onMaskUpdate: (masks: Record<string, Uint8Array>) => void;
+// Import shared types and constants
+import type { ImageCanvasProps, AnatomicalLabel, BrushHardness } from "@/types/segmentation";
+import { 
+  LABEL_COLORS, 
+  HARDNESS_TO_BLUR, 
+  createMaskKey,
+  PERFORMANCE_CONSTANTS 
+} from "@/types/segmentation";
+
+// Memoized Navigation Controls Component
+const NavigationControls = memo(({ 
+  currentFrame, 
+  currentSlice, 
+  totalFrames, 
+  totalSlices, 
+  onFrameChange, 
+  onSliceChange 
+}: {
   currentFrame: number;
   currentSlice: number;
+  totalFrames: number;
+  totalSlices: number;
   onFrameChange: (frame: number) => void;
   onSliceChange: (slice: number) => void;
+}) => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-3xl mb-4 p-4 bg-muted rounded-lg shadow-md">
+    <div className="flex flex-col space-y-2">
+      <label className="text-sm font-medium text-foreground">
+        Frame: {currentFrame + 1} / {totalFrames}
+      </label>
+      <Slider
+        value={[currentFrame]}
+        onValueChange={(v) => onFrameChange(v[0])}
+        min={0}
+        max={Math.max(0, totalFrames - 1)}
+        step={1}
+        disabled={totalFrames <= 1}
+        className="[&>span:first-child]:border [&>span:first-child]:border-border"
+      />
+    </div>
+    <div className="flex flex-col space-y-2">
+      <label className="text-sm font-medium text-foreground">
+        Slice: {currentSlice + 1} / {totalSlices}
+      </label>
+      <Slider
+        value={[currentSlice]}
+        onValueChange={(v) => onSliceChange(v[0])}
+        min={0}
+        max={Math.max(0, totalSlices - 1)}
+        step={1}
+        disabled={totalSlices <= 1}
+        className="[&>span:first-child]:border [&>span:first-child]:border-border"
+      />
+    </div>
+  </div>
+));
+
+NavigationControls.displayName = 'NavigationControls';
+
+// Memoized Canvas Container Component
+const CanvasContainer = memo(({ 
+  imageStatus,
+  stageRef,
+  width,
+  height,
+  handleMouseDown,
+  handleMouseMove,
+  handleMouseUp,
+  image,
+  currentMaskOverlays,
+  opacity,
+  isDrawing,
+  drawingPoints,
+  tool,
+  activeLabel,
+  brushSize,
+  hardness
+}: {
+  imageStatus: "loading" | "loaded" | "error";
+  stageRef: React.RefObject<any>;
   width: number;
   height: number;
-  activeLabel: string;
-  tool: string;
-  brushSize: number;
+  handleMouseDown: (e: KonvaEventObject<MouseEvent>) => void;
+  handleMouseMove: (e: KonvaEventObject<MouseEvent>) => void;
+  handleMouseUp: () => void;
+  image: HTMLImageElement | null;
+  currentMaskOverlays: Array<{ key: string; overlay: HTMLCanvasElement; color: string }>;
   opacity: number;
-  hardness: "soft" | "medium" | "hard";
-}
+  isDrawing: boolean;
+  drawingPoints: number[] | null;
+  tool: string;
+  activeLabel: AnatomicalLabel;
+  brushSize: number;
+  hardness: BrushHardness;
+}) => (
+  <div className="border-4 border-muted-foreground rounded-lg overflow-hidden relative">
+    {imageStatus === "loading" && (
+      <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
+        <div className="text-sm text-muted-foreground">Loading image...</div>
+      </div>
+    )}
+    
+    <Stage
+      ref={stageRef}
+      width={width}
+      height={height}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+    >
+      <Layer>
+        {/* Background Image */}
+        {imageStatus === "loaded" && image && (
+          <KonvaImage image={image} width={width} height={height} />
+        )}
+        
+        {/* Mask Overlays */}
+        {currentMaskOverlays.map((overlay) => (
+          <KonvaImage
+            key={overlay.key}
+            image={overlay.overlay}
+            width={width}
+            height={height}
+            opacity={opacity}
+          />
+        ))}
+        
+        {/* Current Drawing Preview */}
+        {isDrawing && drawingPoints && (
+          <Line
+            points={drawingPoints}
+            stroke={tool === "eraser" ? "#000" : LABEL_COLORS[activeLabel]}
+            strokeWidth={brushSize}
+            opacity={0.8}
+            shadowBlur={HARDNESS_TO_BLUR[hardness]}
+            tension={0.5}
+            lineCap="round"
+            lineJoin="round"
+            globalCompositeOperation={tool === "eraser" ? "destination-out" : "source-over"}
+          />
+        )}
+      </Layer>
+    </Stage>
+  </div>
+));
 
-const LABEL_COLORS = {
-  'lvc': '#ef4444', // Red
-  'rv': '#3b82f6',  // Blue  
-  'myo': '#22c55e'  // Green
-};
+CanvasContainer.displayName = 'CanvasContainer';
 
 export function ImageCanvas({
   projectData,
@@ -45,47 +170,68 @@ export function ImageCanvas({
   opacity,
   hardness,
 }: ImageCanvasProps) {
+  // Browser state management for manual segmentation
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [imageStatus, setImageStatus] = useState<"loading" | "loaded" | "error">("loading");
+  const [drawingPoints, setDrawingPoints] = useState<number[] | null>(null);
+  
+  // Local browser state for instant feedback
+  const [localMasks, setLocalMasks] = useState<Record<string, Uint8Array>>({});
+  const [pendingChanges, setPendingChanges] = useState<Set<string>>(new Set());
+  
+  // Refs for performance
   const stageRef = useRef<any>(null);
   const isDrawing = useRef(false);
-  
-  // OPTIMIZED: Single drawing line instead of accumulating multiple lines
-  const [drawingPoints, setDrawingPoints] = useState<number[] | null>(null);
 
-  // OPTIMIZED: Better hardness implementation with visual feedback
-  const hardnessToBlur = {
-    soft: 15,
-    medium: 7,
-    hard: 0,
-  };
+  // Memoized values from project data
+  const { totalFrames, totalSlices } = useMemo(() => ({
+    totalFrames: projectData.dimensions?.frames || 1,
+    totalSlices: projectData.dimensions?.slices || 1,
+  }), [projectData.dimensions]);
 
-  // Load background image using project data pattern
+  // Combined state management - merges backend + local changes
+  const getCombinedMasks = useCallback(() => {
+    // Priority: Local changes override backend data
+    return { ...decodedMasks, ...localMasks };
+  }, [decodedMasks, localMasks]);
+
+  // Image loading with VisHeart API patterns
   useEffect(() => {
+    if (!projectData.projectId) return;
+
     setImageStatus("loading");
     const img = new window.Image();
-    img.src = `${projectData.baseImageUrl || '/images'}/${projectData.projectId}/frame_${currentFrame}_slice_${currentSlice}.png`;
     
+    // VisHeart API pattern with session credentials
+    img.crossOrigin = "use-credentials";
+    img.src = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/projects/${projectData.projectId}/images/frame_${currentFrame}_slice_${currentSlice}.jpeg`;
+    
+    const timeoutId = setTimeout(() => {
+      setImageStatus("error");
+    }, PERFORMANCE_CONSTANTS?.IMAGE_LOAD_TIMEOUT_MS || 10000);
+
     img.onload = () => {
+      clearTimeout(timeoutId);
       setImage(img);
       setImageStatus("loaded");
     };
     
     img.onerror = () => {
-      console.warn("Failed to load image:", img.src);
+      clearTimeout(timeoutId);
+      console.warn(`[ImageCanvas] Failed to load image for frame ${currentFrame}, slice ${currentSlice}`);
       setImageStatus("error");
     };
-  }, [projectData, currentFrame, currentSlice]);
 
-  // OPTIMIZED: Efficient pointer position calculation
+    return () => clearTimeout(timeoutId);
+  }, [projectData.projectId, currentFrame, currentSlice]);
+
+  // Optimized drawing handlers with useCallback
   const getRelativePointerPosition = useCallback(() => {
     const stage = stageRef.current;
     if (!stage) return null;
-    const pointer = stage.getPointerPosition();
-    return pointer || null;
+    return stage.getPointerPosition();
   }, []);
 
-  // OPTIMIZED: Immediate drawing start with single line tracking
   const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
     if (tool === "select" || e.evt.button !== 0) return;
     
@@ -96,7 +242,6 @@ export function ImageCanvas({
     setDrawingPoints([pos.x, pos.y]);
   }, [tool, getRelativePointerPosition]);
 
-  // OPTIMIZED: Real-time line updates without state accumulation
   const handleMouseMove = useCallback((e: KonvaEventObject<MouseEvent>) => {
     if (!isDrawing.current || tool === "select") return;
     
@@ -106,7 +251,7 @@ export function ImageCanvas({
     setDrawingPoints(prev => prev ? [...prev, point.x, point.y] : [point.x, point.y]);
   }, [tool, getRelativePointerPosition]);
 
-  // OPTIMIZED: Enhanced Bresenham's algorithm with better brush handling
+  // Optimized Bresenham drawing algorithm
   const drawBrushStroke = useCallback((
     mask: Uint8Array, 
     maskWidth: number, 
@@ -115,14 +260,15 @@ export function ImageCanvas({
     size: number, 
     labelValue: number
   ) => {
-    // Process line segments with improved algorithm
+    const radius = size / 2;
+    const radiusSquared = radius * radius;
+
     for (let i = 2; i < points.length; i += 2) {
       const x0 = Math.round(points[i - 2]);
       const y0 = Math.round(points[i - 1]);
       const x1 = Math.round(points[i]);
       const y1 = Math.round(points[i + 1]);
       
-      // Bresenham's line algorithm
       const dx = Math.abs(x1 - x0);
       const dy = Math.abs(y1 - y0);
       const sx = x0 < x1 ? 1 : -1;
@@ -131,11 +277,7 @@ export function ImageCanvas({
       let x = x0;
       let y = y0;
       
-      const radius = size / 2;
-      const radiusSquared = radius * radius;
-      
       while (true) {
-        // OPTIMIZED: Circular brush with bounds checking
         const minX = Math.max(0, x - Math.floor(radius));
         const maxX = Math.min(maskWidth - 1, x + Math.floor(radius));
         const minY = Math.max(0, y - Math.floor(radius));
@@ -161,154 +303,224 @@ export function ImageCanvas({
     }
   }, []);
 
-  // OPTIMIZED: Immediate mask application with better memory management
+  // Store changes in browser state only
   const handleMouseUp = useCallback(() => {
     if (!isDrawing.current || !drawingPoints) return;
     
     isDrawing.current = false;
 
-    // Pass action type to history
-    const newMasks = { ...decodedMasks };
-    const maskKey = `mask_${currentFrame}_${currentSlice}_${activeLabel}`;
-    
-    if (!newMasks[maskKey]) {
-      newMasks[maskKey] = new Uint8Array(width * height);
+    try {
+      const maskKey = createMaskKey(currentFrame, currentSlice, activeLabel);
+      const combinedMasks = getCombinedMasks();
+      
+      // Get existing mask or create new one
+      const existingMask = combinedMasks[maskKey] || new Uint8Array(width * height);
+      const newMask = new Uint8Array(existingMask);
+      const labelValue = tool === "eraser" ? 0 : 1;
+      
+      // Apply brush stroke to mask
+      drawBrushStroke(newMask, width, height, drawingPoints, brushSize, labelValue);
+      
+      // CORRECTED: Store in local browser state only - NO backend save
+      setLocalMasks(prev => ({
+        ...prev,
+        [maskKey]: newMask
+      }));
+      
+      // Track pending changes for save indicator
+      setPendingChanges(prev => new Set(prev).add(maskKey));
+      
+      // Update parent component state with combined masks
+      const updatedMasks = { ...combinedMasks, [maskKey]: newMask };
+      onMaskUpdate(
+        updatedMasks, 
+        tool as 'brush' | 'eraser', 
+        `${tool} stroke (size: ${brushSize}, hardness: ${hardness})`
+      );
+      
+      console.log(`[ImageCanvas] Applied ${tool} stroke to browser state:`, maskKey);
+      
+    } catch (error) {
+      console.error('[ImageCanvas] Error during brush stroke:', error);
+    } finally {
+      setDrawingPoints(null);
     }
-    
-    const mask = new Uint8Array(newMasks[maskKey]);
-    const labelValue = tool === "eraser" ? 0 : 1;
-    drawBrushStroke(mask, width, height, drawingPoints, brushSize, labelValue);
-    
-    newMasks[maskKey] = mask;
-    
-    // Pass action type for proper history tracking
-    onMaskUpdate(newMasks, tool as 'brush' | 'eraser', `${tool} action with size ${brushSize}`);
-    setDrawingPoints(null);
   }, [
-    drawingPoints, decodedMasks, currentFrame, currentSlice, activeLabel, 
-    width, height, tool, brushSize, drawBrushStroke, onMaskUpdate
+    drawingPoints, currentFrame, currentSlice, activeLabel, 
+    width, height, tool, brushSize, hardness, drawBrushStroke, 
+    onMaskUpdate, getCombinedMasks
   ]);
-  
-  // OPTIMIZED: Efficient mask overlay creation with caching potential
+
+  // Explicit save function for parent component to call
+  const savePendingChanges = useCallback(async () => {
+    if (pendingChanges.size === 0) {
+      return { success: true, message: 'No changes to save' };
+    }
+
+    try {
+      // Prepare masks for saving
+      const masksToSave = Array.from(pendingChanges).reduce((acc, maskKey) => {
+        if (localMasks[maskKey]) {
+          acc[maskKey] = localMasks[maskKey];
+        }
+        return acc;
+      }, {} as Record<string, Uint8Array>);
+
+      // VisHeart API pattern with session credentials
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/segmentation/${projectData.projectId}/masks`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include', // VisHeart session-based auth
+        body: JSON.stringify({
+          masks: Object.entries(masksToSave).map(([key, data]) => ({
+            key,
+            data: Array.from(data), // Convert Uint8Array for JSON
+            frame: currentFrame,
+            slice: currentSlice,
+            label: activeLabel
+          }))
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Save failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Clear pending changes after successful save
+        setPendingChanges(new Set());
+        console.log(`[ImageCanvas] Successfully saved ${Object.keys(masksToSave).length} masks to backend`);
+        return { success: true, count: Object.keys(masksToSave).length };
+      } else {
+        throw new Error(result.message || 'Save failed');
+      }
+    } catch (error) {
+      console.error('[ImageCanvas] Failed to save masks:', error);
+      return { 
+        success: false, 
+        error: typeof error === 'object' && error !== null && 'message' in error 
+          ? (error as { message: string }).message 
+          : String(error) 
+      };
+    }
+  }, [pendingChanges, localMasks, projectData.projectId, currentFrame, currentSlice, activeLabel]);
+
+  // Expose save function to parent component
+  useEffect(() => {
+    // Pass save function to parent via onMaskUpdate callback extension
+    if (typeof onMaskUpdate === 'function') {
+      (onMaskUpdate as any).savePendingChanges = savePendingChanges;
+    }
+  }, [savePendingChanges, onMaskUpdate]);
+
+  // Optimized mask overlay creation with memoization
   const createMaskOverlay = useCallback((maskData: Uint8Array, color: string) => {
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d");
     
-    if (ctx) {
-      const imgData = ctx.createImageData(width, height);
-      const [r, g, b] = [
-        parseInt(color.slice(1, 3), 16),
-        parseInt(color.slice(3, 5), 16),
-        parseInt(color.slice(5, 7), 16)
-      ];
-      
-      // OPTIMIZED: Efficient pixel painting
-      const data = imgData.data;
-      for (let i = 0; i < maskData.length; i++) {
-        if (maskData[i] > 0) {
-          const pixelIndex = i * 4;
-          data[pixelIndex] = r;
-          data[pixelIndex + 1] = g;
-          data[pixelIndex + 2] = b;
-          data[pixelIndex + 3] = Math.round(255 * opacity);
-        }
+    if (!ctx) return canvas;
+
+    const imgData = ctx.createImageData(width, height);
+    const [r, g, b] = [
+      parseInt(color.slice(1, 3), 16),
+      parseInt(color.slice(3, 5), 16),
+      parseInt(color.slice(5, 7), 16)
+    ];
+    
+    const data = imgData.data;
+    for (let i = 0; i < maskData.length; i++) {
+      if (maskData[i] > 0) {
+        const pixelIndex = i * 4;
+        data[pixelIndex] = r;
+        data[pixelIndex + 1] = g;
+        data[pixelIndex + 2] = b;
+        data[pixelIndex + 3] = Math.round(255 * opacity);
       }
-      
-      ctx.putImageData(imgData, 0, 0);
     }
+    
+    ctx.putImageData(imgData, 0, 0);
     return canvas;
   }, [width, height, opacity]);
 
-  const totalFrames = projectData.dimensions?.frames || 1;
-  const totalSlices = projectData.dimensions?.slices || 1;
+  // Mask overlays using combined state (local + backend)
+  const currentMaskOverlays = useMemo(() => {
+    const combinedMasks = getCombinedMasks();
+    
+    return Object.entries(LABEL_COLORS).map(([label, color]) => {
+      const maskKey = createMaskKey(currentFrame, currentSlice, label as AnatomicalLabel);
+      const maskData = combinedMasks[maskKey];
+      
+      if (!maskData) return null;
+      
+      return {
+        key: maskKey,
+        overlay: createMaskOverlay(maskData, color),
+        color
+      };
+    }).filter(Boolean) as Array<{ key: string; overlay: HTMLCanvasElement; color: string }>;
+  }, [currentFrame, currentSlice, getCombinedMasks, createMaskOverlay]);
 
   return (
     <div className="flex flex-col items-center w-full h-full">
-      {/* Frame and Slice Navigation */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-3xl mb-4 p-4 bg-muted rounded-lg shadow-md">
-        <div className="flex flex-col space-y-2">
-          <label className="text-sm font-medium text-foreground">
-            Frame: {currentFrame + 1} / {totalFrames}
-          </label>
-          <Slider
-            value={[currentFrame]}
-            onValueChange={(v) => onFrameChange(v[0])}
-            min={0}
-            max={totalFrames - 1}
-            step={1}
-            disabled={totalFrames <= 1}
-            className="[&>span:first-child]:border [&>span:first-child]:border-border"
-          />
-        </div>
-        <div className="flex flex-col space-y-2">
-          <label className="text-sm font-medium text-foreground">
-            Slice: {currentSlice + 1} / {totalSlices}
-          </label>
-          <Slider
-            value={[currentSlice]}
-            onValueChange={(v) => onSliceChange(v[0])}
-            min={0}
-            max={totalSlices - 1}
-            step={1}
-            disabled={totalSlices <= 1}
-            className="[&>span:first-child]:border [&>span:first-child]:border-border"
-          />
-        </div>
-      </div>
+      {/* Navigation Controls */}
+      <NavigationControls
+        currentFrame={currentFrame}
+        currentSlice={currentSlice}
+        totalFrames={totalFrames}
+        totalSlices={totalSlices}
+        onFrameChange={onFrameChange}
+        onSliceChange={onSliceChange}
+      />
 
-      {/* OPTIMIZED: Canvas with better event handling */}
-      <div className="border-4 border-muted-foreground rounded-lg overflow-hidden">
-        <Stage
-          ref={stageRef}
-          width={width}
-          height={height}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-        >
-          <Layer>
-            {/* Background medical image */}
-            {imageStatus === "loaded" && image && (
-              <KonvaImage image={image} width={width} height={height} />
-            )}
-            
-            {/* Render mask overlays efficiently */}
-            {Object.entries(LABEL_COLORS).map(([label, color]) => {
-              const maskKey = `mask_${currentFrame}_${currentSlice}_${label}`;
-              const maskData = decodedMasks[maskKey];
-              
-              if (!maskData) return null;
-              
-              return (
-                <KonvaImage
-                  key={maskKey}
-                  image={createMaskOverlay(maskData, color)}
-                  width={width}
-                  height={height}
-                  opacity={opacity}
-                />
-              );
-            })}
-            
-            {/* Current drawing with enhanced visual feedback */}
-            {isDrawing.current && drawingPoints && (
-              <Line
-                points={drawingPoints}
-                stroke={tool === "eraser" ? "#000" : LABEL_COLORS[activeLabel as keyof typeof LABEL_COLORS] || "#00f"}
-                strokeWidth={brushSize}
-                opacity={0.8}
-                shadowBlur={hardnessToBlur[hardness]}
-                tension={0.5}
-                lineCap="round"
-                lineJoin="round"
-                globalCompositeOperation={tool === "eraser" ? "destination-out" : "source-over"}
-              />
-            )}
-          </Layer>
-        </Stage>
-      </div>
+      {/* Pending changes indicator */}
+      {pendingChanges.size > 0 && (
+        <div className={cn(
+          "mb-2 px-3 py-1 text-sm rounded-md",
+          "bg-yellow-100 dark:bg-yellow-900",
+          "text-yellow-800 dark:text-yellow-200",
+          "border border-yellow-200 dark:border-yellow-700",
+          "flex items-center gap-2"
+        )}>
+          <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
+          {pendingChanges.size} unsaved change{pendingChanges.size > 1 ? 's' : ''} in browser state
+        </div>
+      )}
+
+      {/* Canvas Container */}
+      <CanvasContainer
+        imageStatus={imageStatus}
+        stageRef={stageRef}
+        width={width}
+        height={height}
+        handleMouseDown={handleMouseDown}
+        handleMouseMove={handleMouseMove}
+        handleMouseUp={handleMouseUp}
+        image={image}
+        currentMaskOverlays={currentMaskOverlays}
+        opacity={opacity}
+        isDrawing={isDrawing.current}
+        drawingPoints={drawingPoints}
+        tool={tool}
+        activeLabel={activeLabel}
+        brushSize={brushSize}
+        hardness={hardness}
+      />
+
+      {/* Image Status Indicator */}
+      {imageStatus === "error" && (
+        <div className={cn(
+          "mt-2 text-sm text-destructive",
+          "flex items-center gap-2"
+        )}>
+          Failed to load image for Frame {currentFrame + 1}, Slice {currentSlice + 1}
+        </div>
+      )}
     </div>
   );
 }
