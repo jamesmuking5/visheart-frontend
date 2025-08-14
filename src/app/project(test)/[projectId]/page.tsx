@@ -171,7 +171,7 @@ export default function ProjectPage() {
           const completedJobs = projectJobs.filter((job: ProjectTypes.UserJob) => job.status === ProjectTypes.JobStatus.COMPLETED);
           if (completedJobs.length > 0 && !hasMasks) {
             console.warn(`Warning: Found ${completedJobs.length} completed job(s) but no masks for project ${projectId}. This may indicate a server-side issue.`);
-            setJobsError(`Found completed segmentation job(s) but no results. Please contact support or try re-running segmentation.`);
+            setJobsError(`Found completed segmentation job(s) but no results. Please contact support or try re-creating the project.`);
           }
         })
         .catch((error: unknown) => {
@@ -200,7 +200,5 @@ export default function ProjectPage() {
   // Todo: if no masks, check jobs, and if no jobs, show start segmentation button
   // if (segmentationError) return <ErrorProject error={segmentationError} />;
 
-  if (projectData) console.log(projectData.projectId);
-  if (decodedMasks.current) console.log("Decoded masks in state:", Object.keys(decodedMasks.current).length);
   return projectData ? <ShowProjectData project={projectData} hasMasks={hasMasks} decodedMasks={decodedMasks.current} masks={undecodedMasks} jobs={jobs} jobsError={jobsError} /> : null;
 }

@@ -3,6 +3,8 @@
 
 "use client";
 
+import { useState } from "react";
+
 // Sheet import
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -11,6 +13,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Tab import
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+// API and Auth imports
+import { projectApi } from "@/lib/api";
+import { ShowForUser } from "@/components/RoleGuard";
 
 // Type definitions
 import * as ProjectTypes from "@/types/project(test)";
@@ -23,13 +29,31 @@ type ShowProjectDataProps = {
   masks?: ProjectTypes.BaseSegmentationMask[] | null;
   jobs?: ProjectTypes.UserJob[] | null;
   jobsError?: string | null;
+  onProjectUpdate?: () => void; // Callback to refresh project data in parent
 };
 
-export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, jobsError }: ShowProjectDataProps) => {
-  if (!project) return null;
+export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, jobsError, onProjectUpdate }: ShowProjectDataProps) => {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [localProject, setLocalProject] = useState(project);
 
-  const width = project.dimensions?.width ?? 0;
-  const height = project.dimensions?.height ?? 0;
+  if (!localProject) return null;
+
+  const width = localProject.dimensions?.width ?? 0;
+  const height = localProject.dimensions?.height ?? 0;
+
+  // Handle save/unsave project
+  const handleSaveProject = async (isSaved: boolean) => {
+    setIsUpdating(true);
+    try {
+      await projectApi.saveProject(localProject.projectId, isSaved);
+      setLocalProject((prev) => ({ ...prev, isSaved }));
+      onProjectUpdate?.(); // Notify parent component to refresh
+    } catch (error) {
+      console.error("Error updating project:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   // Derive mask summary
   const decodedKeys = decodedMasks ? Object.keys(decodedMasks) : [];
@@ -38,7 +62,7 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
   decodedKeys.forEach((k) => {
     const cls = k.split("_").pop() || "unknown"; // key format ends with class
     perClassCount[cls] = (perClassCount[cls] || 0) + 1;
-  });
+  }); 
 
   // Derive job summary
   const jobCounts = (jobs || []).reduce(
@@ -74,52 +98,58 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-medium">Name</span>
-                <span className="text-muted-foreground">{project.name}</span>
+                <span className="text-muted-foreground">{localProject.name}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-medium">Description</span>
-                <span className="text-muted-foreground max-w-[60%] truncate" title={project.description}>
-                  {project.description}
+                <span className="text-muted-foreground max-w-[60%] truncate" title={localProject.description}>
+                  {localProject.description}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-medium">Status</span>
-                <Badge variant={project.isSaved ? "default" : "secondary"}>{project.isSaved ? "Saved" : "Temp"}</Badge>
+                <ShowForUser fallback={<Badge variant={localProject.isSaved ? "default" : "secondary"}>{localProject.isSaved ? "Saved" : "Temp"}</Badge>}>
+                  <Button variant="ghost" size="sm" onClick={() => handleSaveProject(!localProject.isSaved)} className="h-auto p-1" disabled={isUpdating}>
+                    <Badge variant={localProject.isSaved ? "default" : "secondary"} className="cursor-pointer hover:opacity-80">
+                      {localProject.isSaved ? "Saved" : "Temp"}
+                    </Badge>
+                  </Button>
+                </ShowForUser>
               </div>
               <div className="flex items-center justify-between">
-                <span className="font-medium">File</span>
+                <span className="font-medium">File Type</span>
                 <span className="text-muted-foreground">
-                  {project.filetype} • {project.filesize} bytes
+                  {localProject.filetype} • {localProject.filesize} bytes
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="font-medium">Dimensions</span>
                 <span className="text-muted-foreground">
                   {width} × {height}
-                  {project.dimensions?.slices !== undefined && ` × ${project.dimensions.slices}`}
-                  {project.dimensions?.frames !== undefined && ` × ${project.dimensions.frames}`}
+                  {localProject.dimensions?.slices !== undefined && ` × ${localProject.dimensions.slices}`}
+                  {localProject.dimensions?.frames !== undefined && ` × ${localProject.dimensions.frames}`}
                 </span>
               </div>
-              {project.voxelsize && (
+              {localProject.voxelsize && (
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Voxel Size</span>
                   <span className="text-muted-foreground">
-                    x: {project.voxelsize.x}, y: {project.voxelsize.y}
-                    {project.voxelsize.z !== undefined && `, z: ${project.voxelsize.z}`}
-                    {project.voxelsize.t !== undefined && `, t: ${project.voxelsize.t}`}
+                    x: {localProject.voxelsize.x}, y: {localProject.voxelsize.y}
+                    {localProject.voxelsize.z !== undefined && `, z: ${localProject.voxelsize.z}`}
+                    {localProject.voxelsize.t !== undefined && `, t: ${localProject.voxelsize.t}`}
                   </span>
                 </div>
               )}
-              {project.createdAt && (
+              {localProject.createdAt && (
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Created</span>
-                  <span className="text-muted-foreground">{new Date(project.createdAt).toLocaleString()}</span>
+                  <span className="text-muted-foreground">{new Date(localProject.createdAt).toLocaleString()}</span>
                 </div>
               )}
-              {project.updatedAt && (
+              {localProject.updatedAt && (
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Updated</span>
-                  <span className="text-muted-foreground">{new Date(project.updatedAt).toLocaleString()}</span>
+                  <span className="text-muted-foreground">{new Date(localProject.updatedAt).toLocaleString()}</span>
                 </div>
               )}
             </div>
@@ -130,7 +160,7 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
             <TabsContent value="mask" className="p-0">
               <ScrollArea className="h-2xl p-4">
                 <div className="space-y-4">
-                  {totalDecoded > 0 ? (
+                  {totalDecoded > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">Total Masks</span>
@@ -166,8 +196,6 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
                         </div>
                       </div>
                     </div>
-                  ) : (
-                    <div className="text-muted-foreground text-sm">Masks found but not decoded yet.</div>
                   )}
 
                   {masks && masks.length > 0 && (
