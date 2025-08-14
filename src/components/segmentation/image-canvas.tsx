@@ -221,7 +221,7 @@ export function ImageCanvas({
     // VisHeart API pattern with session credentials
     img.crossOrigin = "use-credentials";
     img.src = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/projects/${projectData.projectId}/images/frame_${currentFrame}_slice_${currentSlice}.jpeg`;
-    
+     
     const timeoutId = setTimeout(() => {
       setImageStatus("error");
     }, PERFORMANCE_CONSTANTS?.IMAGE_LOAD_TIMEOUT_MS || 10000);
@@ -503,7 +503,6 @@ export function ImageCanvas({
   const currentMaskOverlays = useMemo(() => {
     const combinedMasks = getCombinedMasks();
     
-    console.log('[ImageCanvas] Combined masks available:', Object.keys(combinedMasks));
     console.log('[ImageCanvas] Looking for frame:', currentFrame, 'slice:', currentSlice);
     
     return Object.entries(LABEL_COLORS).map(([label, color]) => {

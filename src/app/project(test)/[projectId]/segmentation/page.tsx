@@ -351,6 +351,11 @@ export default function SegmentationResultsPage() {
           projectData.dimensions?.height || 0
         );
         
+      // Console log the decoded masks as expandable arrays
+      console.log('[Segmentation] Decoded Masks Overview');
+      console.log('Total masks found:', Object.keys(decoded.masks).length); 
+      console.log('Raw decoded masks object:', decoded.masks);
+
         setDecodedMasks(decoded.masks);
         initializeHistory(decoded.masks); // Initialize history
       })
