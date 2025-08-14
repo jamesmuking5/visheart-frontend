@@ -1,4 +1,3 @@
-// src/app/project(test)/[projectId]/segmentation/page.tsx
 "use client";
 
 import dynamic from "next/dynamic";
@@ -55,6 +54,9 @@ export default function SegmentationResultsPage() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyStep, setHistoryStep] = useState(0);
   const historyIdCounter = useRef(0);
+
+  // Track undo/redo operations
+  const [isUndoRedoOperation, setIsUndoRedoOperation] = useState(false);
 
   // Memoized History Values
   const canUndo = useMemo(() => historyStep > 0, [historyStep]);
@@ -159,45 +161,56 @@ export default function SegmentationResultsPage() {
     return { added, removed, label };
   }, [currentFrame, currentSlice]);
 
-  // Undo Handler
+  // Navigation handlers that DON'T trigger undo/redo flag
+  const handleFrameChange = useCallback((frame: number) => {
+    setCurrentFrame(frame);
+    // Don't set isUndoRedoOperation flag for normal navigation
+  }, []);
+
+  const handleSliceChange = useCallback((slice: number) => {
+    setCurrentSlice(slice);
+    // Don't set isUndoRedoOperation flag for normal navigation
+  }, []);
+
+  // Undo Handler - ONLY for actual undo operations
   const handleUndo = useCallback(() => {
     if (!canUndo || history.length === 0) return;
     
     const newStep = historyStep - 1;
     const targetEntry = history[newStep];
     
+    // Signal undo operation to canvas
+    setIsUndoRedoOperation(true);
+    
     setHistoryStep(newStep);
     setDecodedMasks(targetEntry.masksSnapshot);
     setHasUnsavedChanges(true);
 
-    // Add undo entry to history for tracking
-    const undoEntry = createHistoryEntry(
-      'undo',
-      `Undo: ${targetEntry.description}`,
-      targetEntry.masksSnapshot
-    );
+    console.log(`[Segmentation] Undo operation: ${targetEntry.description}`);
     
-    // Don't add to main history to avoid infinite loop, just for UI tracking
-  }, [canUndo, history, historyStep, createHistoryEntry]);
+    // Reset the flag after a brief delay to allow canvas to react
+    setTimeout(() => setIsUndoRedoOperation(false), 100);
+  }, [canUndo, history, historyStep]);
 
-  // Redo Handler
+  // Redo Handler - ONLY for actual redo operations
   const handleRedo = useCallback(() => {
     if (!canRedo || history.length === 0) return;
     
     const newStep = historyStep + 1;
     const targetEntry = history[newStep];
     
+    // Signal redo operation to canvas
+    setIsUndoRedoOperation(true);
+    
     setHistoryStep(newStep);
     setDecodedMasks(targetEntry.masksSnapshot);
     setHasUnsavedChanges(true);
 
-    // Add redo entry for tracking
-    const redoEntry = createHistoryEntry(
-      'redo',
-      `Redo: ${targetEntry.description}`,
-      targetEntry.masksSnapshot
-    );
-  }, [canRedo, history, historyStep, createHistoryEntry]);
+    console.log(`[Segmentation] Redo operation: ${targetEntry.description}`);
+    
+    // Reset the flag after a brief delay
+    setTimeout(() => setIsUndoRedoOperation(false), 100);
+  }, [canRedo, history, historyStep]);
 
   // Clear Handler
   const handleClear = useCallback(() => {
@@ -216,13 +229,18 @@ export default function SegmentationResultsPage() {
     }
   }, [decodedMasks, currentFrame, currentSlice, activeLabel, updateMasksWithHistory]);
 
-  // History Navigation
+  // History Navigation - for history panel clicks, different from undo/redo
   const handleHistoryStepChange = useCallback((step: number) => {
     if (step >= 0 && step < history.length) {
       const targetEntry = history[step];
+      
+      // This is history navigation, not undo/redo
+      // Don't trigger local state clearing
       setHistoryStep(step);
       setDecodedMasks(targetEntry.masksSnapshot);
       setHasUnsavedChanges(true);
+      
+      console.log(`[Segmentation] History navigation to step ${step}: ${targetEntry.description}`);
     }
   }, [history]);
 
@@ -372,6 +390,7 @@ export default function SegmentationResultsPage() {
           <ImageCanvas
             projectData={projectData}
             decodedMasks={decodedMasks}
+            isUndoRedoOperation={isUndoRedoOperation}
             onMaskUpdate={updateMasksWithHistory}
             currentFrame={currentFrame}
             currentSlice={currentSlice}

@@ -67,6 +67,7 @@ export interface DrawingPanelProps {
 export interface ImageCanvasProps {
   projectData: ProjectData;
   decodedMasks: Record<string, Uint8Array>;
+  isUndoRedoOperation?: boolean; 
   onMaskUpdate: (
     masks: Record<string, Uint8Array>, 
     actionType?: 'brush' | 'eraser' | 'clear',
