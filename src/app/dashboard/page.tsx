@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useGpuStatus, useUserProjects, useUserJobs, useUserStats } from "@/lib/dashboard-hooks";
-import { ShowForUser, ShowForGuest } from "@/components/RoleGuard";
+import { ShowForUser, ShowForGuest, ShowForRegisteredUser } from "@/components/RoleGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -388,24 +388,42 @@ export default function DashboardPage() {
           </div>
 
           {/* Project Management Info */}
-          <Alert>
-            <AlertCircle className="inline h-4 w-4" />
-            <AlertTitle>Project Management:</AlertTitle>
-            <AlertDescription className="inline-block">
-              <span className="inline">New projects start as </span>
-              <span className="bg-secondary text-secondary-foreground mx-1 inline-block rounded-md px-2 py-0.5 text-xs font-medium">Temp</span>
-              <span className="inline">
-                and will be <span className="font-semibold">automatically deleted</span> when you log out. Click the
-              </span>
-              <span className="bg-secondary text-secondary-foreground mx-1 inline-block rounded-md px-2 py-0.5 text-xs font-medium">Temp</span>
-              <span className="inline"> badge to mark projects as </span>
-              <span className="bg-primary text-primary-foreground mx-1 inline-block rounded-md px-2 py-0.5 text-xs font-medium">Saved</span>
-              <span className="inline">
-                for permanent storage. Use the delete button to delete projects
-                <span className="font-semibold"> immediately</span>.
-              </span>
-            </AlertDescription>
-          </Alert>
+          <ShowForRegisteredUser>
+            <Alert>
+              <AlertCircle className="inline h-4 w-4" />
+              <AlertTitle>Project Management:</AlertTitle>
+              <AlertDescription className="inline-block">
+                <span className="inline">New projects start as </span>
+                <span className="bg-secondary text-secondary-foreground mx-1 inline-block rounded-md px-2 py-0.5 text-xs font-medium">Temp</span>
+                <span className="inline">
+                  and will be <span className="font-semibold">automatically deleted</span> when you log out. Click the
+                </span>
+                <span className="bg-secondary text-secondary-foreground mx-1 inline-block rounded-md px-2 py-0.5 text-xs font-medium">Temp</span>
+                <span className="inline"> badge to mark projects as </span>
+                <span className="bg-primary text-primary-foreground mx-1 inline-block rounded-md px-2 py-0.5 text-xs font-medium">Saved</span>
+                <span className="inline">
+                  for permanent storage. Use the delete button to delete projects
+                  <span className="font-semibold"> immediately</span>.
+                </span>
+              </AlertDescription>
+            </Alert>
+          </ShowForRegisteredUser>
+
+          <ShowForGuest>
+            <Alert className="opacity-60">
+              <AlertCircle className="inline h-4 w-4" />
+              <AlertTitle className="text-muted-foreground">Project Management (Guest Mode):</AlertTitle>
+              <AlertDescription className="inline-block text-muted-foreground">
+                <span className="inline">All projects are temporary as </span>
+                <span className="bg-muted text-muted-foreground mx-1 inline-block rounded-md px-2 py-0.5 text-xs font-medium opacity-70">Temp</span>
+                <span className="inline">
+                  and will be <span className="font-semibold">automatically deleted</span> when you log out.
+                  <span className="italic"> As a guest, you cannot save projects permanently or change their status.</span>
+                  <span className="font-semibold"> You may only perform segmentation, edits and exports while the guest session is active.</span>
+                </span>
+              </AlertDescription>
+            </Alert>
+          </ShowForGuest>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
@@ -413,13 +431,13 @@ export default function DashboardPage() {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <CardTitle className="text-lg">{project.name}</CardTitle>
-                    <ShowForUser fallback={<Badge variant={project.isSaved ? "default" : "secondary"}>{project.isSaved ? "Saved" : "Temp"}</Badge>}>
+                    <ShowForRegisteredUser fallback={<Badge variant={project.isSaved ? "default" : "secondary"}>{project.isSaved ? "Saved" : "Temp"}</Badge>}>
                       <Button variant="ghost" size="sm" onClick={() => handleSaveProject(project.projectId, !project.isSaved)} className="h-auto p-1">
                         <Badge variant={project.isSaved ? "default" : "secondary"} className="cursor-pointer hover:opacity-80">
                           {project.isSaved ? "Saved" : "Temp"}
                         </Badge>
                       </Button>
-                    </ShowForUser>
+                    </ShowForRegisteredUser>
                   </div>
                   <CardDescription className="line-clamp-2">{project.description || "No description"}</CardDescription>
                 </CardHeader>
@@ -463,12 +481,12 @@ export default function DashboardPage() {
                       Export
                     </Button>
                   </div>
-                  <ShowForUser fallback={null}>
+                  <ShowForRegisteredUser fallback={null}>
                     <Button size="sm" variant="destructive" className="mt-2 w-full" onClick={() => handleDeleteProject(project.projectId, project.name)}>
                       <Trash2 className="mr-1 h-3 w-3" />
                       Delete Project
                     </Button>
-                  </ShowForUser>
+                  </ShowForRegisteredUser>
                 </CardContent>
               </Card>
             ))}

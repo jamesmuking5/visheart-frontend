@@ -81,7 +81,7 @@ export function ShowForUser({
   fallback?: React.ReactNode;
 }) {
   return (
-    <RoleGuard allowedRoles={["user", "admin"]} fallback={fallback}>
+    <RoleGuard allowedRoles={["user", "admin", "guest"]} fallback={fallback}>
       {children}
     </RoleGuard>
   );
@@ -102,6 +102,21 @@ export function ShowForGuest({
 }
 
 export function HideForGuest({
+  children,
+  fallback,
+}: {
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
+}) {
+  return (
+    <RoleGuard allowedRoles={["user", "admin"]} fallback={fallback}>
+      {children}
+    </RoleGuard>
+  );
+}
+
+// New component: Show only for registered users (user, admin) - excludes guests
+export function ShowForRegisteredUser({
   children,
   fallback,
 }: {
