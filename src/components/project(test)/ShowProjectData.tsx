@@ -156,7 +156,9 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
         </Button>
       </SheetTrigger>
       <SheetContent className="w-[90vw] max-w-[800px] min-w-[500px] z-100 pt-8">
-        <h1 className="text-center font-extrabold w-full text-foreground text-2xl">Project Information</h1>
+        <SheetHeader>
+          <SheetTitle className="text-center font-extrabold w-full text-foreground text-2xl">Project Information</SheetTitle>
+        </SheetHeader>
         <Tabs className="w-full px-5" defaultValue="project">
           <TabsList className="flex w-full flex-row gap-2 h-6">
             <TabsTrigger value="project">Project Data</TabsTrigger>
@@ -233,7 +235,7 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
           {/* Mask Data Section */}
           {hasMasks && (
             <TabsContent value="mask" className="p-0">
-              <ScrollArea className="h-2xl p-4">
+              <ScrollArea className="h-[60vh] max-h-[500px] min-h-[300px] p-4">
                 <div className="space-y-4">
                   {totalDecoded > 0 && (
                     <div className="space-y-2">
@@ -294,179 +296,183 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
             </TabsContent>
           )}
           {/* Job Section */}
-          <TabsContent value="job" className="p-4 space-y-4">
-            {jobsError && (
-              <div className="text-destructive text-sm flex items-center gap-2">
-                <AlertCircle className="h-4 w-4" />
-                {jobsError}
-              </div>
-            )}
+          <TabsContent value="job" className="p-0">
+            <ScrollArea className="h-[60vh] max-h-[500px] min-h-[300px] p-4">
+              <div className="space-y-4">
+                {jobsError && (
+                  <div className="text-destructive text-sm flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    {jobsError}
+                  </div>
+                )}
 
-            {!jobs || jobs.length === 0 ? (
-              <div className="text-center py-6 space-y-4">
-                <CheckCircle className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-                <h3 className="text-lg font-medium mb-1">No Active Jobs</h3>
-                <p className="text-muted-foreground text-sm mb-4">No segmentation jobs found for this project. Start a new segmentation to see job details here.</p>
+                {!jobs || jobs.length === 0 ? (
+                  <div className="text-center py-6 space-y-4">
+                    <CheckCircle className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+                    <h3 className="text-lg font-medium mb-1">No Active Jobs</h3>
+                    <p className="text-muted-foreground text-sm mb-4">No segmentation jobs found for this project. Start a new segmentation to see job details here.</p>
 
-                {!hasMasks && (
-                  <ShowForUser fallback={null}>
-                    {segmentationError ? (
-                      // Error state with improved design
-                      <div className="space-y-4 max-w-lg mx-auto">
-                        <div className="rounded-xl border border-destructive/30 bg-gradient-to-br from-destructive/5 to-destructive/10 p-6 shadow-sm">
-                          <div className="flex items-start gap-4">
-                            <div className="flex-shrink-0">
-                              {user?.role === "admin" ? (
-                                <div className="rounded-full bg-destructive/15 p-2">
-                                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                    {!hasMasks && (
+                      <ShowForUser fallback={null}>
+                        {segmentationError ? (
+                          // Error state with improved design
+                          <div className="space-y-4 max-w-lg mx-auto">
+                            <div className="rounded-xl border border-destructive/30 bg-gradient-to-br from-destructive/5 to-destructive/10 p-6 shadow-sm">
+                              <div className="flex items-start gap-4">
+                                <div className="flex-shrink-0">
+                                  {user?.role === "admin" ? (
+                                    <div className="rounded-full bg-destructive/15 p-2">
+                                      <AlertTriangle className="h-5 w-5 text-destructive" />
+                                    </div>
+                                  ) : (
+                                    <div className="rounded-full bg-destructive/15 p-2">
+                                      <XCircle className="h-5 w-5 text-destructive" />
+                                    </div>
+                                  )}
                                 </div>
-                              ) : (
-                                <div className="rounded-full bg-destructive/15 p-2">
-                                  <XCircle className="h-5 w-5 text-destructive" />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-semibold text-destructive text-lg mb-2">{user?.role === "admin" ? "System Error" : "Service Unavailable"}</h4>
-                              <div className="space-y-3">
-                                <p className="text-sm text-destructive/90 leading-relaxed text-justify">{segmentationError}</p>
-                                {user?.role === "admin" && (
-                                  <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50 border border-border/50">
-                                    <Shield className="h-3.5 w-3.5 text-muted-foreground" />
-                                    <span className="text-xs text-muted-foreground font-medium w-full">Admin View - Technical details shown</span>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-destructive text-lg mb-2">{user?.role === "admin" ? "System Error" : "Service Unavailable"}</h4>
+                                  <div className="space-y-3">
+                                    <p className="text-sm text-destructive/90 leading-relaxed text-justify">{segmentationError}</p>
+                                    {user?.role === "admin" && (
+                                      <div className="flex items-center gap-2 p-2 rounded-md bg-muted/50 border border-border/50">
+                                        <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                                        <span className="text-xs text-muted-foreground font-medium w-full">Admin View - Technical details shown</span>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
+                                </div>
                               </div>
                             </div>
+                            <div className="flex gap-3 justify-center">
+                              <Button variant="outline" size="sm" onClick={() => setSegmentationError(null)} className="px-4 py-2">
+                                Dismiss
+                              </Button>
+                              <Button onClick={handleStartSegmentation} disabled={isStartingSegmentation} size="sm" className="px-4 py-2 font-medium">
+                                {isStartingSegmentation ? <RefreshCw className="mr-2 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-2 h-3.5 w-3.5" />}
+                                {isStartingSegmentation ? "Retrying..." : "Try Again"}
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          // Normal state with improved design
+                          <div className="flex flex-col items-center space-y-3">
+                            <Button
+                              onClick={handleStartSegmentation}
+                              disabled={isStartingSegmentation}
+                              size="lg"
+                              className="px-6 py-3 font-semibold text-base shadow-sm hover:shadow-md transition-all duration-200"
+                            >
+                              {isStartingSegmentation ? (
+                                <>
+                                  <RefreshCw className="mr-2.5 h-4 w-4 animate-spin" />
+                                  Starting Segmentation...
+                                </>
+                              ) : (
+                                <>
+                                  <Play className="mr-2.5 h-4 w-4" />
+                                  Start Segmentation
+                                </>
+                              )}
+                            </Button>
+                            <p className="text-xs text-muted-foreground text-center max-w-sm">This will process your medical images using AI segmentation</p>
+                          </div>
+                        )}
+                      </ShowForUser>
+                    )}
+                  </div>
+                ) : jobs.length === 1 && (jobs[0].status === ProjectTypes.JobStatus.IN_PROGRESS || jobs[0].status === ProjectTypes.JobStatus.PENDING) && !hasMasks ? (
+                  // Single job in progress without masks - show detailed view
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 mb-4">
+                      <RefreshCw className="h-4 w-4 text-blue-500 dark:text-blue-400 animate-spin" />
+                      <h3 className="text-sm font-medium text-foreground">Segmentation In Progress</h3>
+                    </div>
+
+                    <div className="rounded-lg border border-blue-200 dark:border-blue-800 p-4 bg-blue-50/50 dark:bg-blue-950/30">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-foreground">Job Status</span>
+                          <div className="flex items-center gap-2">
+                            {jobs[0].status === ProjectTypes.JobStatus.IN_PROGRESS ? (
+                              <RefreshCw className="h-4 w-4 text-blue-500 dark:text-blue-400 animate-spin" />
+                            ) : (
+                              <Clock className="h-4 w-4 text-amber-500 dark:text-amber-400" />
+                            )}
+                            <Badge variant={jobs[0].status === ProjectTypes.JobStatus.IN_PROGRESS ? "default" : "secondary"}>
+                              {jobs[0].status === ProjectTypes.JobStatus.IN_PROGRESS ? "Processing" : "Pending"}
+                            </Badge>
                           </div>
                         </div>
-                        <div className="flex gap-3 justify-center">
-                          <Button variant="outline" size="sm" onClick={() => setSegmentationError(null)} className="px-4 py-2">
-                            Dismiss
-                          </Button>
-                          <Button onClick={handleStartSegmentation} disabled={isStartingSegmentation} size="sm" className="px-4 py-2 font-medium">
-                            {isStartingSegmentation ? <RefreshCw className="mr-2 h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="mr-2 h-3.5 w-3.5" />}
-                            {isStartingSegmentation ? "Retrying..." : "Try Again"}
-                          </Button>
+
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-foreground">Job ID</span>
+                          <span className="text-muted-foreground font-mono text-sm">{jobs[0].jobId.slice(-12)}</span>
+                        </div>
+
+                        {jobs[0].queuePosition !== null && (
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-foreground">Queue Position</span>
+                            <span className="text-muted-foreground">{jobs[0].queuePosition}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-amber-200 dark:border-amber-800 p-4 bg-amber-50/50 dark:bg-amber-950/30">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                        <div>
+                          <h4 className="font-medium text-amber-900 dark:text-amber-100">Please Wait</h4>
+                          <p className="text-sm text-amber-800 dark:text-amber-200">Your segmentation is being processed. This may take a few minutes depending on the image size and server load.</p>
+                          <p className="text-sm text-amber-800 dark:text-amber-200 mt-2">
+                            <strong>Tip:</strong> Refresh this dialog periodically to check for completion. The segmentation results will appear in the Mask Data tab once ready.
+                          </p>
                         </div>
                       </div>
-                    ) : (
-                      // Normal state with improved design
-                      <div className="flex flex-col items-center space-y-3">
-                        <Button
-                          onClick={handleStartSegmentation}
-                          disabled={isStartingSegmentation}
-                          size="lg"
-                          className="px-6 py-3 font-semibold text-base shadow-sm hover:shadow-md transition-all duration-200"
-                        >
-                          {isStartingSegmentation ? (
-                            <>
-                              <RefreshCw className="mr-2.5 h-4 w-4 animate-spin" />
-                              Starting Segmentation...
-                            </>
-                          ) : (
-                            <>
-                              <Play className="mr-2.5 h-4 w-4" />
-                              Start Segmentation
-                            </>
-                          )}
-                        </Button>
-                        <p className="text-xs text-muted-foreground text-center max-w-sm">This will process your medical images using AI segmentation</p>
+                    </div>
+                  </div>
+                ) : (
+                  // Multiple jobs or other cases - show summary view
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-4 gap-2">
+                      <div className="rounded-md border p-2 text-center">
+                        <p className="text-xs text-muted-foreground">Pending</p>
+                        <p className="text-lg font-semibold">{jobCounts[ProjectTypes.JobStatus.PENDING] || 0}</p>
                       </div>
-                    )}
-                  </ShowForUser>
+                      <div className="rounded-md border p-2 text-center">
+                        <p className="text-xs text-muted-foreground">In Progress</p>
+                        <p className="text-lg font-semibold">{jobCounts[ProjectTypes.JobStatus.IN_PROGRESS] || 0}</p>
+                      </div>
+                      <div className="rounded-md border p-2 text-center">
+                        <p className="text-xs text-muted-foreground">Completed</p>
+                        <p className="text-lg font-semibold">{jobCounts[ProjectTypes.JobStatus.COMPLETED] || 0}</p>
+                      </div>
+                      <div className="rounded-md border p-2 text-center">
+                        <p className="text-xs text-muted-foreground">Failed</p>
+                        <p className="text-lg font-semibold">{jobCounts[ProjectTypes.JobStatus.FAILED] || 0}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">Recent Jobs</p>
+                      <div className="space-y-2">
+                        {jobs.slice(0, 8).map((job) => (
+                          <div key={job.jobId} className="flex items-center justify-between rounded-md border p-2">
+                            <div>
+                              <p className="text-sm font-medium">Job {job.jobId.slice(-8)}</p>
+                              <p className="text-xs text-muted-foreground">Queue: {job.queuePosition ?? "-"}</p>
+                              <p className="text-xs text-muted-foreground">For: {job.projectId}</p>
+                            </div>
+                            <Badge variant="outline">{job.status}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
-            ) : jobs.length === 1 && (jobs[0].status === ProjectTypes.JobStatus.IN_PROGRESS || jobs[0].status === ProjectTypes.JobStatus.PENDING) && !hasMasks ? (
-              // Single job in progress without masks - show detailed view
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <RefreshCw className="h-5 w-5 text-blue-500 dark:text-blue-400 animate-spin" />
-                  <h3 className="text-lg font-medium text-foreground">Segmentation In Progress</h3>
-                </div>
-
-                <div className="rounded-lg border border-blue-200 dark:border-blue-800 p-4 bg-blue-50/50 dark:bg-blue-950/30">
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-foreground">Job Status</span>
-                      <div className="flex items-center gap-2">
-                        {jobs[0].status === ProjectTypes.JobStatus.IN_PROGRESS ? (
-                          <RefreshCw className="h-4 w-4 text-blue-500 dark:text-blue-400 animate-spin" />
-                        ) : (
-                          <Clock className="h-4 w-4 text-amber-500 dark:text-amber-400" />
-                        )}
-                        <Badge variant={jobs[0].status === ProjectTypes.JobStatus.IN_PROGRESS ? "default" : "secondary"}>
-                          {jobs[0].status === ProjectTypes.JobStatus.IN_PROGRESS ? "Processing" : "Pending"}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-foreground">Job ID</span>
-                      <span className="text-muted-foreground font-mono text-sm">{jobs[0].jobId.slice(-12)}</span>
-                    </div>
-
-                    {jobs[0].queuePosition !== null && (
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-foreground">Queue Position</span>
-                        <span className="text-muted-foreground">{jobs[0].queuePosition}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="rounded-lg border border-amber-200 dark:border-amber-800 p-4 bg-amber-50/50 dark:bg-amber-950/30">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
-                    <div>
-                      <h4 className="font-medium text-amber-900 dark:text-amber-100">Please Wait</h4>
-                      <p className="text-sm text-amber-800 dark:text-amber-200">Your segmentation is being processed. This may take a few minutes depending on the image size and server load.</p>
-                      <p className="text-sm text-amber-800 dark:text-amber-200 mt-2">
-                        <strong>Tip:</strong> Refresh this dialog periodically to check for completion. The segmentation results will appear in the Mask Data tab once ready.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              // Multiple jobs or other cases - show summary view
-              <div className="space-y-3">
-                <div className="grid grid-cols-4 gap-2">
-                  <div className="rounded-md border p-2 text-center">
-                    <p className="text-xs text-muted-foreground">Pending</p>
-                    <p className="text-lg font-semibold">{jobCounts[ProjectTypes.JobStatus.PENDING] || 0}</p>
-                  </div>
-                  <div className="rounded-md border p-2 text-center">
-                    <p className="text-xs text-muted-foreground">In Progress</p>
-                    <p className="text-lg font-semibold">{jobCounts[ProjectTypes.JobStatus.IN_PROGRESS] || 0}</p>
-                  </div>
-                  <div className="rounded-md border p-2 text-center">
-                    <p className="text-xs text-muted-foreground">Completed</p>
-                    <p className="text-lg font-semibold">{jobCounts[ProjectTypes.JobStatus.COMPLETED] || 0}</p>
-                  </div>
-                  <div className="rounded-md border p-2 text-center">
-                    <p className="text-xs text-muted-foreground">Failed</p>
-                    <p className="text-lg font-semibold">{jobCounts[ProjectTypes.JobStatus.FAILED] || 0}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm font-medium">Recent Jobs</p>
-                  <div className="space-y-2">
-                    {jobs.slice(0, 8).map((job) => (
-                      <div key={job.jobId} className="flex items-center justify-between rounded-md border p-2">
-                        <div>
-                          <p className="text-sm font-medium">Job {job.jobId.slice(-8)}</p>
-                          <p className="text-xs text-muted-foreground">Queue: {job.queuePosition ?? "-"}</p>
-                          <p className="text-xs text-muted-foreground">For: {job.projectId}</p>
-                        </div>
-                        <Badge variant="outline">{job.status}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
+            </ScrollArea>
           </TabsContent>
         </Tabs>
       </SheetContent>
