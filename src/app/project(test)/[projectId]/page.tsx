@@ -23,7 +23,6 @@ import { LoadingStage } from "@/types/project(test)";
 
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
-  const router = useRouter();
 
   const [loading, setLoading] = useState<LoadingStage>("idle"); // Page loading
 
