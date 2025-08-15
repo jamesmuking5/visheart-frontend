@@ -9,6 +9,7 @@ import { NoProjectFound } from "@/components/project(test)/NoProjectFound";
 import { ErrorProject } from "@/components/project(test)/ErrorProject";
 import { ShowProjectData } from "@/components/project(test)/ShowProjectData";
 import { LoadingProject } from "@/components/project(test)/LoadingProject";
+import { DebugProjectPageInfo } from "@/components/project(test)/DebugProjectPageInfo";
 
 // Custom utilities
 import { projectApi, segmentationApi } from "@/lib/api";
@@ -200,5 +201,14 @@ export default function ProjectPage() {
   // Todo: if no masks, check jobs, and if no jobs, show start segmentation button
   // if (segmentationError) return <ErrorProject error={segmentationError} />;
 
-  return projectData ? <ShowProjectData project={projectData} hasMasks={hasMasks} decodedMasks={decodedMasks.current} masks={undecodedMasks} jobs={jobs} jobsError={jobsError} /> : null;
+  return projectData ? (
+    <div className="min-h-screen bg-background p-6">
+      <div className="max-w-6xl mx-auto space-y-4">
+        {/* Simple name and description viewer */}
+        <DebugProjectPageInfo projectData={projectData} />
+        {/* Sheet to show project, mask or job metadata on a right-side popup */}
+        <ShowProjectData project={projectData} hasMasks={hasMasks} decodedMasks={decodedMasks.current} masks={undecodedMasks} jobs={jobs} jobsError={jobsError} />
+      </div>
+    </div>
+  ) : null;
 }

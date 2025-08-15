@@ -19,15 +19,7 @@ import { tarImageCache, TarFetchDebugInfo } from "@/lib/tar-image-cache";
 // Removed Konva - using plain Canvas API for better performance with Uint8 masks
 
 // Type definitions
-import {
-  ProjectInfo,
-  UserJob,
-  UserJobsResponse,
-  JobStatus,
-  MedSAMask,
-  EditableMask,
-  SegmentationMask,
-} from "@/types/project";
+import { ProjectInfo, UserJob, UserJobsResponse, JobStatus, MedSAMask, EditableMask, SegmentationMask } from "@/types/project";
 
 // Color mapping for cardiac anatomy visualization
 const CLASS_COLORS = {
@@ -67,16 +59,11 @@ export default function ProjectPage() {
   // Job tracking for segmentation processing queue
   const [activeJobCount, setActiveJobCount] = useState<number>(0);
   const [projectActiveJobs, setProjectActiveJobs] = useState<UserJob[]>([]);
-  const [segmentationError, setSegmentationError] = useState<string | null>(
-    null,
-  );
-  const [isStartingSegmentation, setIsStartingSegmentation] =
-    useState<boolean>(false);
+  const [segmentationError, setSegmentationError] = useState<string | null>(null);
+  const [isStartingSegmentation, setIsStartingSegmentation] = useState<boolean>(false);
 
   // Image cache: TAR file → Individual images → Canvas rendering
-  const [tarDebugInfo, setTarDebugInfo] = useState<TarFetchDebugInfo | null>(
-    null,
-  );
+  const [tarDebugInfo, setTarDebugInfo] = useState<TarFetchDebugInfo | null>(null);
   const [imageUrls, setImageUrls] = useState<Map<string, string>>(new Map());
   const [isLoadingImages, setIsLoadingImages] = useState<boolean>(false);
   const [imageLoadingProgress, setImageLoadingProgress] = useState<number>(0);
@@ -90,10 +77,7 @@ export default function ProjectPage() {
       await tarImageCache.init();
 
       // Download and extract TAR archive containing medical images
-      const result = await tarImageCache.fetchAndExtractProjectImages(
-        projectId,
-        projectApi.getProjectPresignedUrl,
-      );
+      const result = await tarImageCache.fetchAndExtractProjectImages(projectId, projectApi.getProjectPresignedUrl);
 
       setTarDebugInfo(tarImageCache.getDebugInfo());
 
@@ -101,19 +85,11 @@ export default function ProjectPage() {
         console.log(`[ProjectPage] Loaded ${result.extractedImages} images`);
 
         // Preload first image for immediate display
-        const { frames, slices } =
-          await tarImageCache.getAvailableFramesAndSlices(projectId);
+        const { frames, slices } = await tarImageCache.getAvailableFramesAndSlices(projectId);
         if (frames.length > 0 && slices.length > 0) {
-          const imageUrl = await tarImageCache.getImageURL(
-            projectId,
-            frames[0],
-            slices[0],
-          );
+          const imageUrl = await tarImageCache.getImageURL(projectId, frames[0], slices[0]);
           if (imageUrl) {
-            setImageUrls(
-              (prev) =>
-                new Map(prev.set(`${frames[0]}_${slices[0]}`, imageUrl)),
-            );
+            setImageUrls((prev) => new Map(prev.set(`${frames[0]}_${slices[0]}`, imageUrl)));
           }
         }
       } else {
@@ -168,21 +144,14 @@ export default function ProjectPage() {
         setProject(response.project);
 
         // Step 2: Check for existing masks (determines UI flow)
-        const masksResponse =
-          await segmentationApi.getSegmentationResults(projectId);
+        const masksResponse = await segmentationApi.getSegmentationResults(projectId);
 
         if (masksResponse.success && masksResponse.segmentations?.length > 0) {
           // MASKS FOUND → Decode and visualize
           setMaskFound(true);
 
-          const aiMasks = masksResponse.segmentations.filter(
-            (mask: SegmentationMask): mask is MedSAMask =>
-              mask.isMedSAMOutput === true,
-          );
-          const manualMasks = masksResponse.segmentations.filter(
-            (mask: SegmentationMask): mask is EditableMask =>
-              mask.isMedSAMOutput === false,
-          );
+          const aiMasks = masksResponse.segmentations.filter((mask: SegmentationMask): mask is MedSAMask => mask.isMedSAMOutput === true);
+          const manualMasks = masksResponse.segmentations.filter((mask: SegmentationMask): mask is EditableMask => mask.isMedSAMOutput === false);
 
           setMedSamMask(aiMasks);
           setEditableMask(manualMasks);
@@ -195,9 +164,7 @@ export default function ProjectPage() {
             });
             setDecodedMasks(decoded); // has both decoded AI and manual masks
           } else {
-            throw new Error(
-              "Project dimensions not available for mask decoding",
-            );
+            throw new Error("Project dimensions not available for mask decoding");
           }
 
           // Step 4: Load background images for visualization
@@ -214,51 +181,30 @@ export default function ProjectPage() {
 
           // Trace from jobs
           try {
-            const jobsResponse: UserJobsResponse =
-              await segmentationApi.getUserJobs();
+            const jobsResponse: UserJobsResponse = await segmentationApi.getUserJobs();
             if (jobsResponse.success) {
               setActiveJobCount(jobsResponse.activeJobCount);
 
-              const projectJobs = jobsResponse.jobs.filter(
-                (job) => job.projectId === projectId,
-              );
+              const projectJobs = jobsResponse.jobs.filter((job) => job.projectId === projectId);
               setProjectActiveJobs(projectJobs);
 
               // Data validation: completed jobs should have masks
-              const completedJobs = projectJobs.filter(
-                (job) => job.status === JobStatus.COMPLETED,
-              );
-              const failedJobs = projectJobs.filter(
-                (job) => job.status === JobStatus.FAILED,
-              );
+              const completedJobs = projectJobs.filter((job) => job.status === JobStatus.COMPLETED);
+              const failedJobs = projectJobs.filter((job) => job.status === JobStatus.FAILED);
 
               if (completedJobs.length > 0) {
-                throw new Error(
-                  `Processing error: Found ${completedJobs.length} completed job(s) but no masks. Server-side issue.`,
-                );
+                throw new Error(`Processing error: Found ${completedJobs.length} completed job(s) but no masks. Server-side issue.`);
               }
 
               if (failedJobs.length > 0) {
-                setSegmentationError(
-                  `Segmentation failed. Found ${failedJobs.length} failed job(s).`,
-                );
+                setSegmentationError(`Segmentation failed. Found ${failedJobs.length} failed job(s).`);
               }
 
-              const activeJobs = projectJobs.filter(
-                (job) =>
-                  job.status === JobStatus.PENDING ||
-                  job.status === JobStatus.IN_PROGRESS,
-              );
-              console.log(
-                `Found ${activeJobs.length} active jobs for project ${projectId}:`,
-                activeJobs,
-              );
+              const activeJobs = projectJobs.filter((job) => job.status === JobStatus.PENDING || job.status === JobStatus.IN_PROGRESS);
+              console.log(`Found ${activeJobs.length} active jobs for project ${projectId}:`, activeJobs);
             }
           } catch (jobError) {
-            if (
-              jobError instanceof Error &&
-              jobError.message.includes("Processing error")
-            ) {
+            if (jobError instanceof Error && jobError.message.includes("Processing error")) {
               throw jobError;
             }
             // Don't fail entire fetch for job API issues
@@ -270,11 +216,7 @@ export default function ProjectPage() {
 
         if (err instanceof Error) {
           errorMessage = err.message;
-        } else if (
-          typeof err === "object" &&
-          err !== null &&
-          "response" in err
-        ) {
+        } else if (typeof err === "object" && err !== null && "response" in err) {
           const axiosError = err as {
             response?: { data?: { message?: string } };
           };
@@ -307,22 +249,15 @@ export default function ProjectPage() {
     const [currentSlice, setCurrentSlice] = useState<number>(0);
     const [availableFrames, setAvailableFrames] = useState<number[]>([]);
     const [availableSlices, setAvailableSlices] = useState<number[]>([]);
-    const [backgroundImage, setBackgroundImage] =
-      useState<HTMLImageElement | null>(null);
+    const [backgroundImage, setBackgroundImage] = useState<HTMLImageElement | null>(null);
 
     // Load specific image from cache for current frame/slice
     const loadCurrentImage = async (frame: number, slice: number) => {
       try {
-        const imageUrl = await tarImageCache.getImageURL(
-          projectId,
-          frame,
-          slice,
-        );
+        const imageUrl = await tarImageCache.getImageURL(projectId, frame, slice);
 
         if (imageUrl) {
-          setImageUrls(
-            (prev) => new Map(prev.set(`${frame}_${slice}`, imageUrl)),
-          );
+          setImageUrls((prev) => new Map(prev.set(`${frame}_${slice}`, imageUrl)));
 
           // Preload the image for immediate rendering
           const img = new Image();
@@ -336,10 +271,7 @@ export default function ProjectPage() {
           img.src = imageUrl;
         }
       } catch (error) {
-        console.error(
-          `[MaskTestCanvas] Failed to load image for frame ${frame}, slice ${slice}:`,
-          error,
-        );
+        console.error(`[MaskTestCanvas] Failed to load image for frame ${frame}, slice ${slice}:`, error);
         setBackgroundImage(null);
       }
     };
@@ -384,15 +316,13 @@ export default function ProjectPage() {
     }, [currentFrame, currentSlice, availableFrames, availableSlices]);
 
     // Filter masks for current view (only matching frame/slice)
-    const currentMasks = Object.entries(decodedMasks.aiMasks).filter(
-      ([maskKey]) => {
-        const match = maskKey.match(/frame_(\d+)_slice_(\d+)/);
-        if (!match) return false;
-        const frameNum = parseInt(match[1], 10);
-        const sliceNum = parseInt(match[2], 10);
-        return frameNum === currentFrame && sliceNum === currentSlice;
-      },
-    );
+    const currentMasks = Object.entries(decodedMasks.aiMasks).filter(([maskKey]) => {
+      const match = maskKey.match(/frame_(\d+)_slice_(\d+)/);
+      if (!match) return false;
+      const frameNum = parseInt(match[1], 10);
+      const sliceNum = parseInt(match[2], 10);
+      return frameNum === currentFrame && sliceNum === currentSlice;
+    });
 
     // Trigger re-render when data changes
     useEffect(() => {
@@ -443,10 +373,7 @@ export default function ProjectPage() {
           const classMatch = maskKey.match(/_([^_]+)$/);
           const className = classMatch ? classMatch[1] : null;
 
-          if (
-            !className ||
-            !CLASS_COLORS[className as keyof typeof CLASS_COLORS]
-          ) {
+          if (!className || !CLASS_COLORS[className as keyof typeof CLASS_COLORS]) {
             return;
           }
 
@@ -469,22 +396,10 @@ export default function ProjectPage() {
                 const alpha = color.a / 255;
                 const invAlpha = 1 - alpha;
 
-                imageData.data[pixelIndex] = Math.min(
-                  255,
-                  imageData.data[pixelIndex] * invAlpha + color.r * alpha,
-                );
-                imageData.data[pixelIndex + 1] = Math.min(
-                  255,
-                  imageData.data[pixelIndex + 1] * invAlpha + color.g * alpha,
-                );
-                imageData.data[pixelIndex + 2] = Math.min(
-                  255,
-                  imageData.data[pixelIndex + 2] * invAlpha + color.b * alpha,
-                );
-                imageData.data[pixelIndex + 3] = Math.min(
-                  255,
-                  existingAlpha + color.a,
-                );
+                imageData.data[pixelIndex] = Math.min(255, imageData.data[pixelIndex] * invAlpha + color.r * alpha);
+                imageData.data[pixelIndex + 1] = Math.min(255, imageData.data[pixelIndex + 1] * invAlpha + color.g * alpha);
+                imageData.data[pixelIndex + 2] = Math.min(255, imageData.data[pixelIndex + 2] * invAlpha + color.b * alpha);
+                imageData.data[pixelIndex + 3] = Math.min(255, existingAlpha + color.a);
               }
             }
           }
@@ -496,18 +411,13 @@ export default function ProjectPage() {
     }, [backgroundImage, currentMasks]);
 
     // Guard: Don't render without essential data
-    if (
-      !project?.dimensions ||
-      Object.keys(decodedMasks.aiMasks).length === 0
-    ) {
+    if (!project?.dimensions || Object.keys(decodedMasks.aiMasks).length === 0) {
       return null;
     }
 
     return (
       <div className="space-y-4">
-        <h3 className="text-foreground font-semibold">
-          MedSAM AI Segmentation Viewer
-        </h3>
+        <h3 className="text-foreground font-semibold">MedSAM AI Segmentation Viewer</h3>
 
         {/* Frame and Slice Controls */}
         <div className="grid grid-cols-1 gap-4 rounded-lg border bg-gray-50 p-4 md:grid-cols-2 dark:bg-gray-800">
@@ -567,16 +477,13 @@ export default function ProjectPage() {
           />
           <div className="text-muted-foreground mt-2 space-y-1 text-sm">
             <p>
-              Showing AI masks for Frame {currentFrame + 1}, Slice{" "}
-              {currentSlice + 1}
+              Showing AI masks for Frame {currentFrame + 1}, Slice {currentSlice + 1}
             </p>
             <p>
-              Available: {availableFrames.length} frames,{" "}
-              {availableSlices.length} slices
+              Available: {availableFrames.length} frames, {availableSlices.length} slices
             </p>
             <p>
-              Canvas size: {project.dimensions!.width} ×{" "}
-              {project.dimensions!.height}
+              Canvas size: {project.dimensions!.width} × {project.dimensions!.height}
             </p>
             <p>Current masks: {currentMasks.length} for this frame/slice</p>
             <div className="mt-2 flex flex-wrap gap-2">
@@ -593,9 +500,7 @@ export default function ProjectPage() {
                 <span>MYO (Myocardium)</span>
               </span>
             </div>
-            <p className="text-muted-foreground mt-1 text-xs">
-              Colors assigned based on class labels: lvc, rv, myo
-            </p>
+            <p className="text-muted-foreground mt-1 text-xs">Colors assigned based on class labels: lvc, rv, myo</p>
           </div>
         </div>
       </div>
@@ -611,8 +516,7 @@ export default function ProjectPage() {
    * - Neither: Show start button
    */
   const RequestSegmentationButton = () => {
-    const getJobsByStatus = (status: JobStatus) =>
-      projectActiveJobs.filter((job) => job.status === status);
+    const getJobsByStatus = (status: JobStatus) => projectActiveJobs.filter((job) => job.status === status);
     const hasAnyJobs = projectActiveJobs.length > 0;
     const shouldShowButton = !maskFound && !hasAnyJobs;
 
@@ -620,13 +524,8 @@ export default function ProjectPage() {
       if (maskFound) {
         return (
           <div className="space-y-2">
-            <p className="text-green-600 dark:text-green-400">
-              Segmentation masks already exist for this project.
-            </p>
-            <p className="text-muted-foreground text-sm">
-              AI segmentation completed. Use the viewer above to explore
-              results.
-            </p>
+            <p className="text-green-600 dark:text-green-400">Segmentation masks already exist for this project.</p>
+            <p className="text-muted-foreground text-sm">AI segmentation completed. Use the viewer above to explore results.</p>
           </div>
         );
       }
@@ -639,47 +538,20 @@ export default function ProjectPage() {
 
         return (
           <div className="space-y-2">
-            {(pendingJobs.length > 0 || inProgressJobs.length > 0) && (
-              <p className="text-blue-600 dark:text-blue-400">
-                Segmentation in progress...
-              </p>
-            )}
-            {completedJobs.length > 0 && (
-              <p className="text-green-600 dark:text-green-400">
-                Segmentation completed
-              </p>
-            )}
-            {failedJobs.length > 0 && (
-              <p className="text-red-600 dark:text-red-400">
-                Segmentation failed
-              </p>
-            )}
+            {(pendingJobs.length > 0 || inProgressJobs.length > 0) && <p className="text-blue-600 dark:text-blue-400">Segmentation in progress...</p>}
+            {completedJobs.length > 0 && <p className="text-green-600 dark:text-green-400">Segmentation completed</p>}
+            {failedJobs.length > 0 && <p className="text-red-600 dark:text-red-400">Segmentation failed</p>}
 
             {pendingJobs.length > 0 && (
               <p className="text-muted-foreground text-sm">
-                {pendingJobs.length} job(s) pending (Queue:{" "}
-                {pendingJobs[0].queuePosition})
+                {pendingJobs.length} job(s) pending (Queue: {pendingJobs[0].queuePosition})
               </p>
             )}
-            {inProgressJobs.length > 0 && (
-              <p className="text-muted-foreground text-sm">
-                {inProgressJobs.length} job(s) processing
-              </p>
-            )}
-            {completedJobs.length > 0 && (
-              <p className="text-muted-foreground text-sm">
-                {completedJobs.length} job(s) completed
-              </p>
-            )}
-            {failedJobs.length > 0 && (
-              <p className="text-muted-foreground text-sm">
-                {failedJobs.length} job(s) failed
-              </p>
-            )}
+            {inProgressJobs.length > 0 && <p className="text-muted-foreground text-sm">{inProgressJobs.length} job(s) processing</p>}
+            {completedJobs.length > 0 && <p className="text-muted-foreground text-sm">{completedJobs.length} job(s) completed</p>}
+            {failedJobs.length > 0 && <p className="text-muted-foreground text-sm">{failedJobs.length} job(s) failed</p>}
 
-            <p className="text-muted-foreground text-sm">
-              Segmentation already initiated. Button disabled.
-            </p>
+            <p className="text-muted-foreground text-sm">Segmentation already initiated. Button disabled.</p>
           </div>
         );
       }
@@ -705,20 +577,9 @@ export default function ProjectPage() {
     if (shouldShowButton) {
       return (
         <div className="space-y-4">
-          <p className="text-foreground">
-            No segmentation masks found. Start AI segmentation to generate
-            masks.
-          </p>
-          {segmentationError && (
-            <div className="rounded bg-red-100 p-3 text-red-700 dark:bg-red-900/20 dark:text-red-400">
-              {segmentationError}
-            </div>
-          )}
-          <Button
-            onClick={handleStartSegmentation}
-            variant="secondary"
-            disabled={isStartingSegmentation}
-          >
+          <p className="text-foreground">No segmentation masks found. Start AI segmentation to generate masks.</p>
+          {segmentationError && <div className="rounded bg-red-100 p-3 text-red-700 dark:bg-red-900/20 dark:text-red-400">{segmentationError}</div>}
+          <Button onClick={handleStartSegmentation} variant="secondary" disabled={isStartingSegmentation}>
             {isStartingSegmentation ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -755,12 +616,8 @@ export default function ProjectPage() {
             <Heart className="h-8 w-8 text-red-600 dark:text-red-400" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-foreground text-2xl font-bold">
-              Project Not Found
-            </h1>
-            <p className="text-muted-foreground">
-              {error || "The requested project could not be found."}
-            </p>
+            <h1 className="text-foreground text-2xl font-bold">Project Not Found</h1>
+            <p className="text-muted-foreground">{error || "The requested project could not be found."}</p>
           </div>
           <Button onClick={() => router.push("/dashboard")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -785,96 +642,43 @@ export default function ProjectPage() {
       <div className="space-y-4 p-4">
         {/* Project metadata */}
         <details className="rounded-md border">
-          <summary className="text-foreground cursor-pointer bg-gray-50 p-3 font-semibold dark:bg-gray-800">
-            Project Info (Click to expand)
-          </summary>
-          <pre className="overflow-auto p-4 text-sm whitespace-pre-wrap">
-            {JSON.stringify(project, null, 2)}
-          </pre>
+          <summary className="text-foreground cursor-pointer bg-gray-50 p-3 font-semibold dark:bg-gray-800">Project Info (Click to expand)</summary>
+          <pre className="overflow-auto p-4 text-sm whitespace-pre-wrap">{JSON.stringify(project, null, 2)}</pre>
         </details>
 
         {/* Development debug panel */}
         <div className="rounded-md border bg-yellow-50 p-3 dark:bg-yellow-900/20">
           <h3 className="text-foreground mb-2 font-semibold">Debug Info</h3>
           <div className="space-y-1 text-sm">
-            <p className="text-foreground">
-              Mask Found: {maskFound.toString()}
-            </p>
+            <p className="text-foreground">Mask Found: {maskFound.toString()}</p>
             <p className="text-foreground">AI Masks: {medSamMask.length}</p>
-            <p className="text-foreground">
-              Manual Masks: {editableMask.length}
-            </p>
+            <p className="text-foreground">Manual Masks: {editableMask.length}</p>
             <p className="text-foreground">Active Jobs: {activeJobCount}</p>
-            <p className="text-foreground">
-              Project Jobs: {projectActiveJobs.length}
-            </p>
+            <p className="text-foreground">Project Jobs: {projectActiveJobs.length}</p>
             <p className="text-foreground">Project ID: {projectId}</p>
-            <p className="text-foreground">
-              Has Active Jobs:{" "}
-              {projectActiveJobs
-                .some(
-                  (job) =>
-                    job.status === JobStatus.PENDING ||
-                    job.status === JobStatus.IN_PROGRESS,
-                )
-                .toString()}
-            </p>
-            <p className="text-foreground">
-              Show Button:{" "}
-              {(!maskFound && projectActiveJobs.length === 0).toString()}
-            </p>
-            <p className="text-foreground">
-              Starting Segmentation: {isStartingSegmentation.toString()}
-            </p>
-            <p className="text-foreground">
-              Decoded AI Masks: {Object.keys(decodedMasks.aiMasks).length}
-            </p>
-            <p className="text-foreground">
-              Decoded Manual Masks:{" "}
-              {Object.keys(decodedMasks.manualMasks).length}
-            </p>
-            {segmentationError && (
-              <p className="text-red-600">
-                Segmentation Error: {segmentationError}
-              </p>
-            )}
+            <p className="text-foreground">Has Active Jobs: {projectActiveJobs.some((job) => job.status === JobStatus.PENDING || job.status === JobStatus.IN_PROGRESS).toString()}</p>
+            <p className="text-foreground">Show Button: {(!maskFound && projectActiveJobs.length === 0).toString()}</p>
+            <p className="text-foreground">Starting Segmentation: {isStartingSegmentation.toString()}</p>
+            <p className="text-foreground">Decoded AI Masks: {Object.keys(decodedMasks.aiMasks).length}</p>
+            <p className="text-foreground">Decoded Manual Masks: {Object.keys(decodedMasks.manualMasks).length}</p>
+            {segmentationError && <p className="text-red-600">Segmentation Error: {segmentationError}</p>}
 
             {/* Image cache status */}
             <div className="mt-3 border-t pt-2">
-              <h4 className="text-foreground mb-1 text-sm font-semibold">
-                Image Cache Status:
-              </h4>
-              <p className="text-foreground text-xs">
-                Loading: {isLoadingImages.toString()}
-              </p>
-              <p className="text-foreground text-xs">
-                Progress: {imageLoadingProgress}%
-              </p>
-              <p className="text-foreground text-xs">
-                Cached URLs: {imageUrls.size}
-              </p>
+              <h4 className="text-foreground mb-1 text-sm font-semibold">Image Cache Status:</h4>
+              <p className="text-foreground text-xs">Loading: {isLoadingImages.toString()}</p>
+              <p className="text-foreground text-xs">Progress: {imageLoadingProgress}%</p>
+              <p className="text-foreground text-xs">Cached URLs: {imageUrls.size}</p>
               {tarDebugInfo && (
                 <>
+                  <p className="text-foreground text-xs">URL Fetched: {tarDebugInfo.presignedUrlFetched.toString()}</p>
+                  <p className="text-foreground text-xs">TAR Fetched: {tarDebugInfo.tarFileFetched.toString()}</p>
+                  <p className="text-foreground text-xs">Size: {(tarDebugInfo.tarFileSize / 1024 / 1024).toFixed(2)} MB</p>
+                  <p className="text-foreground text-xs">Extracted: {tarDebugInfo.extractionCompleted.toString()}</p>
                   <p className="text-foreground text-xs">
-                    URL Fetched: {tarDebugInfo.presignedUrlFetched.toString()}
+                    Images: {tarDebugInfo.totalImagesFound}/{tarDebugInfo.imagesStored}
                   </p>
-                  <p className="text-foreground text-xs">
-                    TAR Fetched: {tarDebugInfo.tarFileFetched.toString()}
-                  </p>
-                  <p className="text-foreground text-xs">
-                    Size: {(tarDebugInfo.tarFileSize / 1024 / 1024).toFixed(2)}{" "}
-                    MB
-                  </p>
-                  <p className="text-foreground text-xs">
-                    Extracted: {tarDebugInfo.extractionCompleted.toString()}
-                  </p>
-                  <p className="text-foreground text-xs">
-                    Images: {tarDebugInfo.totalImagesFound}/
-                    {tarDebugInfo.imagesStored}
-                  </p>
-                  <p className="text-foreground text-xs">
-                    Time: {tarDebugInfo.processingTime.toFixed(0)}ms
-                  </p>
+                  <p className="text-foreground text-xs">Time: {tarDebugInfo.processingTime.toFixed(0)}ms</p>
                 </>
               )}
             </div>
@@ -892,9 +696,7 @@ export default function ProjectPage() {
         {/* Active job monitoring */}
         {projectActiveJobs.length > 0 && (
           <details className="rounded-md border">
-            <summary className="text-foreground cursor-pointer bg-purple-50 p-3 font-semibold dark:bg-purple-900/20">
-              Project Jobs ({projectActiveJobs.length})
-            </summary>
+            <summary className="text-foreground cursor-pointer bg-purple-50 p-3 font-semibold dark:bg-purple-900/20">Project Jobs ({projectActiveJobs.length})</summary>
             <div className="space-y-2 p-4">
               {projectActiveJobs.map((job) => (
                 <div key={job.jobId} className="rounded border p-2">
@@ -918,49 +720,34 @@ export default function ProjectPage() {
         {/* Raw AI mask data */}
         {medSamMask.length > 0 && (
           <details className="rounded-md border">
-            <summary className="text-foreground cursor-pointer bg-blue-50 p-3 font-semibold dark:bg-blue-900/20">
-              AI Masks ({medSamMask.length})
-            </summary>
-            <pre className="max-h-96 overflow-auto p-4 text-sm whitespace-pre-wrap">
-              {JSON.stringify(medSamMask, null, 2)}
-            </pre>
+            <summary className="text-foreground cursor-pointer bg-blue-50 p-3 font-semibold dark:bg-blue-900/20">AI Masks ({medSamMask.length})</summary>
+            <pre className="max-h-96 overflow-auto p-4 text-sm whitespace-pre-wrap">{JSON.stringify(medSamMask, null, 2)}</pre>
           </details>
         )}
 
         {/* Manual mask data */}
         {editableMask.length > 0 && (
           <details className="rounded-md border">
-            <summary className="text-foreground cursor-pointer bg-green-50 p-3 font-semibold dark:bg-green-900/20">
-              Editable Masks ({editableMask.length})
-            </summary>
-            <pre className="max-h-96 overflow-auto p-4 text-sm whitespace-pre-wrap">
-              {JSON.stringify(editableMask, null, 2)}
-            </pre>
+            <summary className="text-foreground cursor-pointer bg-green-50 p-3 font-semibold dark:bg-green-900/20">Editable Masks ({editableMask.length})</summary>
+            <pre className="max-h-96 overflow-auto p-4 text-sm whitespace-pre-wrap">{JSON.stringify(editableMask, null, 2)}</pre>
           </details>
         )}
 
         {/* Processed mask statistics */}
-        {(Object.keys(decodedMasks.aiMasks).length > 0 ||
-          Object.keys(decodedMasks.manualMasks).length > 0) && (
+        {(Object.keys(decodedMasks.aiMasks).length > 0 || Object.keys(decodedMasks.manualMasks).length > 0) && (
           <details className="rounded-md border">
             <summary className="text-foreground cursor-pointer bg-orange-50 p-3 font-semibold dark:bg-orange-900/20">
-              Decoded Masks (AI: {Object.keys(decodedMasks.aiMasks).length},
-              Manual: {Object.keys(decodedMasks.manualMasks).length})
+              Decoded Masks (AI: {Object.keys(decodedMasks.aiMasks).length}, Manual: {Object.keys(decodedMasks.manualMasks).length})
             </summary>
             <div className="space-y-4 p-4">
               {Object.keys(decodedMasks.aiMasks).length > 0 && (
                 <div>
-                  <h4 className="mb-2 font-semibold text-blue-600 dark:text-blue-400">
-                    AI Masks:
-                  </h4>
+                  <h4 className="mb-2 font-semibold text-blue-600 dark:text-blue-400">AI Masks:</h4>
                   <div className="space-y-1">
                     {Object.entries(decodedMasks.aiMasks).map(([key, mask]) => (
                       <div key={key} className="text-muted-foreground text-sm">
-                        <span className="font-mono text-xs">{key}</span>:
-                        <span className="ml-2">Size: {mask.length}</span>
-                        <span className="ml-2">
-                          Active: {mask.filter((v) => v > 0).length}
-                        </span>
+                        <span className="font-mono text-xs">{key}</span>:<span className="ml-2">Size: {mask.length}</span>
+                        <span className="ml-2">Active: {mask.filter((v) => v > 0).length}</span>
                       </div>
                     ))}
                   </div>
@@ -969,24 +756,14 @@ export default function ProjectPage() {
 
               {Object.keys(decodedMasks.manualMasks).length > 0 && (
                 <div>
-                  <h4 className="mb-2 font-semibold text-green-600 dark:text-green-400">
-                    Manual Masks:
-                  </h4>
+                  <h4 className="mb-2 font-semibold text-green-600 dark:text-green-400">Manual Masks:</h4>
                   <div className="space-y-1">
-                    {Object.entries(decodedMasks.manualMasks).map(
-                      ([key, mask]) => (
-                        <div
-                          key={key}
-                          className="text-muted-foreground text-sm"
-                        >
-                          <span className="font-mono text-xs">{key}</span>:
-                          <span className="ml-2">Size: {mask.length}</span>
-                          <span className="ml-2">
-                            Active: {mask.filter((v) => v > 0).length}
-                          </span>
-                        </div>
-                      ),
-                    )}
+                    {Object.entries(decodedMasks.manualMasks).map(([key, mask]) => (
+                      <div key={key} className="text-muted-foreground text-sm">
+                        <span className="font-mono text-xs">{key}</span>:<span className="ml-2">Size: {mask.length}</span>
+                        <span className="ml-2">Active: {mask.filter((v) => v > 0).length}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
