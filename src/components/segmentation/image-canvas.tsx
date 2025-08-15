@@ -11,7 +11,6 @@ import type { ImageCanvasProps, AnatomicalLabel, BrushHardness } from "@/types/s
 import { 
   LABEL_COLORS, 
   HARDNESS_TO_BLUR, 
-  createMaskKey,
   PERFORMANCE_CONSTANTS 
 } from "@/types/segmentation";
 
@@ -176,7 +175,7 @@ export function ImageCanvas({
   const [imageStatus, setImageStatus] = useState<"loading" | "loaded" | "error">("loading");
   const [drawingPoints, setDrawingPoints] = useState<number[] | null>(null);
   
-  // Local browser state for instant feedback
+  // Local browser state using editable key format
   const [localMasks, setLocalMasks] = useState<Record<string, Uint8Array>>({});
   const [pendingChanges, setPendingChanges] = useState<Set<string>>(new Set());
   
@@ -314,7 +313,8 @@ export function ImageCanvas({
             const dy = py - y;
             
             if (dx * dx + dy * dy <= radiusSquared) {
-              mask[py * maskWidth + px] = labelValue;
+              // Store using transposed coordinates to match binary mask format
+              mask[px * maskHeight + py] = labelValue;
             }
           }
         }
@@ -328,65 +328,67 @@ export function ImageCanvas({
     }
   }, []);
 
-  // Update handleMouseUp to use the correct key format for new edits
+  // Manual segmentation ONLY uses editable masks - work directly with editable keys
   const handleMouseUp = useCallback(() => {
     if (!isDrawing.current || !drawingPoints) return;
     
     isDrawing.current = false;
 
     try {
-      // Use standard mask key format for new local edits
-      const maskKey = createMaskKey(currentFrame, currentSlice, activeLabel);
+      // Use editable mask key format directly
+      const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${activeLabel}`;
       const combinedMasks = getCombinedMasks();
       
-      // Check for existing mask in decoded format first
-      const decodedMaskKeys = [
-        `medSamOutput_frame_${currentFrame}_slice_${currentSlice}_${activeLabel}`,
-        `editable_frame_${currentFrame}_slice_${currentSlice}_${activeLabel}`,
-      ];
-      
       let existingMask: Uint8Array | undefined;
+      let sourceDescription = 'new empty mask';
       
-      // Look for existing mask in local edits first, then decoded masks
-      if (combinedMasks[maskKey]) {
-        existingMask = combinedMasks[maskKey];
-      } else {
-        // Check decoded mask formats and transpose if found
-        for (const decodedKey of decodedMaskKeys) {
-          if (combinedMasks[decodedKey]) {
-            // Transpose the decoded mask from height×width to width×height
-            existingMask = transposeMaskData(combinedMasks[decodedKey], height, width);
-            console.log(`[ImageCanvas] Transposed existing mask from ${decodedKey}`);
-            break;
-          }
-        }
+      // 1. Check for existing editable mask in local state (already in correct format)
+      if (combinedMasks[editableMaskKey]) {
+        // Check if it's from local state (no transpose needed) or backend (needs transpose)
+        if (localMasks[editableMaskKey]) {
+          // From local state - already in correct format
+          existingMask = combinedMasks[editableMaskKey];
+          sourceDescription = 'local edits';
+          console.log(`[ImageCanvas] Using local editable mask for ${activeLabel}`);
+        } else {
+          // From backend - use as-is since it's already in binary mask format
+          existingMask = combinedMasks[editableMaskKey];
+          sourceDescription = 'existing editable mask';
+          console.log(`[ImageCanvas] Found existing editable mask from backend: ${editableMaskKey}`);
+        } 
+      }
+      // 2. No editable mask exists - create new empty mask
+      else {
+        console.log(`[ImageCanvas] No editable mask found for ${activeLabel} - creating new empty mask`);
+        console.log(`[ImageCanvas] Checked key: ${editableMaskKey}`);
+        console.log(`[ImageCanvas] Available keys:`, Object.keys(combinedMasks));
       }
       
-      // Create new mask based on existing or create empty
-      const newMask = existingMask ? new Uint8Array(existingMask) : new Uint8Array(width * height);
+      // Create new mask with binary mask dimensions (height × width)
+      const newMask = existingMask ? new Uint8Array(existingMask) : new Uint8Array(height * width);
       const labelValue = tool === "eraser" ? 0 : 1;
       
       // Apply brush stroke to mask
       drawBrushStroke(newMask, width, height, drawingPoints, brushSize, labelValue);
       
-      // Store in local browser state using standard key format
+      // Store directly in local state using editable key format
       setLocalMasks(prev => ({
         ...prev,
-        [maskKey]: newMask
+        [editableMaskKey]: newMask // Store with editable key, not conversion key
       }));
       
       // Track pending changes for save indicator
-      setPendingChanges(prev => new Set(prev).add(maskKey));
+      setPendingChanges(prev => new Set(prev).add(editableMaskKey));
       
       // Update parent component state with combined masks
-      const updatedMasks = { ...combinedMasks, [maskKey]: newMask };
+      const updatedMasks = { ...combinedMasks, [editableMaskKey]: newMask };
       onMaskUpdate(
         updatedMasks, 
         tool as 'brush' | 'eraser', 
-        `${tool} stroke (size: ${brushSize}, hardness: ${hardness})`
+        `${tool} stroke on ${sourceDescription} (${activeLabel.toUpperCase()})`
       );
       
-      console.log(`[ImageCanvas] Applied ${tool} stroke to browser state:`, maskKey);
+      console.log(`[ImageCanvas] Applied ${tool} stroke to ${sourceDescription}:`, editableMaskKey);
       
     } catch (error) {
       console.error('[ImageCanvas] Error during brush stroke:', error);
@@ -396,26 +398,26 @@ export function ImageCanvas({
   }, [
     drawingPoints, currentFrame, currentSlice, activeLabel, 
     width, height, tool, brushSize, hardness, drawBrushStroke, 
-    onMaskUpdate, getCombinedMasks, transposeMaskData
+    onMaskUpdate, getCombinedMasks, transposeMaskData, localMasks
   ]);
 
-  // Explicit save function for parent component to call
+  // Save function becomes straightforward - no key conversion needed
   const savePendingChanges = useCallback(async () => {
     if (pendingChanges.size === 0) {
       return { success: true, message: 'No changes to save' };
     }
 
     try {
-      // Prepare masks for saving
-      const masksToSave = Array.from(pendingChanges).reduce((acc, maskKey) => {
-        if (localMasks[maskKey]) {
-          acc[maskKey] = localMasks[maskKey];
+      // No key conversion needed - local keys ARE editable keys
+      const masksToSave = Array.from(pendingChanges).reduce((acc, editableKey) => {
+        if (localMasks[editableKey]) {
+          acc[editableKey] = localMasks[editableKey];
         }
         return acc;
       }, {} as Record<string, Uint8Array>);
 
       // VisHeart API pattern with session credentials
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/segmentation/${projectData.projectId}/masks`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/segmentation/${projectData.projectId}/editable-masks`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -427,7 +429,8 @@ export function ImageCanvas({
             data: Array.from(data), // Convert Uint8Array for JSON
             frame: currentFrame,
             slice: currentSlice,
-            label: activeLabel
+            label: activeLabel,
+            isMedSAMOutput: false // Explicitly mark as editable
           }))
         })
       });
@@ -441,13 +444,13 @@ export function ImageCanvas({
       if (result.success) {
         // Clear pending changes after successful save
         setPendingChanges(new Set());
-        console.log(`[ImageCanvas] Successfully saved ${Object.keys(masksToSave).length} masks to backend`);
+        console.log(`[ImageCanvas] Successfully saved ${Object.keys(masksToSave).length} editable masks to backend`);
         return { success: true, count: Object.keys(masksToSave).length };
       } else {
         throw new Error(result.message || 'Save failed');
       }
     } catch (error) {
-      console.error('[ImageCanvas] Failed to save masks:', error);
+      console.error('[ImageCanvas] Failed to save editable masks:', error);
       return { 
         success: false, 
         error: typeof error === 'object' && error !== null && 'message' in error 
@@ -466,16 +469,13 @@ export function ImageCanvas({
   }, [savePendingChanges, onMaskUpdate]);
 
   // Optimized mask overlay creation with dimension correction
-  const createMaskOverlay = useCallback((maskData: Uint8Array, color: string, needsTranspose: boolean = false) => {
+  const createMaskOverlay = useCallback((maskData: Uint8Array, color: string, isFromLocal: boolean = false) => {
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d");
     
     if (!ctx) return canvas;
-
-    // Transpose mask data if it comes from decoded format
-    const processedMask = needsTranspose ? transposeMaskData(maskData, height, width) : maskData;
 
     const imgData = ctx.createImageData(width, height);
     const [r, g, b] = [
@@ -485,65 +485,63 @@ export function ImageCanvas({
     ];
     
     const data = imgData.data;
-    for (let i = 0; i < processedMask.length; i++) {
-      if (processedMask[i] > 0) {
-        const pixelIndex = i * 4;
-        data[pixelIndex] = r;
-        data[pixelIndex + 1] = g;
-        data[pixelIndex + 2] = b;
-        data[pixelIndex + 3] = Math.round(255 * opacity);
+    
+    // Read from binary mask format and map to canvas coordinates
+    for (let canvasY = 0; canvasY < height; canvasY++) {
+      for (let canvasX = 0; canvasX < width; canvasX++) {
+        // Binary mask is stored as [x * height + y] format
+        const maskIndex = canvasX * height + canvasY;
+        
+        if (maskData[maskIndex] > 0) {
+          const pixelIndex = (canvasY * width + canvasX) * 4;
+          data[pixelIndex] = r;
+          data[pixelIndex + 1] = g;
+          data[pixelIndex + 2] = b;
+          data[pixelIndex + 3] = Math.round(255 * opacity);
+        }
       }
     }
     
     ctx.putImageData(imgData, 0, 0);
     return canvas;
-  }, [width, height, opacity, transposeMaskData]);
+  }, [width, height, opacity]);
 
-  // Mask overlays using combined state with proper dimension handling
+  // Mask overlays using combined state with proper dimension handling  
   const currentMaskOverlays = useMemo(() => {
     const combinedMasks = getCombinedMasks();
     
-    console.log('[ImageCanvas] Looking for frame:', currentFrame, 'slice:', currentSlice);
+    console.log('[ImageCanvas] Looking for editable masks - frame:', currentFrame, 'slice:', currentSlice);
     
     return Object.entries(LABEL_COLORS).map(([label, color]) => {
-      // ✅ FIXED: Try multiple key formats to find existing masks
-      const possibleKeys = [
-        { key: createMaskKey(currentFrame, currentSlice, label as AnatomicalLabel), needsTranspose: false }, // Local edits - correct format
-        { key: `medSamOutput_frame_${currentFrame}_slice_${currentSlice}_${label}`, needsTranspose: true }, // Decoded format - needs transpose
-        { key: `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`, needsTranspose: true }, // Decoded format - needs transpose
-      ];
+      // Only check for editable masks
+      const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
       
-      // Find the first matching mask key
-      let maskData: Uint8Array | undefined;
-      let foundKey: string | undefined;
-      let needsTranspose = false;
+      const maskData = combinedMasks[editableMaskKey];
       
-      for (const { key, needsTranspose: transpose } of possibleKeys) {
-        if (combinedMasks[key]) {
-          maskData = combinedMasks[key];
-          foundKey = key;
-          needsTranspose = transpose;
-          break;
-        }
-      }
-      
-      if (!maskData || !foundKey) {
-        console.log(`[ImageCanvas] No mask found for label ${label} at frame ${currentFrame}, slice ${currentSlice}`);
-        console.log(`[ImageCanvas] Tried keys:`, possibleKeys.map(p => p.key));
+      if (!maskData) {
+        console.log(`[ImageCanvas] No editable mask found for ${label} at frame ${currentFrame}, slice ${currentSlice}`);
         return null;
       }
       
-      console.log(`[ImageCanvas] Found mask for ${label} with key:`, foundKey);
-      console.log(`[ImageCanvas] Mask data length:`, maskData.length, 'non-zero pixels:', Array.from(maskData).filter(v => v > 0).length);
-      console.log(`[ImageCanvas] Needs transpose:`, needsTranspose);
+      const isLocalEdit = !!localMasks[editableMaskKey];
+      
+      console.log(`[ImageCanvas] Found editable mask for ${label}:`, editableMaskKey);
       
       return {
-        key: foundKey,
-        overlay: createMaskOverlay(maskData, color, needsTranspose),
-        color
+        key: editableMaskKey,
+        overlay: createMaskOverlay(maskData, color, isLocalEdit),
+        color,
+        type: 'editable',
+        isLocal: isLocalEdit
       };
-    }).filter(Boolean) as Array<{ key: string; overlay: HTMLCanvasElement; color: string }>;
-  }, [currentFrame, currentSlice, getCombinedMasks, createMaskOverlay]);
+    }).filter(Boolean) as Array<{ 
+      key: string; 
+      overlay: HTMLCanvasElement; 
+      color: string; 
+      type: string;
+      isLocal: boolean;
+    }>;
+  }, [currentFrame, currentSlice, getCombinedMasks, createMaskOverlay, localMasks]);
 
   return (
     <div className="flex flex-col items-center w-full h-full">

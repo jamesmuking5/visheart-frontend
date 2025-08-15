@@ -135,15 +135,15 @@ export default function SegmentationResultsPage() {
     setHasUnsavedChanges(true);
   }, [decodedMasks, activeLabel, createHistoryEntry, history, historyStep]);
 
-  // Calculate Mask Changes for Statistics
+  // Calculate Mask Changes for Statistics using editable key format
   const calculateMaskChanges = useCallback((
     oldMasks: Record<string, Uint8Array>,
     newMasks: Record<string, Uint8Array>,
     label: string
   ): HistoryEntry['maskChanges'] => {
-    const maskKey = `mask_${currentFrame}_${currentSlice}_${label}`;
-    const oldMask = oldMasks[maskKey];
-    const newMask = newMasks[maskKey];
+    const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
+    const oldMask = oldMasks[editableMaskKey];
+    const newMask = newMasks[editableMaskKey];
 
     if (!oldMask || !newMask) return undefined;
 
@@ -217,14 +217,14 @@ export default function SegmentationResultsPage() {
     if (!decodedMasks) return;
     
     const newMasks = { ...decodedMasks };
-    const maskKey = `mask_${currentFrame}_${currentSlice}_${activeLabel}`;
+    const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${activeLabel}`;
     
-    if (newMasks[maskKey]) {
-      newMasks[maskKey] = new Uint8Array(newMasks[maskKey].length);
+    if (newMasks[editableMaskKey]) {
+      newMasks[editableMaskKey] = new Uint8Array(newMasks[editableMaskKey].length);
       updateMasksWithHistory(
         newMasks, 
         'clear', 
-        `Cleared ${activeLabel.toUpperCase()} mask`
+        `Cleared ${activeLabel.toUpperCase()} editable mask`
       );
     }
   }, [decodedMasks, currentFrame, currentSlice, activeLabel, updateMasksWithHistory]);
@@ -273,13 +273,23 @@ export default function SegmentationResultsPage() {
     );
   }, [decodedMasks, updateMasksWithHistory]);
 
-  // Save Handler
+  // Save Handler - only save editable masks
   const handleSave = useCallback(async () => {
     if (!decodedMasks || !projectId) return;
     
     try {
+      // Filter only editable masks for saving
+      const editableMasks = Object.entries(decodedMasks)
+        .filter(([key]) => key.startsWith('editable_'))
+        .reduce((acc, [key, data]) => {
+          acc[key] = data;
+          return acc;
+        }, {} as Record<string, Uint8Array>);
+
+      console.log('[Segmentation] Saving editable masks:', Object.keys(editableMasks));
+
       await segmentationApi.saveManualSegmentation(projectId, {
-        masks: decodedMasks,
+        masks: editableMasks,
       });
       setHasUnsavedChanges(false);
       
@@ -290,12 +300,12 @@ export default function SegmentationResultsPage() {
       updateMasksWithHistory(
         decodedMasks,
         'checkpoint',
-        `Checkpoint #${checkpointNum} - Changes saved to server`
+        `Checkpoint #${checkpointNum} - Editable masks saved to server`
       );
     } catch (err) {
-      console.error("Failed to save masks:", err);
+      console.error("Failed to save editable masks:", err);
     }
-  }, [decodedMasks, projectId, updateMasksWithHistory]);
+  }, [decodedMasks, projectId, updateMasksWithHistory, history]);
 
   // To do: Export history timeline 
   const handleHistoryExport = useCallback(() => {

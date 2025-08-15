@@ -146,22 +146,6 @@ export const PERFORMANCE_CONSTANTS = {
   IMAGE_LOAD_TIMEOUT_MS: 10000,
 } as const;
 
-// Add the missing utility functions
-export const createMaskKey = (frame: number, slice: number, label: AnatomicalLabel): string => 
-  `mask_${frame}_${slice}_${label}`;
-
-export const parseMaskKey = (key: string): { frame: number; slice: number; label: AnatomicalLabel } | null => {
-  const match = key.match(/mask_(\d+)_(\d+)_(\w+)/);
-  if (!match) return null;
-  
-  const [, frameStr, sliceStr, label] = match;
-  return {
-    frame: parseInt(frameStr, 10),
-    slice: parseInt(sliceStr, 10),
-    label: label as AnatomicalLabel
-  };
-};
-
 // Utility functions for better error handling
 export const isValidAnatomicalLabel = (label: string): label is AnatomicalLabel => {
   return ANATOMICAL_LABELS.includes(label as AnatomicalLabel);
