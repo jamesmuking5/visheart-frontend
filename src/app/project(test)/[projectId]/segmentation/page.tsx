@@ -63,6 +63,34 @@ export default function SegmentationResultsPage() {
   const canRedo = useMemo(() => historyStep < history.length - 1, [historyStep, history.length]);
   const canClear = useMemo(() => !!decodedMasks, [decodedMasks]);
 
+  const transformDimensionsForCanvas = useCallback((projectData: ProjectData | null) => {
+    // Define database dimensions (original stored values)
+    const dbWidth = projectData?.dimensions?.width || 512;
+    const dbHeight = projectData?.dimensions?.height || 512;
+    
+    // Define canvas dimensions (swapped for proper display)
+    const canvasWidth = dbHeight;  // Use DB height as canvas width
+    const canvasHeight = dbWidth;  // Use DB width as canvas height
+    
+    // Debug logging
+    console.log('[ImageCanvas] Dimension transformation:', {
+      database: { width: dbWidth, height: dbHeight },
+      canvas: { width: canvasWidth, height: canvasHeight },
+      transformation: 'DB(w×h) → Canvas(h×w)',
+      originalDB: `${dbWidth} × ${dbHeight}`,
+      displayCanvas: `${canvasWidth} × ${canvasHeight}`
+    });
+    
+    return {
+      database: { width: dbWidth, height: dbHeight },
+      canvas: { width: canvasWidth, height: canvasHeight },
+      dbWidth,
+      dbHeight,
+      canvasWidth,
+      canvasHeight
+    };
+  }, []);
+
   // Create History Entry Helper
   const createHistoryEntry = useCallback((
     type: HistoryEntry['type'],
@@ -354,7 +382,6 @@ export default function SegmentationResultsPage() {
         }
         
         setUndecodedMasks(response.segmentations);
-        
         const decoded = decodeSegmentationMasks(
           response.segmentations,
           projectData.dimensions?.width || 0,
@@ -383,6 +410,9 @@ export default function SegmentationResultsPage() {
   if (error) return <ErrorProject error={error} />;
   if (!projectData || !decodedMasks) return <ErrorProject error="No data available" />;
 
+  // Transform dimensions for canvas display
+  const dimensions = transformDimensionsForCanvas(projectData);
+
   return (
     <div className="h-full w-full p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6 bg-muted/40">
       <main className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
@@ -397,7 +427,7 @@ export default function SegmentationResultsPage() {
           </div>
           <h1 className="text-2xl font-bold text-center">Cardiac Segmentation Editor</h1>
           <p className="text-center text-gray-500 mb-4">
-            Project: {projectData.projectName} • Edit AI-generated masks or create manual annotations
+            Project: {projectData.name} • Edit AI-generated masks or create manual annotations
           </p>
         </div>
         
@@ -411,8 +441,8 @@ export default function SegmentationResultsPage() {
             currentSlice={currentSlice}
             onFrameChange={setCurrentFrame}
             onSliceChange={setCurrentSlice}
-            width={projectData.dimensions?.width || 512}
-            height={projectData.dimensions?.height || 512}
+            width={dimensions.canvasWidth}
+            height={dimensions.canvasHeight}
             activeLabel={activeLabel}
             tool={tool}
             brushSize={brushSize}

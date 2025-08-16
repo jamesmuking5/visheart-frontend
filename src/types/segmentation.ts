@@ -7,8 +7,8 @@ export type AnatomicalLabel = typeof ANATOMICAL_LABELS[number];
 // Centralized color mapping using CSS custom properties
 export const LABEL_COLORS: Record<AnatomicalLabel, string> = {
   'lvc': '#ef4444', // Red - Left Ventricle Cavity
-  'rv': '#3b82f6',  // Blue - Right Ventricle  
-  'myo': '#22c55e'  // Green - Myocardium
+  'rv': '#22c55e',  // Blue - Right Ventricle  
+  'myo': '#3b82f6'  // Green - Myocardium
 } as const;
 
 export const LABEL_NAMES: Record<AnatomicalLabel, string> = {
