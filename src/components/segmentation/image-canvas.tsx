@@ -7,7 +7,7 @@ import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
 // Import shared types and constants
-import type { ImageCanvasProps, AnatomicalLabel, BrushHardness } from "@/types/segmentation";
+import type { ImageCanvasProps, AnatomicalLabel } from "@/types/segmentation";
 import { 
   LABEL_COLORS, 
   HARDNESS_TO_BLUR, 
@@ -64,95 +64,6 @@ const NavigationControls = memo(({
 
 NavigationControls.displayName = 'NavigationControls';
 
-// Memoized Canvas Container Component
-const CanvasContainer = memo(({ 
-  imageStatus,
-  stageRef,
-  width,
-  height,
-  handleMouseDown,
-  handleMouseMove,
-  handleMouseUp,
-  image,
-  currentMaskOverlays,
-  opacity,
-  isDrawing,
-  drawingPoints,
-  tool,
-  activeLabel,
-  brushSize,
-  hardness
-}: {
-  imageStatus: "loading" | "loaded" | "error";
-  stageRef: React.RefObject<any>;
-  width: number;
-  height: number;
-  handleMouseDown: (e: KonvaEventObject<MouseEvent>) => void;
-  handleMouseMove: (e: KonvaEventObject<MouseEvent>) => void;
-  handleMouseUp: () => void;
-  image: HTMLImageElement | null;
-  currentMaskOverlays: Array<{ key: string; overlay: HTMLCanvasElement; color: string }>;
-  opacity: number;
-  isDrawing: boolean;
-  drawingPoints: number[] | null;
-  tool: string;
-  activeLabel: AnatomicalLabel;
-  brushSize: number;
-  hardness: BrushHardness;
-}) => (
-  <div className="border-4 border-muted-foreground rounded-lg overflow-hidden relative">
-    {imageStatus === "loading" && (
-      <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
-        <div className="text-sm text-muted-foreground">Loading image...</div>
-      </div>
-    )}
-    
-    <Stage
-      ref={stageRef}
-      width={width}
-      height={height}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-    >
-      <Layer>
-        {/* Background Image */}
-        {imageStatus === "loaded" && image && (
-          <KonvaImage image={image} width={width} height={height} />
-        )}
-        
-        {/* Mask Overlays */}
-        {currentMaskOverlays.map((overlay) => (
-          <KonvaImage
-            key={overlay.key}
-            image={overlay.overlay}
-            width={width}
-            height={height}
-            opacity={opacity}
-          />
-        ))}
-        
-        {/* Current Drawing Preview */}
-        {isDrawing && drawingPoints && (
-          <Line
-            points={drawingPoints}
-            stroke={tool === "eraser" ? "#000" : LABEL_COLORS[activeLabel]}
-            strokeWidth={brushSize}
-            opacity={0.8}
-            shadowBlur={HARDNESS_TO_BLUR[hardness]}
-            tension={0.5}
-            lineCap="round"
-            lineJoin="round"
-            globalCompositeOperation={tool === "eraser" ? "destination-out" : "source-over"}
-          />
-        )}
-      </Layer>
-    </Stage>
-  </div>
-));
-
-CanvasContainer.displayName = 'CanvasContainer';
-
 export function ImageCanvas({
   projectData,
   decodedMasks,
@@ -194,21 +105,6 @@ export function ImageCanvas({
     // Priority: Local changes override backend data
     return { ...decodedMasks, ...localMasks };
   }, [decodedMasks, localMasks]);
-
-  // Utility function to transpose mask data from height×width to width×height
-  const transposeMaskData = useCallback((maskData: Uint8Array, originalWidth: number, originalHeight: number): Uint8Array => {
-    const transposedMask = new Uint8Array(maskData.length);
-    
-    for (let y = 0; y < originalHeight; y++) {
-      for (let x = 0; x < originalWidth; x++) {
-        const originalIndex = y * originalWidth + x;
-        const transposedIndex = x * originalHeight + y;
-        transposedMask[transposedIndex] = maskData[originalIndex];
-      }
-    }
-    
-    return transposedMask;
-  }, []);
 
   // Image loading with VisHeart API patterns
   useEffect(() => {
@@ -313,8 +209,7 @@ export function ImageCanvas({
             const dy = py - y;
             
             if (dx * dx + dy * dy <= radiusSquared) {
-              // Store using transposed coordinates to match binary mask format
-              mask[px * maskHeight + py] = labelValue;
+              mask[py * maskWidth + px] = labelValue;
             }
           }
         }
@@ -328,67 +223,35 @@ export function ImageCanvas({
     }
   }, []);
 
-  // Manual segmentation ONLY uses editable masks - work directly with editable keys
+  // Manual segmentation with editable masks
   const handleMouseUp = useCallback(() => {
     if (!isDrawing.current || !drawingPoints) return;
     
     isDrawing.current = false;
 
     try {
-      // Use editable mask key format directly
       const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${activeLabel}`;
       const combinedMasks = getCombinedMasks();
       
-      let existingMask: Uint8Array | undefined;
-      let sourceDescription = 'new empty mask';
-      
-      // 1. Check for existing editable mask in local state (already in correct format)
-      if (combinedMasks[editableMaskKey]) {
-        // Check if it's from local state (no transpose needed) or backend (needs transpose)
-        if (localMasks[editableMaskKey]) {
-          // From local state - already in correct format
-          existingMask = combinedMasks[editableMaskKey];
-          sourceDescription = 'local edits';
-          console.log(`[ImageCanvas] Using local editable mask for ${activeLabel}`);
-        } else {
-          // From backend - use as-is since it's already in binary mask format
-          existingMask = combinedMasks[editableMaskKey];
-          sourceDescription = 'existing editable mask';
-          console.log(`[ImageCanvas] Found existing editable mask from backend: ${editableMaskKey}`);
-        } 
-      }
-      // 2. No editable mask exists - create new empty mask
-      else {
-        console.log(`[ImageCanvas] No editable mask found for ${activeLabel} - creating new empty mask`);
-        console.log(`[ImageCanvas] Checked key: ${editableMaskKey}`);
-        console.log(`[ImageCanvas] Available keys:`, Object.keys(combinedMasks));
-      }
-      
-      // Create new mask with binary mask dimensions (height × width)
+      // Get existing mask or create new empty one
+      const existingMask = combinedMasks[editableMaskKey];
       const newMask = existingMask ? new Uint8Array(existingMask) : new Uint8Array(height * width);
       const labelValue = tool === "eraser" ? 0 : 1;
       
       // Apply brush stroke to mask
       drawBrushStroke(newMask, width, height, drawingPoints, brushSize, labelValue);
       
-      // Store directly in local state using editable key format
+      // Update local state
       setLocalMasks(prev => ({
         ...prev,
-        [editableMaskKey]: newMask // Store with editable key, not conversion key
+        [editableMaskKey]: newMask
       }));
       
-      // Track pending changes for save indicator
       setPendingChanges(prev => new Set(prev).add(editableMaskKey));
       
-      // Update parent component state with combined masks
+      // Update parent component
       const updatedMasks = { ...combinedMasks, [editableMaskKey]: newMask };
-      onMaskUpdate(
-        updatedMasks, 
-        tool as 'brush' | 'eraser', 
-        `${tool} stroke on ${sourceDescription} (${activeLabel.toUpperCase()})`
-      );
-      
-      console.log(`[ImageCanvas] Applied ${tool} stroke to ${sourceDescription}:`, editableMaskKey);
+      onMaskUpdate(updatedMasks, tool as 'brush' | 'eraser');
       
     } catch (error) {
       console.error('[ImageCanvas] Error during brush stroke:', error);
@@ -397,8 +260,8 @@ export function ImageCanvas({
     }
   }, [
     drawingPoints, currentFrame, currentSlice, activeLabel, 
-    width, height, tool, brushSize, hardness, drawBrushStroke, 
-    onMaskUpdate, getCombinedMasks, transposeMaskData, localMasks
+    width, height, tool, brushSize, drawBrushStroke, 
+    onMaskUpdate, getCombinedMasks, localMasks
   ]);
 
   // Save function becomes straightforward - no key conversion needed
@@ -460,88 +323,64 @@ export function ImageCanvas({
     }
   }, [pendingChanges, localMasks, projectData.projectId, currentFrame, currentSlice, activeLabel]);
 
-  // Expose save function to parent component
-  useEffect(() => {
-    // Pass save function to parent via onMaskUpdate callback extension
-    if (typeof onMaskUpdate === 'function') {
-      (onMaskUpdate as any).savePendingChanges = savePendingChanges;
-    }
-  }, [savePendingChanges, onMaskUpdate]);
-
-  // Optimized mask overlay creation with dimension correction
-  const createMaskOverlay = useCallback((maskData: Uint8Array, color: string, isFromLocal: boolean = false) => {
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    
-    if (!ctx) return canvas;
-
-    const imgData = ctx.createImageData(width, height);
-    const [r, g, b] = [
-      parseInt(color.slice(1, 3), 16),
-      parseInt(color.slice(3, 5), 16),
-      parseInt(color.slice(5, 7), 16)
-    ];
-    
-    const data = imgData.data;
-    
-    // Read from binary mask format and map to canvas coordinates
-    for (let canvasY = 0; canvasY < height; canvasY++) {
-      for (let canvasX = 0; canvasX < width; canvasX++) {
-        // Binary mask is stored as [x * height + y] format
-        const maskIndex = canvasX * height + canvasY;
-        
-        if (maskData[maskIndex] > 0) {
-          const pixelIndex = (canvasY * width + canvasX) * 4;
-          data[pixelIndex] = r;
-          data[pixelIndex + 1] = g;
-          data[pixelIndex + 2] = b;
-          data[pixelIndex + 3] = Math.round(255 * opacity);
-        }
-      }
-    }
-    
-    ctx.putImageData(imgData, 0, 0);
-    return canvas;
-  }, [width, height, opacity]);
-
-  // Mask overlays using combined state with proper dimension handling  
-  const currentMaskOverlays = useMemo(() => {
+  // Direct mask redering - create ImageData directly from mask data for each label
+  const allMaskElements = useMemo(() => {
     const combinedMasks = getCombinedMasks();
+    const maskElements: Array<{ label: string; image: HTMLImageElement; color: string }> = [];
     
-    console.log('[ImageCanvas] Looking for editable masks - frame:', currentFrame, 'slice:', currentSlice);
-    
-    return Object.entries(LABEL_COLORS).map(([label, color]) => {
-      // Only check for editable masks
+    // Create direct visualization for each anatomical label
+    Object.entries(LABEL_COLORS).forEach(([label, color]) => {
       const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
-      
       const maskData = combinedMasks[editableMaskKey];
       
-      if (!maskData) {
-        console.log(`[ImageCanvas] No editable mask found for ${label} at frame ${currentFrame}, slice ${currentSlice}`);
-        return null;
+      if (!maskData || maskData.every(val => val === 0)) {
+        console.log(`[ImageCanvas] No mask data for ${label} at frame ${currentFrame}, slice ${currentSlice}`);
+        return;
       }
       
-      const isLocalEdit = !!localMasks[editableMaskKey];
+      // Direct conversion: mask data to canvas
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
       
-      console.log(`[ImageCanvas] Found editable mask for ${label}:`, editableMaskKey);
+      const imageData = ctx.createImageData(width, height);
+      const [r, g, b] = [
+        parseInt(color.slice(1, 3), 16),
+        parseInt(color.slice(3, 5), 16),
+        parseInt(color.slice(5, 7), 16)
+      ];
       
-      return {
-        key: editableMaskKey,
-        overlay: createMaskOverlay(maskData, color, isLocalEdit),
-        color,
-        type: 'editable',
-        isLocal: isLocalEdit
-      };
-    }).filter(Boolean) as Array<{ 
-      key: string; 
-      overlay: HTMLCanvasElement; 
-      color: string; 
-      type: string;
-      isLocal: boolean;
-    }>;
-  }, [currentFrame, currentSlice, getCombinedMasks, createMaskOverlay, localMasks]);
+      const data = imageData.data;
+      
+      // Simple 1:1 pixel mapping: direct array index to canvas pixel mapping
+      for (let i = 0; i < maskData.length && i < (width * height); i++) {
+        if (maskData[i] > 0) {
+          const pixelIndex = i * 4;
+          data[pixelIndex] = r;       // Red
+          data[pixelIndex + 1] = g;   // Green
+          data[pixelIndex + 2] = b;   // Blue
+          data[pixelIndex + 3] = Math.round(255 * opacity); // Alpha
+        }
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      const img = new window.Image();
+      img.src = canvas.toDataURL();
+      
+      maskElements.push({
+        label,
+        image: img,
+        color
+      });
+      
+      console.log(`[ImageCanvas] Creating direct mask element for ${label} | frame: ${currentFrame}, slice: ${currentSlice}`);
+    });
+    
+    console.log(`[ImageCanvas] Total mask elements found: ${maskElements.length}`);
+    return maskElements;
+  }, [getCombinedMasks, currentFrame, currentSlice, width, height, opacity]);
 
   return (
     <div className="flex flex-col items-center w-full h-full">
@@ -569,25 +408,55 @@ export function ImageCanvas({
         </div>
       )}
 
-      {/* Canvas Container */}
-      <CanvasContainer
-        imageStatus={imageStatus}
-        stageRef={stageRef}
-        width={width}
-        height={height}
-        handleMouseDown={handleMouseDown}
-        handleMouseMove={handleMouseMove}
-        handleMouseUp={handleMouseUp}
-        image={image}
-        currentMaskOverlays={currentMaskOverlays}
-        opacity={opacity}
-        isDrawing={isDrawing.current}
-        drawingPoints={drawingPoints}
-        tool={tool}
-        activeLabel={activeLabel}
-        brushSize={brushSize}
-        hardness={hardness}
-      />
+      {/* Canvas */}
+      <div className="border-4 border-muted-foreground rounded-lg overflow-hidden relative">
+        {imageStatus === "loading" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
+            <div className="text-sm text-muted-foreground">Loading image...</div>
+          </div>
+        )}
+        
+        <Stage
+          ref={stageRef}
+          width={width}
+          height={height}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+        >
+          <Layer>
+            {/* Background Image */}
+            {imageStatus === "loaded" && image && (
+              <KonvaImage image={image} width={width} height={height} />
+            )}
+            
+            {/* Display all anatomical labels */}
+            {allMaskElements.map((maskElement) => (
+              <KonvaImage
+                key={`mask-${maskElement.label}`}
+                image={maskElement.image}
+                width={width}
+                height={height}
+                opacity={opacity}
+              />
+            ))}
+            
+            {/* Current Drawing Preview - highlight active label */}
+            {isDrawing.current && drawingPoints && (
+              <Line
+                points={drawingPoints}
+                stroke={tool === "eraser" ? "#000" : LABEL_COLORS[activeLabel]}
+                strokeWidth={brushSize}
+                opacity={0.8}
+                shadowBlur={HARDNESS_TO_BLUR[hardness]}
+                tension={0.5}
+                lineCap="round"
+                lineJoin="round"
+              />
+            )}
+          </Layer>
+        </Stage>
+      </div>
 
       {/* Image Status Indicator */}
       {imageStatus === "error" && (

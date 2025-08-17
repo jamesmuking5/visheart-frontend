@@ -9,12 +9,10 @@ import { useEffect } from "react";
 // Backend integration
 import { projectApi, segmentationApi } from "@/lib/api";
 import { decodeSegmentationMasks } from "@/lib/decode-RLE(test)";
-import type { ProjectData, BaseSegmentationMask } from "@/types/project(test)";
-import { LoadingStage } from "@/types/project(test)";
+import type { ProjectData, BaseSegmentationMask, LoadingStage } from "@/types/project(test)";
 import { LoadingProject } from "@/components/project(test)/LoadingProject";
 import { ErrorProject } from "@/components/project(test)/ErrorProject";
 import { SegmentationSidebar } from "@/components/segmentation/segmentation-sidebar";
-
 import type { AnatomicalLabel, HistoryEntry } from "@/types/segmentation";
  
 const ImageCanvas = dynamic(
@@ -50,7 +48,7 @@ export default function SegmentationResultsPage() {
   const [currentFrame, setCurrentFrame] = useState(0);
   const [currentSlice, setCurrentSlice] = useState(0);
 
-  // Enhanced History Management
+  // History Management
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [historyStep, setHistoryStep] = useState(0);
   const historyIdCounter = useRef(0);
@@ -63,33 +61,18 @@ export default function SegmentationResultsPage() {
   const canRedo = useMemo(() => historyStep < history.length - 1, [historyStep, history.length]);
   const canClear = useMemo(() => !!decodedMasks, [decodedMasks]);
 
-  const transformDimensionsForCanvas = useCallback((projectData: ProjectData | null) => {
+  // Compute canvas dimensions based on project data
+  const canvasDimensions = useMemo(() => {
     // Define database dimensions (original stored values)
     const dbWidth = projectData?.dimensions?.width || 512;
     const dbHeight = projectData?.dimensions?.height || 512;
     
     // Define canvas dimensions (swapped for proper display)
-    const canvasWidth = dbHeight;  // Use DB height as canvas width
-    const canvasHeight = dbWidth;  // Use DB width as canvas height
-    
-    // Debug logging
-    console.log('[ImageCanvas] Dimension transformation:', {
-      database: { width: dbWidth, height: dbHeight },
-      canvas: { width: canvasWidth, height: canvasHeight },
-      transformation: 'DB(w×h) → Canvas(h×w)',
-      originalDB: `${dbWidth} × ${dbHeight}`,
-      displayCanvas: `${canvasWidth} × ${canvasHeight}`
-    });
-    
     return {
-      database: { width: dbWidth, height: dbHeight },
-      canvas: { width: canvasWidth, height: canvasHeight },
-      dbWidth,
-      dbHeight,
-      canvasWidth,
-      canvasHeight
+      width: dbHeight,  // Canvas width = DB height
+      height: dbWidth   // Canvas height = DB width
     };
-  }, []);
+  }, [projectData?.dimensions]);
 
   // Create History Entry Helper
   const createHistoryEntry = useCallback((
@@ -138,10 +121,8 @@ export default function SegmentationResultsPage() {
   ) => {
     if (!decodedMasks) return;
 
-    // Calculate mask changes for statistics
     const maskChanges = calculateMaskChanges(decodedMasks, newMasks, activeLabel);
     
-    // Create new history entry
     const newEntry = createHistoryEntry(
       actionType,
       description || `${actionType} action on ${activeLabel.toUpperCase()}`,
@@ -150,12 +131,9 @@ export default function SegmentationResultsPage() {
       activeLabel
     );
 
-    // Truncate future history if we're not at the end
     const newHistory = history.slice(0, historyStep + 1);
     newHistory.push(newEntry);
-
-    // Limit history size for performance (keep last 100 entries)
-    const trimmedHistory = newHistory.slice(-100);
+    const trimmedHistory = newHistory.slice(-100); // Keep last 100 entries
     
     setHistory(trimmedHistory);
     setHistoryStep(trimmedHistory.length - 1);
@@ -200,7 +178,7 @@ export default function SegmentationResultsPage() {
     // Don't set isUndoRedoOperation flag for normal navigation
   }, []);
 
-  // Undo Handler - ONLY for actual undo operations
+  // Undo Handler
   const handleUndo = useCallback(() => {
     if (!canUndo || history.length === 0) return;
     
@@ -220,7 +198,7 @@ export default function SegmentationResultsPage() {
     setTimeout(() => setIsUndoRedoOperation(false), 100);
   }, [canUndo, history, historyStep]);
 
-  // Redo Handler - ONLY for actual redo operations
+  // Redo Handler
   const handleRedo = useCallback(() => {
     if (!canRedo || history.length === 0) return;
     
@@ -382,10 +360,18 @@ export default function SegmentationResultsPage() {
         }
         
         setUndecodedMasks(response.segmentations);
+        // Console log dimensions for masks (use original DB dimensions)
+        console.log('[Segmentation] Decoding with original DB dimensions:', {
+          width: projectData.dimensions?.width,
+          height: projectData.dimensions?.height,
+          format: `${projectData.dimensions?.width} × ${projectData.dimensions?.height}`
+        });
+        
+        // Decode masks using ORIGINAL database dimensions (no swapping)
         const decoded = decodeSegmentationMasks(
           response.segmentations,
-          projectData.dimensions?.width || 0,
-          projectData.dimensions?.height || 0
+          projectData.dimensions?.width || 0,   
+          projectData.dimensions?.height || 0 
         );
         
       // Console log the decoded masks as expandable arrays
@@ -409,9 +395,6 @@ export default function SegmentationResultsPage() {
   if (loading !== "done") return <LoadingProject loadingStage={loading} />;
   if (error) return <ErrorProject error={error} />;
   if (!projectData || !decodedMasks) return <ErrorProject error="No data available" />;
-
-  // Transform dimensions for canvas display
-  const dimensions = transformDimensionsForCanvas(projectData);
 
   return (
     <div className="h-full w-full p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6 bg-muted/40">
@@ -441,8 +424,8 @@ export default function SegmentationResultsPage() {
             currentSlice={currentSlice}
             onFrameChange={setCurrentFrame}
             onSliceChange={setCurrentSlice}
-            width={dimensions.canvasWidth}
-            height={dimensions.canvasHeight}
+            width={canvasDimensions.width}
+            height={canvasDimensions.height}
             activeLabel={activeLabel}
             tool={tool}
             brushSize={brushSize}
@@ -479,7 +462,6 @@ export default function SegmentationResultsPage() {
             currentSlice={currentSlice}
             totalFrames={projectData.dimensions?.frames || 1}
             totalSlices={projectData.dimensions?.slices || 1}
-            // Pass history data to sidebar
             historyData={history}
             currentHistoryStep={historyStep}
             onHistoryStepChange={handleHistoryStepChange}
