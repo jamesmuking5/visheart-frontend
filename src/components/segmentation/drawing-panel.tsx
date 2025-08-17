@@ -37,8 +37,8 @@ import {
 // Memoized tool configuration
 const TOOL_CONFIG: Record<DrawingTool, { icon: React.ComponentType<any>; label: string; shortcut?: string }> = {
   select: { icon: MousePointer2, label: 'Select' },
-  brush: { icon: Brush, label: 'Brush', shortcut: 'B' },
-  eraser: { icon: Eraser, label: 'Eraser', shortcut: 'E' },
+  brush: { icon: Brush, label: 'Brush', shortcut: 'Brush' },
+  eraser: { icon: Eraser, label: 'Eraser', shortcut: 'Eraser' },
   label: { icon: Type, label: 'Label' },
   rectangle: { icon: Square, label: 'Rectangle' },
   circle: { icon: Circle, label: 'Circle' },
@@ -95,10 +95,12 @@ export function DrawingPanel({
   }, [setHardness]);
 
   return (
-    <div className="flex flex-col gap-6 p-4">
+    <div className="space-y-6">
+      <h2 className="text-lg font-semibold text-foreground">Drawing Tools</h2>
+      
       {/* Label Selection */}
       <div>
-        <div className="text-lg font-semibold mb-4 text-foreground">Active Label</div>
+        <h3 className="text-sm font-medium text-foreground mb-3">Active Label</h3>
         <ToggleGroup
           type="single"
           value={activeLabel}
@@ -137,8 +139,8 @@ export function DrawingPanel({
       
       {/* Tool Selection with Grid Layout */}
       <div>
-        <div className="text-lg font-semibold mb-4 text-foreground">Drawing Tools</div>
-        <div className="grid grid-cols-3 gap-2 max-w-xl mx-auto">
+        <h3 className="text-sm font-medium text-foreground mb-3">Tool Selection</h3>
+        <div className="grid grid-cols-3 gap-2">
           {TOOL_GRID_LAYOUT.flat().map((toolKey) => {
             const config = TOOL_CONFIG[toolKey];
             const IconComponent = config.icon;
@@ -149,16 +151,16 @@ export function DrawingPanel({
                 onClick={() => setTool(toolKey)}
                 aria-label={`${config.label}${config.shortcut ? ` (${config.shortcut})` : ''}`}
                 className={cn(
-                  "h-20 w-20 flex flex-col items-center justify-center rounded-lg",
-                  "border-2 border-border transition-colors",
-                  "hover:bg-primary/10",
+                  "h-16 flex flex-col items-center justify-center rounded-lg",
+                  "border border-border transition-all",
+                  "hover:bg-primary/20",
                   "focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring",
                   tool === toolKey 
-                    ? "bg-primary text-primary-foreground shadow-lg border-primary" 
+                    ? "bg-primary/10 border-primary/60 text-primary" 
                     : "text-foreground"
                 )}
               >
-                <IconComponent className="w-5 h-5 mb-1" />
+                <IconComponent className="w-4 h-4 mb-1" />
                 <span className="text-xs font-medium">{config.label}</span>
               </button>
             );
@@ -168,90 +170,92 @@ export function DrawingPanel({
 
       {/* Brush Settings - Only show for relevant tools */}
       {(tool === 'brush' || tool === 'eraser') && (
-        <div className="bg-muted rounded-xl p-5 shadow-inner">
-          <h3 className="text-lg font-semibold mb-4 text-foreground">Brush Settings</h3>
-          
-          {/* Size */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-foreground">
-                Brush Size
-              </label>
-              <span className="text-sm font-medium text-foreground">
-                {brushSize}px
-              </span>
+        <div>
+          <h3 className="text-sm font-medium text-foreground mb-3">Brush Settings</h3>
+          <div className="bg-muted rounded-lg border p-4 space-y-4">
+            {/* Size */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-foreground">
+                  Brush Size
+                </label>
+                <span className="text-xs text-muted-foreground">
+                  {brushSize}px
+                </span>
+              </div>
+              <Slider
+                value={[brushSize]}
+                onValueChange={(v) => setBrushSize(v[0])}
+                min={1}
+                max={50}
+                step={1}
+                className="[&>span:first-child]:border [&>span:first-child]:border-border"
+              />
             </div>
-            <Slider
-              value={[brushSize]}
-              onValueChange={(v) => setBrushSize(v[0])}
-              min={1}
-              max={50}
-              step={1}
-              className="[&>span:first-child]:border [&>span:first-child]:border-border"
-            />
-          </div>
 
-          {/* Opacity */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-foreground">
-                Opacity
-              </label>
-              <span className="text-sm font-medium text-foreground">
-                {Math.round(opacity * 100)}%
-              </span>
+            {/* Opacity */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-foreground">
+                  Opacity
+                </label>
+                <span className="text-xs text-muted-foreground">
+                  {Math.round(opacity * 100)}%
+                </span>
+              </div>
+              <Slider
+                value={[opacity * 100]}
+                onValueChange={(v) => setOpacity(v[0] / 100)}
+                min={10}
+                max={100}
+                step={1}
+                className="[&>span:first-child]:border [&>span:first-child]:border-border"
+              />
             </div>
-            <Slider
-              value={[opacity * 100]}
-              onValueChange={(v) => setOpacity(v[0] / 100)}
-              min={10}
-              max={100}
-              step={1}
-              className="[&>span:first-child]:border [&>span:first-child]:border-border"
-            />
-          </div>
 
-          {/* Hardness */}
-          <div>
-            <label className="text-sm font-medium text-foreground mb-3 block">
-              Brush Hardness
-            </label>
-            <ToggleGroup
-              type="single"
-              value={hardness}
-              onValueChange={handleHardnessChange}
-              className="flex rounded-xl border border-border overflow-hidden w-full"
-              aria-label="Brush Hardness"
-            >
-              {BRUSH_HARDNESS.map((level) => (
-                <ToggleGroupItem
-                  key={level}
-                  value={level}
-                  className={cn(
-                    "flex-1 py-3 text-sm font-semibold transition-colors",
-                    "bg-transparent hover:bg-primary/20",
-                    "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground",
-                    "data-[state=off]:text-foreground border-0",
-                    "focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring"
-                  )}
-                >
-                  {level.charAt(0).toUpperCase() + level.slice(1)}
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
+            {/* Hardness */}
+            <div>
+              <label className="text-sm font-medium text-foreground mb-2 block">
+                Brush Hardness
+              </label>
+              <ToggleGroup
+                type="single"
+                value={hardness}
+                onValueChange={handleHardnessChange}
+                className="flex rounded-lg border border-border overflow-hidden w-full"
+                aria-label="Brush Hardness"
+              >
+                {BRUSH_HARDNESS.map((level) => (
+                  <ToggleGroupItem
+                    key={level}
+                    value={level}
+                    className={cn(
+                      "flex-1 py-2 text-xs font-medium transition-colors",
+                      "bg-transparent hover:bg-primary/20",
+                      "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground",
+                      "data-[state=off]:text-foreground border-0",
+                      "focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring"
+                    )}
+                  >
+                    {level.charAt(0).toUpperCase() + level.slice(1)}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
           </div>
         </div>
       )}
 
       {/* Actions */}
-      <div>
-        <div className="text-lg font-semibold mb-4 text-foreground">Actions</div>
-        <div className="flex flex-col gap-3">
+      <div className="pt-4 border-t border-border">
+        <h3 className="text-sm font-medium text-foreground mb-3">Actions</h3>
+        <div className="space-y-2">
           <Button
             variant="outline"
+            size="sm"
             onClick={handleUndo}
             disabled={!canUndo}
-            className="w-full justify-start"
+            className="w-full justify-start text-xs"
             aria-label="Undo last action (Ctrl+Z)"
           >
             <Undo2 className="w-4 h-4 mr-2" />
@@ -261,9 +265,10 @@ export function DrawingPanel({
           
           <Button
             variant="outline"
+            size="sm"
             onClick={handleRedo}
             disabled={!canRedo}
-            className="w-full justify-start"
+            className="w-full justify-start text-xs"
             aria-label="Redo last action (Ctrl+Y)"
           >
             <Redo2 className="w-4 h-4 mr-2" />
@@ -273,9 +278,10 @@ export function DrawingPanel({
           
           <Button
             variant="destructive"
+            size="sm"
             onClick={handleClear}
             disabled={!canClear}
-            className="w-full justify-start"
+            className="w-full justify-start text-xs"
             aria-label="Clear current mask (Delete)"
           >
             <Trash2 className="w-4 h-4 mr-2" />
@@ -285,9 +291,9 @@ export function DrawingPanel({
         </div>
       </div>
       
-      {/* Tool Tips */}
-      <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-        <h4 className="text-sm font-medium text-foreground mb-2">Tool Tips</h4>
+      {/* Tool Tips Info Section */}
+      <div className="p-3 bg-muted rounded-lg border">
+        <h3 className="text-sm font-medium text-foreground mb-2">Tool Tips</h3>
         <div className="text-xs text-muted-foreground space-y-1">
           <div>• <strong>Select:</strong> Move and select objects</div>
           <div>• <strong>Brush:</strong> Paint segmentation masks</div>
