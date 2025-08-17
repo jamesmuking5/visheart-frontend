@@ -160,7 +160,7 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
           <SheetTitle className="text-center font-extrabold w-full text-foreground text-2xl">Project Information</SheetTitle>
         </SheetHeader>
         <Tabs className="w-full px-5" defaultValue="project">
-          <TabsList className="flex w-full flex-row gap-2 h-6">
+          <TabsList className="flex w-full flex-row gap-2 h-14">
             <TabsTrigger value="project">Project Data</TabsTrigger>
             {hasMasks && <TabsTrigger value="mask">Mask Data</TabsTrigger>} {/* Show mask tab only if masks exist */}
             {!hasMasks && <TabsTrigger value="job">Job Data</TabsTrigger>}
