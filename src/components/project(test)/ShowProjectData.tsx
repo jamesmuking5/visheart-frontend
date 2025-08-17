@@ -171,7 +171,7 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
           </TabsList>
 
           {/* Project Data Section */}
-          <TabsContent value="project" className="p-4">
+          <TabsContent value="project" className="p-2">
             <div className="space-y-2 text-sm">
               <div className="flex items-center justify-between">
                 <span className="font-medium">Project ID</span>
@@ -238,9 +238,9 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
 
           {/* Mask Data Section */}
           {hasMasks && (
-            <TabsContent value="mask" className="p-0">
-              <ScrollArea className="h-[60vh] max-h-[500px] min-h-[300px] p-4">
-                <div className="space-y-4">
+            <TabsContent value="mask" className="p-2">
+              <ScrollArea className="h-[80vh] min-h-[300px]">
+                <div className="space-y-4 pr-4">
                   {/* Segmentation Overview */}
                   <div className="rounded-lg border border-green-200 dark:border-green-800 p-4 bg-green-50/50 dark:bg-green-950/30">
                     <div className="space-y-3">
@@ -438,7 +438,7 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
           {/* Job Section */}
           <TabsContent value="job" className="p-0">
             <ScrollArea className="h-[60vh] max-h-[500px] min-h-[300px] p-4">
-              <div className="space-y-4">
+              <div className="space-y-4 pr-4">
                 {jobsError && (
                   <div className="text-destructive text-sm flex items-center gap-2">
                     <AlertCircle className="h-4 w-4" />
