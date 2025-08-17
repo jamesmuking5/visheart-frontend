@@ -1,9 +1,12 @@
 "use client";
+// Debug component to view masks
+// Remove in production
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 
 interface MaskViewerProps {
@@ -22,15 +25,70 @@ export function MaskViewer({ decodedMasks, projectDimensions }: MaskViewerProps)
   const [showMask, setShowMask] = useState<boolean>(true);
   const [currentSlice, setCurrentSlice] = useState<number>(0);
 
+  // New state for structured selection
+  const [selectedFrame, setSelectedFrame] = useState<string>("");
+  const [selectedSliceNum, setSelectedSliceNum] = useState<string>("");
+  const [selectedClass, setSelectedClass] = useState<string>("");
+
   const maskKeys = useMemo(() => (decodedMasks ? Object.keys(decodedMasks) : []), [decodedMasks]);
   const totalSlices = projectDimensions?.slices || 1;
 
-  // Initialize with first mask if available
+  // Parse mask names and organize by frame, slice, and class
+  const parsedMasks = useMemo(() => {
+    const parsed = maskKeys
+      .map((maskKey) => {
+        // Parse editable_frame_n_slice_n_class pattern
+        const match = maskKey.match(/^editable_frame_(\d+)_slice_(\d+)_(.+)$/);
+        if (match) {
+          return {
+            fullName: maskKey,
+            frame: match[1],
+            slice: match[2],
+            class: match[3],
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    // Group by frame, slice, and class for dropdown options
+    const frames = [...new Set(parsed.map((p) => p!.frame))].sort((a, b) => parseInt(a) - parseInt(b));
+    const slices = [...new Set(parsed.map((p) => p!.slice))].sort((a, b) => parseInt(a) - parseInt(b));
+    const classes = [...new Set(parsed.map((p) => p!.class))].sort();
+
+    return {
+      parsed,
+      frames,
+      slices,
+      classes,
+    };
+  }, [maskKeys]);
+
+  // Get current mask based on selections
+  const currentMask = useMemo(() => {
+    if (!selectedFrame || !selectedSliceNum || !selectedClass) return null;
+    return parsedMasks.parsed.find((p) => p!.frame === selectedFrame && p!.slice === selectedSliceNum && p!.class === selectedClass);
+  }, [selectedFrame, selectedSliceNum, selectedClass, parsedMasks.parsed]);
+
+  // Update selectedMask when structured selection changes
   useEffect(() => {
-    if (maskKeys.length > 0 && !selectedMask) {
-      setSelectedMask(maskKeys[0]);
+    if (currentMask) {
+      setSelectedMask(currentMask.fullName);
     }
-  }, [maskKeys, selectedMask]);
+  }, [currentMask]);
+
+  // Initialize with first available options
+  useEffect(() => {
+    if (parsedMasks.frames.length > 0 && !selectedFrame) {
+      setSelectedFrame(parsedMasks.frames[0]);
+    }
+    if (parsedMasks.slices.length > 0 && !selectedSliceNum) {
+      setSelectedSliceNum(parsedMasks.slices[0]);
+    }
+    if (parsedMasks.classes.length > 0 && !selectedClass) {
+      setSelectedClass(parsedMasks.classes[0]);
+    }
+  }, [parsedMasks.frames, parsedMasks.slices, parsedMasks.classes, selectedFrame, selectedSliceNum, selectedClass]);
 
   // Render mask on canvas
   useEffect(() => {
@@ -43,7 +101,7 @@ export function MaskViewer({ decodedMasks, projectDimensions }: MaskViewerProps)
     if (!ctx) return;
 
     const { width, height } = projectDimensions;
-    // Step 1: Try inverting canvas dimensions
+    // Step 1: Try inverting canvas dimensions (as masks are stored in inverted format from backend)
     canvas.width = height; // INVERTED
     canvas.height = width; // INVERTED
 
@@ -108,20 +166,59 @@ export function MaskViewer({ decodedMasks, projectDimensions }: MaskViewerProps)
           </Button>
         </CardTitle>
         <CardDescription>
-          {maskKeys.length} mask(s) available • {projectDimensions?.width}×{projectDimensions?.height}
-          {totalSlices > 1 && ` • ${totalSlices} slices`}
+          {maskKeys.length} mask(s) available • {parsedMasks.frames.length} frames • {parsedMasks.slices.length} slices • {parsedMasks.classes.length} classes
+          {projectDimensions && ` • ${projectDimensions.width}×${projectDimensions.height}`}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Mask Selection */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Select Mask:</label>
-          <div className="flex flex-wrap gap-2">
-            {maskKeys.map((maskKey) => (
-              <Button key={maskKey} variant={selectedMask === maskKey ? "default" : "outline"} size="sm" onClick={() => setSelectedMask(maskKey)}>
-                {maskKey}
-              </Button>
-            ))}
+        {/* Structured Mask Selection */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Frame:</label>
+            <Select value={selectedFrame} onValueChange={setSelectedFrame}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select frame" />
+              </SelectTrigger>
+              <SelectContent>
+                {parsedMasks.frames.map((frame) => (
+                  <SelectItem key={frame} value={frame}>
+                    Frame {frame}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Slice:</label>
+            <Select value={selectedSliceNum} onValueChange={setSelectedSliceNum}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select slice" />
+              </SelectTrigger>
+              <SelectContent>
+                {parsedMasks.slices.map((slice) => (
+                  <SelectItem key={slice} value={slice}>
+                    Slice {slice}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Class:</label>
+            <Select value={selectedClass} onValueChange={setSelectedClass}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select class" />
+              </SelectTrigger>
+              <SelectContent>
+                {parsedMasks.classes.map((classType) => (
+                  <SelectItem key={classType} value={classType}>
+                    {classType.toUpperCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -150,11 +247,22 @@ export function MaskViewer({ decodedMasks, projectDimensions }: MaskViewerProps)
         </div>
 
         {/* Mask Info */}
-        {selectedMask && decodedMasks[selectedMask] && (
-          <div className="text-sm text-muted-foreground">
+        {currentMask && selectedMask && decodedMasks[selectedMask] && (
+          <div className="text-sm text-muted-foreground space-y-1">
             <p>
               Selected: <span className="font-mono">{selectedMask}</span>
             </p>
+            <div className="grid grid-cols-3 gap-4">
+              <p>
+                Frame: <span className="font-medium">{selectedFrame}</span>
+              </p>
+              <p>
+                Slice: <span className="font-medium">{selectedSliceNum}</span>
+              </p>
+              <p>
+                Class: <span className="font-medium">{selectedClass.toUpperCase()}</span>
+              </p>
+            </div>
             <p>Data size: {decodedMasks[selectedMask].length.toLocaleString()} pixels</p>
           </div>
         )}

@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useAuth } from "@/context/auth-context";
 
 // Sheet import
-import { Sheet, SheetClose, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -65,9 +65,13 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
   };
 
   // Parse segmentation error and return user-friendly message
-  const getSegmentationErrorMessage = (error: any): string => {
-    const errorMessage = error?.response?.data?.message || error?.response?.data?.error || error?.message || "Unknown error occurred";
-    const statusCode = error?.response?.status;
+  const getSegmentationErrorMessage = (error: unknown): string => {
+    const errorMessage =
+      (error as { response?: { data?: { message?: string; error?: string }; status?: number }; message?: string })?.response?.data?.message ||
+      (error as { response?: { data?: { message?: string; error?: string }; status?: number }; message?: string })?.response?.data?.error ||
+      (error as { response?: { data?: { message?: string; error?: string }; status?: number }; message?: string })?.message ||
+      "Unknown error occurred";
+    const statusCode = (error as { response?: { status?: number } })?.response?.status;
     const isAdmin = user?.role === "admin";
 
     // Check for 500 errors (GPU server down/unavailable)
@@ -237,57 +241,193 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
             <TabsContent value="mask" className="p-0">
               <ScrollArea className="h-[60vh] max-h-[500px] min-h-[300px] p-4">
                 <div className="space-y-4">
-                  {totalDecoded > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">Total Masks</span>
-                        <Badge variant="outline">{totalDecoded}</Badge>
+                  {/* Segmentation Overview */}
+                  <div className="rounded-lg border border-green-200 dark:border-green-800 p-4 bg-green-50/50 dark:bg-green-950/30">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        <h3 className="font-semibold text-green-900 dark:text-green-100">Segmentation Complete</h3>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">By Class</p>
-                        <div className="grid grid-cols-2 gap-2">
-                          {Object.entries(perClassCount).map(([cls, count]) => (
-                            <div key={cls} className="flex items-center justify-between rounded-md border p-2">
-                              <span className="uppercase text-xs text-muted-foreground">{cls}</span>
-                              <span className="text-sm font-medium">{count}</span>
-                            </div>
-                          ))}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-green-800 dark:text-green-200">Total Masks</span>
+                          <Badge variant="outline" className="bg-green-100 dark:bg-green-900 border-green-300 dark:border-green-700">
+                            {totalDecoded}
+                          </Badge>
+                        </div>
+
+                        {localProject.createdAt && (
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-green-800 dark:text-green-200">Segmentation Date</span>
+                            <span className="text-green-700 dark:text-green-300 text-xs">{new Date(localProject.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-green-800 dark:text-green-200">Image Dimensions</span>
+                          <span className="text-green-700 dark:text-green-300 text-xs">
+                            {width} × {height}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-green-800 dark:text-green-200">Classes Found</span>
+                          <span className="text-green-700 dark:text-green-300 text-xs">{Object.keys(perClassCount).length} types</span>
                         </div>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">Sample Masks</p>
-                        <div className="space-y-2">
-                          {decodedKeys.slice(0, 5).map((key) => {
-                            const stats = getMaskStats(decodedMasks![key]);
+                    </div>
+                  </div>
+
+                  {totalDecoded > 0 && (
+                    <div className="space-y-4">
+                      {/* Class Distribution */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-semibold">Class Distribution</h4>
+                          <span className="text-xs text-muted-foreground">{Object.entries(perClassCount).reduce((acc, [, count]) => acc + count, 0)} total masks</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {Object.entries(perClassCount).map(([cls, count]) => {
+                            const percentage = ((count / totalDecoded) * 100).toFixed(1);
                             return (
-                              <div key={key} className="rounded-md border p-2">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs text-muted-foreground truncate max-w-[70%]" title={key}>
-                                    {key}
-                                  </span>
-                                  <span className="text-xs">{(stats.coverage * 100).toFixed(2)}% coverage</span>
+                              <div key={cls} className="rounded-lg border p-3 bg-card">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="uppercase text-sm font-medium">{cls}</span>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {count}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex-1 bg-muted rounded-full h-2">
+                                    <div className="bg-primary rounded-full h-2 transition-all duration-300" style={{ width: `${percentage}%` }} />
+                                  </div>
+                                  <span className="text-xs text-muted-foreground min-w-[35px]">{percentage}%</span>
                                 </div>
                               </div>
                             );
                           })}
                         </div>
                       </div>
+
+                      {/* Detailed Mask Analysis */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-semibold">Detailed Mask Analysis</h4>
+                          <span className="text-xs text-muted-foreground">Showing first {Math.min(5, decodedKeys.length)} masks</span>
+                        </div>
+                        <div className="space-y-2">
+                          {decodedKeys.slice(0, 5).map((key) => {
+                            const stats = getMaskStats(decodedMasks![key]);
+                            const parts = key.split("_");
+                            const frame = parts[2];
+                            const slice = parts[4];
+                            const className = parts[5];
+
+                            return (
+                              <div key={key} className="rounded-lg border p-3 bg-card">
+                                <div className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="outline" className="text-xs uppercase">
+                                        {className}
+                                      </Badge>
+                                      <span className="text-xs text-muted-foreground">
+                                        F{frame} S{slice}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs font-medium">{(stats.coverage * 100).toFixed(2)}%</span>
+                                      <div className="w-12 bg-muted rounded-full h-1.5">
+                                        <div className="bg-primary rounded-full h-1.5 transition-all duration-300" style={{ width: `${Math.min(100, stats.coverage * 100)}%` }} />
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                    <span>Active pixels: {stats.nonZeroPixels.toLocaleString()}</span>
+                                    <span>Size: {decodedMasks![key].length.toLocaleString()}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          {decodedKeys.length > 5 && <div className="text-center text-xs text-muted-foreground pt-2 border-t">... and {decodedKeys.length - 5} more masks</div>}
+                        </div>
+                      </div>
                     </div>
                   )}
 
                   {masks && masks.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">Raw Mask Sets</p>
-                      <div className="space-y-2">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold">Raw Mask Sets</h4>
+                        <Badge variant="secondary" className="text-xs">
+                          {masks.length} sets
+                        </Badge>
+                      </div>
+                      <div className="space-y-3">
                         {masks.slice(0, 3).map((m) => (
-                          <div key={m._id} className="rounded-md border p-2">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-sm">{m.name}</span>
-                              <Badge variant="outline">{m.isMedSAMOutput ? "AI" : "Manual"}</Badge>
+                          <div key={m._id} className="rounded-lg border p-3 bg-card">
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-sm">{m.name}</span>
+                                <div className="flex items-center gap-2">
+                                  <Badge
+                                    variant="outline"
+                                    className={
+                                      m.isMedSAMOutput
+                                        ? "border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                                        : "border-purple-300 bg-purple-50 text-purple-700 dark:border-purple-700 dark:bg-purple-950 dark:text-purple-300"
+                                    }
+                                  >
+                                    {m.isMedSAMOutput ? "AI Generated" : "Manual"}
+                                  </Badge>
+                                  {m.isSaved && (
+                                    <Badge variant="default" className="text-xs">
+                                      Saved
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+                                <div className="flex items-center justify-between">
+                                  <span>Frames:</span>
+                                  <span className="font-medium">{m.frames?.length || 0}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <span>RLE Encoded:</span>
+                                  <span className="font-medium">{m.segmentationmaskRLE ? "Yes" : "No"}</span>
+                                </div>
+                              </div>
+
+                              {m.description && <p className="text-xs text-muted-foreground bg-muted/50 rounded p-2 italic">&ldquo;{m.description}&rdquo;</p>}
+
+                              {/* Frame details for first few frames */}
+                              {m.frames && m.frames.length > 0 && (
+                                <div className="space-y-1">
+                                  <p className="text-xs font-medium text-muted-foreground">Frame Details:</p>
+                                  <div className="space-y-1">
+                                    {m.frames.slice(0, 2).map((frame, index) => (
+                                      <div key={index} className="text-xs text-muted-foreground bg-muted/30 rounded px-2 py-1">
+                                        <span>
+                                          Frame {frame.frameindex}: {frame.slices?.length || 0} slices
+                                        </span>
+                                        {frame.slices && frame.slices.length > 0 && (
+                                          <span className="ml-2">({frame.slices.reduce((acc, slice) => acc + (slice.segmentationmasks?.length || 0), 0)} masks)</span>
+                                        )}
+                                      </div>
+                                    ))}
+                                    {m.frames.length > 2 && <div className="text-xs text-muted-foreground text-center pt-1">... and {m.frames.length - 2} more frames</div>}
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                            <p className="text-xs text-muted-foreground">Frames: {m.frames?.length || 0}</p>
                           </div>
                         ))}
+
+                        {masks.length > 3 && <div className="text-center text-xs text-muted-foreground pt-2 border-t">... and {masks.length - 3} more mask sets</div>}
                       </div>
                     </div>
                   )}

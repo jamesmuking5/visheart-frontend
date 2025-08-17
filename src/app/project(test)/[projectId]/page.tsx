@@ -207,7 +207,7 @@ export default function ProjectPage() {
         {/* Simple name and description viewer */}
         <DebugProjectPageInfo projectData={projectData} />
         {/* Mask Viewer - Show decoded masks when available */}
-        {hasMasks && decodedMasks.current && <MaskViewer decodedMasks={decodedMasks.current} projectDimensions={projectData.dimensions} />}
+        {/* {hasMasks && decodedMasks.current && <MaskViewer decodedMasks={decodedMasks.current} projectDimensions={projectData.dimensions} />} */}
         {/* Sheet to show project, mask or job metadata on a right-side popup */}
         <ShowProjectData project={projectData} hasMasks={hasMasks} decodedMasks={decodedMasks.current} masks={undecodedMasks} jobs={jobs} jobsError={jobsError} />
       </div>
