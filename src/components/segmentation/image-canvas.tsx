@@ -37,7 +37,7 @@ const NavigationControls = memo(({
       </label>
       <Slider
         value={[currentFrame]}
-        onValueChange={(v) => onFrameChange(v[0])}
+        onValueChange={(v: number[]) => onFrameChange(v[0])}
         min={0}
         max={Math.max(0, totalFrames - 1)}
         step={1}
@@ -51,7 +51,7 @@ const NavigationControls = memo(({
       </label>
       <Slider
         value={[currentSlice]}
-        onValueChange={(v) => onSliceChange(v[0])}
+        onValueChange={(v: number[]) => onSliceChange(v[0])}
         min={0}
         max={Math.max(0, totalSlices - 1)}
         step={1}

@@ -185,7 +185,7 @@ export function DrawingPanel({
               </div>
               <Slider
                 value={[brushSize]}
-                onValueChange={(v) => setBrushSize(v[0])}
+                onValueChange={(v: number[]) => setBrushSize(v[0])}
                 min={1}
                 max={50}
                 step={1}
@@ -205,7 +205,7 @@ export function DrawingPanel({
               </div>
               <Slider
                 value={[opacity * 100]}
-                onValueChange={(v) => setOpacity(v[0] / 100)}
+                onValueChange={(v: number[]) => setOpacity(v[0] / 100)}
                 min={10}
                 max={100}
                 step={1}
@@ -278,7 +278,6 @@ export function DrawingPanel({
           
           <Button
             variant="destructive"
-            size="sm"
             onClick={handleClear}
             disabled={!canClear}
             className="w-full justify-start text-xs"
