@@ -51,22 +51,40 @@ class TarImageCacheDB {
 
   async init(): Promise<void> {
     return new Promise((resolve, reject) => {
+      // Check if IndexedDB is supported
+      if (!('indexedDB' in window)) {
+        reject(new Error('IndexedDB is not supported in this browser'));
+        return;
+      }
+
+      console.log(`[TarImageCacheDB] Opening IndexedDB database: ${this.dbName} v${this.version}`);
       const request = indexedDB.open(this.dbName, this.version);
 
-      request.onerror = () => {
-        reject(new Error('Failed to open IndexedDB'));
+      request.onerror = (event) => {
+        const error = (event.target as IDBOpenDBRequest).error;
+        console.error('[TarImageCacheDB] Failed to open IndexedDB:', error);
+        reject(new Error(`Failed to open IndexedDB: ${error?.message || 'Unknown error'}`));
       };
 
       request.onsuccess = (event) => {
         this.db = (event.target as IDBOpenDBRequest).result;
+        console.log('[TarImageCacheDB] IndexedDB opened successfully');
+
+        // Add error handler for database
+        this.db.onerror = (event) => {
+          console.error('[TarImageCacheDB] Database error:', event);
+        };
+
         resolve();
       };
 
       request.onupgradeneeded = (event) => {
+        console.log('[TarImageCacheDB] Upgrading IndexedDB schema');
         const db = (event.target as IDBOpenDBRequest).result;
 
         // Create object store if it doesn't exist
         if (!db.objectStoreNames.contains(this.storeName)) {
+          console.log(`[TarImageCacheDB] Creating object store: ${this.storeName}`);
           const store = db.createObjectStore(this.storeName, { keyPath: 'id' });
 
           // Create indexes for efficient querying
@@ -74,7 +92,14 @@ class TarImageCacheDB {
           store.createIndex('frameIndex', 'frameIndex', { unique: false });
           store.createIndex('sliceIndex', 'sliceIndex', { unique: false });
           store.createIndex('timestamp', 'timestamp', { unique: false });
+          console.log('[TarImageCacheDB] Object store and indexes created');
         }
+      };
+
+      // Add blocked handler
+      request.onblocked = () => {
+        console.warn('[TarImageCacheDB] IndexedDB upgrade blocked - close other tabs');
+        reject(new Error('IndexedDB upgrade blocked. Please close other tabs with this application.'));
       };
     });
   }
@@ -108,7 +133,10 @@ class TarImageCacheDB {
   }
 
   async getImagesByProject(projectId: string): Promise<ImageCacheEntry[]> {
-    if (!this.db) throw new Error('Database not initialized');
+    if (!this.db) {
+      console.error('[TarImageCacheDB] Database not initialized when getting images by project');
+      throw new Error('Database not initialized');
+    }
 
     return new Promise((resolve, reject) => {
       const transaction = this.db!.transaction([this.storeName], 'readonly');
@@ -171,8 +199,12 @@ function extractIndicesFromFilename(filename: string): { frame: number; slice: n
   // slice_001_frame_000.jpg
   // frame_000_slice_001.dcm
   // img_f000_s001.png
+  // projectid_filehash_frame_slice.jpg (your specific pattern)
 
   const patterns = [
+    // Your specific pattern: projectid_filehash_frame_slice.jpg
+    /^[^_]+_[^_]+_(\d+)_(\d+)\./i,
+
     /slice_(\d+)_frame_(\d+)/i,
     /frame_(\d+)_slice_(\d+)/i,
     /s(\d+)_f(\d+)/i,
@@ -187,6 +219,7 @@ function extractIndicesFromFilename(filename: string): { frame: number; slice: n
       if (pattern.source.includes('slice.*frame')) {
         return { slice: parseInt(match[1], 10), frame: parseInt(match[2], 10) };
       } else {
+        // For your specific pattern and frame_slice patterns, first number is frame, second is slice
         return { frame: parseInt(match[1], 10), slice: parseInt(match[2], 10) };
       }
     }
@@ -211,6 +244,8 @@ function extractIndicesFromFilename(filename: string): { frame: number; slice: n
 
 export class TarImageCache {
   private db: TarImageCacheDB;
+  private isInitialized: boolean = false;
+  private urlCache: Map<string, string> = new Map(); // Cache URLs to avoid duplicates
   private debugInfo: TarFetchDebugInfo = {
     presignedUrlFetched: false,
     presignedUrl: null,
@@ -247,7 +282,26 @@ export class TarImageCache {
   }
 
   async init(): Promise<void> {
-    await this.db.init();
+    if (this.isInitialized) {
+      console.log('[TarImageCache] Already initialized');
+      return;
+    }
+
+    try {
+      await this.db.init();
+      this.isInitialized = true;
+      console.log('[TarImageCache] Initialization complete');
+    } catch (error) {
+      this.isInitialized = false;
+      console.error('[TarImageCache] Initialization failed:', error);
+      throw error;
+    }
+  }
+
+  private checkInitialization(): void {
+    if (!this.isInitialized) {
+      throw new Error('TarImageCache not initialized. Call init() first.');
+    }
   }
 
   getDebugInfo(): TarFetchDebugInfo {
@@ -258,6 +312,8 @@ export class TarImageCache {
     projectId: string,
     getPresignedUrl: (projectId: string) => Promise<{ success: boolean; presignedUrl?: string; expiresAt?: number; message?: string }>
   ): Promise<TarExtractionResult> {
+    this.checkInitialization();
+
     const startTime = performance.now();
     this.resetDebugInfo();
 
@@ -438,17 +494,33 @@ export class TarImageCache {
   }
 
   async getImageBlob(projectId: string, frame: number, slice: number): Promise<Blob | null> {
+    this.checkInitialization();
     const imageId = `${projectId}_f${frame}_s${slice}`;
     const entry = await this.db.getImage(imageId);
     return entry?.blob || null;
   }
 
   async getImageURL(projectId: string, frame: number, slice: number): Promise<string | null> {
+    this.checkInitialization();
+    const imageId = `${projectId}_f${frame}_s${slice}`;
+
+    // Check if we already have a URL for this image
+    if (this.urlCache.has(imageId)) {
+      return this.urlCache.get(imageId)!;
+    }
+
     const blob = await this.getImageBlob(projectId, frame, slice);
-    return blob ? URL.createObjectURL(blob) : null;
+    if (blob) {
+      const url = URL.createObjectURL(blob);
+      this.urlCache.set(imageId, url);
+      return url;
+    }
+
+    return null;
   }
 
   async getAvailableFramesAndSlices(projectId: string): Promise<{ frames: number[]; slices: number[] }> {
+    this.checkInitialization();
     const images = await this.db.getImagesByProject(projectId);
     const frames = [...new Set(images.map(img => img.frameIndex))].sort((a, b) => a - b);
     const slices = [...new Set(images.map(img => img.sliceIndex))].sort((a, b) => a - b);
@@ -456,10 +528,28 @@ export class TarImageCache {
   }
 
   async clearProjectCache(projectId: string): Promise<void> {
+    this.checkInitialization();
+
+    // Clear URLs from cache first
+    const urlsToRevoke: string[] = [];
+    for (const [key, url] of this.urlCache.entries()) {
+      if (key.startsWith(projectId)) {
+        urlsToRevoke.push(url);
+        this.urlCache.delete(key);
+      }
+    }
+
+    // Revoke the URLs
+    urlsToRevoke.forEach(url => {
+      URL.revokeObjectURL(url);
+    });
+
+    // Clear from database
     await this.db.clearProject(projectId);
   }
 
   async getCacheSize(): Promise<number> {
+    this.checkInitialization();
     return await this.db.getCacheSize();
   }
 }

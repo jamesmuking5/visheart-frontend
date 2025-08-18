@@ -11,6 +11,7 @@ import { ShowProjectData } from "@/components/project(test)/ShowProjectData";
 import { LoadingProject } from "@/components/project(test)/LoadingProject";
 import { DebugProjectPageInfo } from "@/components/project(test)/DebugProjectPageInfo";
 import { MaskViewer } from "@/components/project(test)/MaskViewer";
+import { DebugMRIViewer } from "@/components/project(test)/DebugMRIViewer";
 
 // Custom utilities
 import { projectApi, segmentationApi } from "@/lib/api";
@@ -206,6 +207,10 @@ export default function ProjectPage() {
       <div className="max-w-6xl mx-auto space-y-4">
         {/* Simple name and description viewer */}
         <DebugProjectPageInfo projectData={projectData} />
+        
+        {/* Debug MRI Image Viewer */}
+        <DebugMRIViewer projectId={projectId} />
+        
         {/* Mask Viewer - Show decoded masks when available */}
         {/* {hasMasks && decodedMasks.current && <MaskViewer decodedMasks={decodedMasks.current} projectDimensions={projectData.dimensions} />} */}
         {/* Sheet to show project, mask or job metadata on a right-side popup */}
