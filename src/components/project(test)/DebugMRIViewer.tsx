@@ -1,10 +1,10 @@
 /**
  * DebugMRIViewer Component
- * 
+ *
  * A comprehensive debug component for viewing MRI images from tar files with instant navigation.
  * This component handles the complete workflow from tar file fetching to image display with
  * preloading optimization for seamless user experience.
- * 
+ *
  * Key Features:
  * - Fetches and extracts MRI images from presigned tar URLs
  * - Stores images in IndexedDB for persistent caching
@@ -13,24 +13,25 @@
  * - Handles filename pattern: projectid_filehash_frame_slice.jpg
  * - Memory management with proper URL cleanup
  * - Debug information and progress tracking
- * 
+ *
  * Navigation Controls:
  * - Arrow keys: ← → for frames, ↑ ↓ for slices
  * - Input fields: Direct frame/slice number entry
  * - Navigation buttons: Click-based prev/next controls
- * 
+ *
  * Performance Optimizations:
  * - URL caching prevents duplicate object URLs for same blob
  * - Memory preloading eliminates loading delays
  * - Batch processing with progress tracking
  * - Conditional console logging based on environment
- * 
+ *
  * @param projectId - The unique identifier for the project containing MRI images
  */
 
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 import { tarImageCache } from "@/lib/tar-image-cache";
 import { projectApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -71,11 +72,11 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
   useEffect(() => {
     const initializeCache = async () => {
       try {
-        if (process.env.NEXT_PUBLIC_ENV === 'development') {
+        if (process.env.NEXT_PUBLIC_ENV === "development") {
           console.log("[DebugMRIViewer] Initializing tar image cache...");
         }
         await tarImageCache.init();
-        if (process.env.NEXT_PUBLIC_ENV === 'development') {
+        if (process.env.NEXT_PUBLIC_ENV === "development") {
           console.log("[DebugMRIViewer] Tar image cache initialized successfully");
         }
         setIsInitialized(true);
@@ -89,7 +90,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
           setCurrentFrame(frames[0]);
           setCurrentSlice(slices[0]);
           setTotalImages(frames.length * slices.length);
-          if (process.env.NEXT_PUBLIC_ENV === 'development') {
+          if (process.env.NEXT_PUBLIC_ENV === "development") {
             console.log(`[DebugMRIViewer] Found cached images: ${frames.length} frames, ${slices.length} slices`);
           }
         }
@@ -145,7 +146,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     const totalToPreload = availableFrames.length * availableSlices.length;
     setPreloadProgress({ loaded: 0, total: totalToPreload });
 
-    if (process.env.NEXT_PUBLIC_ENV === 'development') {
+    if (process.env.NEXT_PUBLIC_ENV === "development") {
       console.log(`[DebugMRIViewer] Starting preload of ${totalToPreload} images...`);
     }
 
@@ -175,7 +176,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
 
       // Store all preloaded images in state for instant access
       setPreloadedImages(imageUrls);
-      if (process.env.NEXT_PUBLIC_ENV === 'development') {
+      if (process.env.NEXT_PUBLIC_ENV === "development") {
         console.log(`[DebugMRIViewer] Preloaded ${Object.keys(imageUrls).length}/${totalToPreload} images`);
       }
     } catch (err) {
@@ -188,7 +189,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
   // Trigger preloading when frames and slices are available - automatic optimization
   useEffect(() => {
     if (availableFrames.length > 0 && availableSlices.length > 0 && Object.keys(preloadedImages).length === 0) {
-      if (process.env.NEXT_PUBLIC_ENV === 'development') {
+      if (process.env.NEXT_PUBLIC_ENV === "development") {
         console.log("[DebugMRIViewer] Triggering preload...");
       }
       // Small delay to allow UI to stabilize before heavy preloading operation
@@ -481,7 +482,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
                 <Label htmlFor="slice-input">Slice</Label>
                 <div className="flex gap-2">
                   <Button variant="outline" size="sm" onClick={() => navigateSlice("prev")} disabled={availableSlices.indexOf(currentSlice) <= 0}>
-                    ←
+                    ↑
                   </Button>
                   <Input
                     id="slice-input"
@@ -493,7 +494,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
                     className="flex-1"
                   />
                   <Button variant="outline" size="sm" onClick={() => navigateSlice("next")} disabled={availableSlices.indexOf(currentSlice) >= availableSlices.length - 1}>
-                    →
+                    ↓
                   </Button>
                 </div>
                 <div className="text-sm text-muted-foreground">Available: {availableSlices.join(", ")}</div>
@@ -521,11 +522,15 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
                   )}
                 </div>
               </div>
-              <img
+              <Image
                 src={currentImageUrl}
                 alt={`MRI Frame ${currentFrame}, Slice ${currentSlice}`}
-                className="max-w-full max-h-96 mx-auto object-contain border rounded"
+                width={0}
+                height={0}
+                sizes="100vw"
+                className="max-w-full max-h-96 mx-auto object-contain border rounded w-auto h-auto"
                 style={{ imageRendering: "crisp-edges" }}
+                unoptimized
               />
             </div>
           ) : totalImages > 0 ? (
@@ -548,7 +553,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
         </div>
 
         {/* Debug Info */}
-        {process.env.NEXT_PUBLIC_ENV === 'development' && (
+        {process.env.NEXT_PUBLIC_ENV === "development" && (
           <details className="text-xs">
             <summary className="cursor-pointer text-muted-foreground">Debug Info</summary>
             <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto">
