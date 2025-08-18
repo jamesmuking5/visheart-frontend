@@ -61,6 +61,8 @@ export default function SegmentationResultsPage() {
   const canRedo = useMemo(() => historyStep < history.length - 1, [historyStep, history.length]);
   const canClear = useMemo(() => !!decodedMasks, [decodedMasks]);
 
+  const [visibleMasks, setVisibleMasks] = useState<Set<AnatomicalLabel>>(new Set(['lvc', 'rv', 'myo']));
+
   // Compute canvas dimensions based on project data
   const canvasDimensions = useMemo(() => {
     // Define database dimensions (original stored values)
@@ -427,6 +429,7 @@ export default function SegmentationResultsPage() {
             width={canvasDimensions.width}
             height={canvasDimensions.height}
             activeLabel={activeLabel}
+            visibleMasks={visibleMasks}
             tool={tool}
             brushSize={brushSize}
             opacity={opacity}
@@ -450,6 +453,8 @@ export default function SegmentationResultsPage() {
             setHardness={setHardness}
             activeLabel={activeLabel}
             setActiveLabel={setActiveLabel}
+            visibleMasks={visibleMasks}
+            setVisibleMasks={setVisibleMasks}
             handleUndo={handleUndo}
             handleRedo={handleRedo}
             handleClear={handleClear}

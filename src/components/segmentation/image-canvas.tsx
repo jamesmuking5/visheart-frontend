@@ -76,6 +76,7 @@ export function ImageCanvas({
   width,
   height,
   activeLabel,
+  visibleMasks,
   tool,
   brushSize,
   opacity,
@@ -327,11 +328,12 @@ export function ImageCanvas({
   const allMaskElements = useMemo(() => {
     const combinedMasks = getCombinedMasks();
     const maskElements: Array<{ label: string; image: HTMLImageElement; color: string }> = [];
-    
-    // Create direct visualization for each anatomical label
     Object.entries(LABEL_COLORS).forEach(([label, color]) => {
+      if (!visibleMasks.has(label as AnatomicalLabel)) return; // Only show visible masks
+      
       const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
       const maskData = combinedMasks[editableMaskKey];
+      if (!maskData || maskData.every(val => val === 0)) return;
       
       if (!maskData || maskData.every(val => val === 0)) {
         console.log(`[ImageCanvas] No mask data for ${label} at frame ${currentFrame}, slice ${currentSlice}`);
@@ -380,7 +382,7 @@ export function ImageCanvas({
     
     console.log(`[ImageCanvas] Total mask elements found: ${maskElements.length}`);
     return maskElements;
-  }, [getCombinedMasks, currentFrame, currentSlice, width, height, opacity]);
+  }, [getCombinedMasks, currentFrame, currentSlice, width, height, opacity, visibleMasks]);
 
   return (
     <div className="flex flex-col items-center w-full h-full">

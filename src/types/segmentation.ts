@@ -80,6 +80,7 @@ export interface ImageCanvasProps {
   width: number;
   height: number;
   activeLabel: AnatomicalLabel;
+  visibleMasks: Set<AnatomicalLabel>;
   tool: DrawingTool;
   brushSize: number;
   opacity: number;
@@ -110,6 +111,8 @@ export interface SegmentationSidebarProps {
   setHardness: (h: BrushHardness) => void;
   activeLabel: AnatomicalLabel;
   setActiveLabel: (label: AnatomicalLabel) => void;
+  visibleMasks: Set<AnatomicalLabel>;
+  setVisibleMasks: (masks: Set<AnatomicalLabel>) => void;
   handleUndo: () => void;
   handleRedo: () => void;
   handleClear: () => void;

@@ -29,13 +29,17 @@ const MasksPanel = React.memo(({
   currentFrame,
   currentSlice,
   activeLabel,
-  setActiveLabel
+  setActiveLabel,
+  visibleMasks,
+  setVisibleMasks
 }: {
   decodedMasks: Record<string, Uint8Array>;
   currentFrame: number;
   currentSlice: number;
   activeLabel: AnatomicalLabel;
   setActiveLabel: (label: AnatomicalLabel) => void;
+  visibleMasks: Set<AnatomicalLabel>;
+  setVisibleMasks: (masks: Set<AnatomicalLabel>) => void;
 }) => {
   // Memoized current masks calculation
   const currentMasks = useMemo(() => {
@@ -60,6 +64,16 @@ const MasksPanel = React.memo(({
       setActiveLabel(label as AnatomicalLabel);
     }
   }, [setActiveLabel]);
+
+  const toggleMaskVisibility = useCallback((label: AnatomicalLabel) => {
+    const newVisibleMasks = new Set(visibleMasks);
+    if (newVisibleMasks.has(label)) {
+      newVisibleMasks.delete(label);
+    } else {
+      newVisibleMasks.add(label);
+    }
+    setVisibleMasks(newVisibleMasks);
+  }, [visibleMasks, setVisibleMasks]);
 
   return (
     <div className="space-y-6">
@@ -86,31 +100,55 @@ const MasksPanel = React.memo(({
             const labelName = LABEL_NAMES[anatomicalLabel] || label.toUpperCase();
             const filledPixels = maskData.filter(pixel => pixel > 0).length;
             const isActive = activeLabel === label;
+            const isVisible = visibleMasks.has(anatomicalLabel);
 
             return (
               <div 
                 key={maskKey} 
                 className={cn(
-                  "p-3 rounded-lg border cursor-pointer transition-all",
+                  "p-3 rounded-lg border flex items-center gap-3 transition-all cursor-pointer",
                   isActive ? "bg-primary/10 border-primary/30" : "bg-background border-border hover:bg-muted/50"
                 )}
-                onClick={() => handleLabelClick(label)}
+                onClick={() => handleLabelClick(label)} 
+                tabIndex={0}
+                role="button"
+                aria-label={`Select ${labelName} as active mask`}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleLabelClick(label); }}
               >
-                <div className="flex items-center gap-3">
-                  <div 
-                    className="w-4 h-4 rounded-full flex-shrink-0" 
-                    style={{ backgroundColor: color }}
-                  />
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{labelName}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {filledPixels.toLocaleString()} pixels
-                    </div>
-                  </div>
-                  {isActive && (
-                    <div className="w-2 h-2 bg-primary rounded-full" />
+                {/* Radio button for active mask */}
+                <span
+                  className={cn(
+                    "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                    isActive 
+                      ? "border-primary bg-primary" 
+                      : "border-muted-foreground"
                   )}
+                  aria-hidden="true"
+                >
+                  {isActive && <div className="w-2 h-2 bg-primary-foreground rounded-full" />}
+                </span>
+
+                {/* Mask info */}
+                <div className="flex-1">
+                  <div className="font-medium text-sm">{labelName}</div>
+                  <div className="text-xs text-muted-foreground">{filledPixels.toLocaleString()} pixels</div>
                 </div>
+
+                {/* Mask color indicator */}
+                <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                
+                {/* Eye icon for visibility toggle */}
+                <button
+                  onClick={e => { e.stopPropagation(); toggleMaskVisibility(anatomicalLabel); }}
+                  className={cn(
+                    "p-1 rounded hover:bg-muted",
+                    isVisible ? "text-foreground" : "text-muted-foreground"
+                  )}
+                  aria-label={`${isVisible ? 'Hide' : 'Show'} ${labelName} mask`}
+                  tabIndex={0}
+                >
+                  {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
               </div>
             );
           })
@@ -371,6 +409,8 @@ export function SegmentationSidebar({
   setHardness,
   activeLabel,
   setActiveLabel,
+  visibleMasks,
+  setVisibleMasks,
   handleUndo,
   handleRedo,
   handleClear,
@@ -446,6 +486,8 @@ export function SegmentationSidebar({
             currentSlice={currentSlice}
             activeLabel={activeLabel}
             setActiveLabel={setActiveLabel}
+            visibleMasks={visibleMasks}
+            setVisibleMasks={setVisibleMasks}
           />
         )}
 
