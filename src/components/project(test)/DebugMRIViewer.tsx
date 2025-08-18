@@ -1,3 +1,33 @@
+/**
+ * DebugMRIViewer Component
+ * 
+ * A comprehensive debug component for viewing MRI images from tar files with instant navigation.
+ * This component handles the complete workflow from tar file fetching to image display with
+ * preloading optimization for seamless user experience.
+ * 
+ * Key Features:
+ * - Fetches and extracts MRI images from presigned tar URLs
+ * - Stores images in IndexedDB for persistent caching
+ * - Preloads all images into memory for instant switching
+ * - Provides frame/slice navigation with keyboard shortcuts
+ * - Handles filename pattern: projectid_filehash_frame_slice.jpg
+ * - Memory management with proper URL cleanup
+ * - Debug information and progress tracking
+ * 
+ * Navigation Controls:
+ * - Arrow keys: ← → for frames, ↑ ↓ for slices
+ * - Input fields: Direct frame/slice number entry
+ * - Navigation buttons: Click-based prev/next controls
+ * 
+ * Performance Optimizations:
+ * - URL caching prevents duplicate object URLs for same blob
+ * - Memory preloading eliminates loading delays
+ * - Batch processing with progress tracking
+ * - Conditional console logging based on environment
+ * 
+ * @param projectId - The unique identifier for the project containing MRI images
+ */
+
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
@@ -16,28 +46,28 @@ interface DebugMRIViewerProps {
 }
 
 export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
-  // Loading and error states
-  const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+  // Loading and error states - manage component lifecycle and error handling
+  const [isLoading, setIsLoading] = useState<boolean>(false); // Overall loading state for tar extraction
+  const [isInitialized, setIsInitialized] = useState<boolean>(false); // Flag to track if component is fully loaded
+  const [error, setError] = useState<string | null>(null); // Error message display for user feedback
 
-  // Image data and navigation
-  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
-  const [currentFrame, setCurrentFrame] = useState<number>(0);
-  const [currentSlice, setCurrentSlice] = useState<number>(0);
-  const [availableFrames, setAvailableFrames] = useState<number[]>([]);
-  const [availableSlices, setAvailableSlices] = useState<number[]>([]);
+  // Image data and navigation - core image viewing functionality
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null); // URL for displaying current image
+  const [currentFrame, setCurrentFrame] = useState<number>(0); // Currently selected frame index (0-based)
+  const [currentSlice, setCurrentSlice] = useState<number>(0); // Currently selected slice index (0-based)
+  const [availableFrames, setAvailableFrames] = useState<number[]>([]); // Array of available frame numbers
+  const [availableSlices, setAvailableSlices] = useState<number[]>([]); // Array of available slice numbers
 
-  // Cache stats
-  const [cacheSize, setCacheSize] = useState<number>(0);
-  const [totalImages, setTotalImages] = useState<number>(0);
+  // Cache stats - monitor performance and storage usage
+  const [cacheSize, setCacheSize] = useState<number>(0); // Total number of cached images
+  const [totalImages, setTotalImages] = useState<number>(0); // Total images available in tar file
 
-  // Preloaded images for instant switching
-  const [preloadedImages, setPreloadedImages] = useState<Record<string, string>>({});
-  const [isPreloading, setIsPreloading] = useState<boolean>(false);
-  const [preloadProgress, setPreloadProgress] = useState<{ loaded: number; total: number }>({ loaded: 0, total: 0 });
+  // Preloaded images for instant switching - memory optimization for smooth UX
+  const [preloadedImages, setPreloadedImages] = useState<Record<string, string>>({}); // Map of image keys to blob URLs
+  const [isPreloading, setIsPreloading] = useState<boolean>(false); // Preloading operation status
+  const [preloadProgress, setPreloadProgress] = useState<{ loaded: number; total: number }>({ loaded: 0, total: 0 }); // Progress tracking
 
-  // Initialize tar image cache
+  // Initialize tar image cache - setup component on mount
   useEffect(() => {
     const initializeCache = async () => {
       try {
@@ -53,6 +83,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
         // Check if we already have images for this project
         const { frames, slices } = await tarImageCache.getAvailableFramesAndSlices(projectId);
         if (frames.length > 0 && slices.length > 0) {
+          // Initialize navigation with first available frame/slice combination
           setAvailableFrames(frames);
           setAvailableSlices(slices);
           setCurrentFrame(frames[0]);
@@ -63,9 +94,11 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
           }
         }
 
+        // Update cache size for debug information
         const size = await tarImageCache.getCacheSize();
         setCacheSize(size);
       } catch (err) {
+        // Handle initialization errors gracefully
         console.error("[DebugMRIViewer] Failed to initialize cache:", err);
         const errorMessage = err instanceof Error ? err.message : "Failed to initialize image cache";
         setError(`Cache initialization failed: ${errorMessage}`);
@@ -74,22 +107,22 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     };
 
     initializeCache();
-  }, [projectId]);
+  }, [projectId]); // Re-initialize when project changes
 
-  // Load current image when frame/slice changes
+  // Load current image when frame/slice changes - core image display logic
   const loadCurrentImage = useCallback(async () => {
-    if (!isInitialized) return;
+    if (!isInitialized) return; // Wait for initialization to complete
 
     try {
       const imageKey = `${projectId}_f${currentFrame}_s${currentSlice}`;
 
-      // Check if image is already preloaded
+      // Check if image is already preloaded in memory for instant display
       if (preloadedImages[imageKey]) {
         setCurrentImageUrl(preloadedImages[imageKey]);
         return;
       }
 
-      // Fallback to loading from cache (slower)
+      // Fallback to loading from IndexedDB cache (slower but more reliable)
       const imageUrl = await tarImageCache.getImageURL(projectId, currentFrame, currentSlice);
       setCurrentImageUrl(imageUrl);
 
@@ -102,10 +135,10 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     }
   }, [isInitialized, projectId, currentFrame, currentSlice, preloadedImages]);
 
-  // Preload all images for instant switching
+  // Preload all images for instant switching - performance optimization
   const preloadAllImages = useCallback(async () => {
     if (!isInitialized || availableFrames.length === 0 || availableSlices.length === 0) {
-      return;
+      return; // Skip preloading if data not ready
     }
 
     setIsPreloading(true);
@@ -120,12 +153,13 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     let loadedCount = 0;
 
     try {
-      // Preload all combinations of frames and slices
+      // Preload all combinations of frames and slices for instant switching
       for (const frame of availableFrames) {
         for (const slice of availableSlices) {
           const imageKey = `${projectId}_f${frame}_s${slice}`;
 
           try {
+            // Load image URL from cache and store in memory map
             const imageUrl = await tarImageCache.getImageURL(projectId, frame, slice);
             if (imageUrl) {
               imageUrls[imageKey] = imageUrl;
@@ -135,10 +169,11 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
           }
 
           loadedCount++;
-          setPreloadProgress({ loaded: loadedCount, total: totalToPreload });
+          setPreloadProgress({ loaded: loadedCount, total: totalToPreload }); // Update progress for UI feedback
         }
       }
 
+      // Store all preloaded images in state for instant access
       setPreloadedImages(imageUrls);
       if (process.env.NEXT_PUBLIC_ENV === 'development') {
         console.log(`[DebugMRIViewer] Preloaded ${Object.keys(imageUrls).length}/${totalToPreload} images`);
@@ -146,27 +181,29 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     } catch (err) {
       console.error("[DebugMRIViewer] Preloading failed:", err);
     } finally {
-      setIsPreloading(false);
+      setIsPreloading(false); // Complete preloading operation
     }
   }, [isInitialized, availableFrames, availableSlices, projectId]);
 
-  // Trigger preloading when frames and slices are available
+  // Trigger preloading when frames and slices are available - automatic optimization
   useEffect(() => {
     if (availableFrames.length > 0 && availableSlices.length > 0 && Object.keys(preloadedImages).length === 0) {
       if (process.env.NEXT_PUBLIC_ENV === 'development') {
         console.log("[DebugMRIViewer] Triggering preload...");
       }
+      // Small delay to allow UI to stabilize before heavy preloading operation
       setTimeout(() => {
         preloadAllImages();
       }, 100);
     }
   }, [availableFrames, availableSlices, preloadedImages, preloadAllImages]);
 
+  // Load image whenever navigation changes
   useEffect(() => {
     loadCurrentImage();
-  }, [loadCurrentImage]);
+  }, [loadCurrentImage]); // Dependency ensures image updates when frame/slice changes
 
-  // Fetch and extract images from tar file
+  // Fetch and extract images from tar file - main data loading function
   const fetchTarImages = async () => {
     if (!isInitialized) {
       setError("Cache not initialized");
@@ -178,22 +215,24 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
 
     try {
       console.log("[DebugMRIViewer] Starting tar fetch and extraction...");
+      // Fetch tar file from server and extract all images to IndexedDB
       const result = await tarImageCache.fetchAndExtractProjectImages(projectId, projectApi.getProjectPresignedUrl);
 
       if (result.success) {
         console.log(`[DebugMRIViewer] Successfully extracted ${result.extractedImages}/${result.totalImages} images`);
 
-        // Refresh available frames and slices
+        // Refresh available frames and slices after successful extraction
         const { frames, slices } = await tarImageCache.getAvailableFramesAndSlices(projectId);
         setAvailableFrames(frames);
         setAvailableSlices(slices);
 
-        // Set initial frame and slice
+        // Set initial frame and slice to first available combination
         if (frames.length > 0 && slices.length > 0) {
           setCurrentFrame(frames[0]);
           setCurrentSlice(slices[0]);
         }
 
+        // Update UI state with extraction results
         setTotalImages(result.extractedImages);
         setCacheSize(result.cacheSize);
 
@@ -204,18 +243,18 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
         setError(`Failed to extract images: ${result.errors.join(", ")}`);
       }
 
-      // Log debug info
+      // Log debug info for troubleshooting
       const debugInfo = tarImageCache.getDebugInfo();
       console.log("[DebugMRIViewer] Debug info:", debugInfo);
     } catch (err) {
       console.error("[DebugMRIViewer] Tar fetch failed:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch tar file");
     } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Always clear loading state
     }
   };
 
-  // Clear cache for current project
+  // Clear cache for current project - cleanup function
   const clearCache = async () => {
     if (!isInitialized) {
       setError("Cache not initialized. Please refresh the page.");
@@ -223,10 +262,10 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     }
 
     try {
-      // Clear cache (this will handle URL cleanup)
+      // Clear cache and cleanup all associated URLs
       await tarImageCache.clearProjectCache(projectId);
 
-      // Reset state
+      // Reset all component state to initial values
       setAvailableFrames([]);
       setAvailableSlices([]);
       setCurrentFrame(0);
@@ -236,6 +275,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
       setCurrentImageUrl(null);
       setPreloadProgress({ loaded: 0, total: 0 });
 
+      // Update cache size after cleanup
       const size = await tarImageCache.getCacheSize();
       setCacheSize(size);
 
@@ -246,7 +286,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     }
   };
 
-  // Retry initialization
+  // Retry initialization - error recovery function
   const retryInitialization = async () => {
     setError(null);
     setIsInitialized(false);
@@ -257,9 +297,10 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
       console.log("[DebugMRIViewer] Retry successful");
       setIsInitialized(true);
 
-      // Check for existing images
+      // Check for existing images after successful retry
       const { frames, slices } = await tarImageCache.getAvailableFramesAndSlices(projectId);
       if (frames.length > 0 && slices.length > 0) {
+        // Restore navigation state if images are available
         setAvailableFrames(frames);
         setAvailableSlices(slices);
         setCurrentFrame(frames[0]);
@@ -276,6 +317,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     }
   };
 
+  // Input handlers for direct frame/slice selection
   const handleFrameChange = (value: string) => {
     const frame = parseInt(value, 10);
     if (!isNaN(frame) && availableFrames.includes(frame)) {
@@ -290,6 +332,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     }
   };
 
+  // Navigation functions for button controls
   const navigateFrame = (direction: "prev" | "next") => {
     const currentIndex = availableFrames.indexOf(currentFrame);
     if (direction === "prev" && currentIndex > 0) {
@@ -308,14 +351,14 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     }
   };
 
-  // Keyboard navigation
+  // Keyboard navigation - enhance user experience with arrow key controls
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (totalImages === 0) return;
+      if (totalImages === 0) return; // Only handle keys when images are available
 
       switch (event.key) {
         case "ArrowLeft":
-          event.preventDefault();
+          event.preventDefault(); // Prevent default browser behavior
           navigateFrame("prev");
           break;
         case "ArrowRight":
@@ -333,6 +376,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
       }
     };
 
+    // Attach global keyboard event listener
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
@@ -530,3 +574,9 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     </Card>
   );
 }
+
+// Component Export Summary:
+// - DebugMRIViewer: Complete MRI viewer with tar extraction and preloading
+// - Key features: instant navigation, keyboard shortcuts, debug information
+// - Performance optimized with URL caching and memory management
+// - Environment-aware logging and debug panel visibility
