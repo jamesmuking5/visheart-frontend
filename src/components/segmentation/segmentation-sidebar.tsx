@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Layers, Brush, BarChart2, History, LayoutGrid, Settings, Save, Undo2, Redo2, Trash2 } from 'lucide-react';
+import { Layers, Brush, BarChart2, History, LayoutGrid, Settings, Save, Undo2, Redo2, Trash2, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Import shared types and constants
@@ -38,11 +38,21 @@ const MasksPanel = React.memo(({
   setActiveLabel: (label: AnatomicalLabel) => void;
 }) => {
   // Memoized current masks calculation
-  const currentMasks = useMemo(() => 
-    Object.entries(decodedMasks).filter(([key]) =>
-      key.includes(`_${currentFrame}_${currentSlice}_`)
-    ), [decodedMasks, currentFrame, currentSlice]
-  );
+  const currentMasks = useMemo(() => {
+    const maskMap: Record<string, [string, Uint8Array]> = {};
+
+    Object.entries(decodedMasks).forEach(([key, maskData]) => {
+      if (
+        key.startsWith("editable_") && 
+        key.includes(`_frame_${currentFrame}_slice_${currentSlice}_`)
+      ) {
+        const label = key.split("_").pop() || "unknown";
+        maskMap[label] = [key, maskData];
+      }
+    });
+
+    return Object.values(maskMap);
+  }, [decodedMasks, currentFrame, currentSlice]);
 
   // Memoized label click handler
   const handleLabelClick = useCallback((label: string) => {
@@ -146,18 +156,22 @@ const StatsPanel = React.memo(({
 }) => {
   // Memoized current masks and stats calculation
   const { currentMasks, projectStats } = useMemo(() => {
-    const masks = Object.entries(decodedMasks).filter(([key]) =>
-      key.includes(`_${currentFrame}_${currentSlice}_`)
+    const masks = Object.entries(decodedMasks).filter(
+      ([key]) =>
+        key.startsWith("editable_") &&
+        key.includes(`_frame_${currentFrame}_slice_${currentSlice}_`)
     );
-    
+
     const stats = {
-      totalMasks: Object.keys(decodedMasks).length,
+      totalMasks: Object.keys(decodedMasks).filter((k) =>
+        k.startsWith("editable_")
+      ).length,
       width: projectData.dimensions?.width || 0,
       height: projectData.dimensions?.height || 0,
       frames: projectData.dimensions?.frames || 0,
-      slices: projectData.dimensions?.slices || 0
+      slices: projectData.dimensions?.slices || 0,
     };
-    
+
     return { currentMasks: masks, projectStats: stats };
   }, [decodedMasks, currentFrame, currentSlice, projectData]);
 
