@@ -68,6 +68,9 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
   const [isPreloading, setIsPreloading] = useState<boolean>(false); // Preloading operation status
   const [preloadProgress, setPreloadProgress] = useState<{ loaded: number; total: number }>({ loaded: 0, total: 0 }); // Progress tracking
 
+  // Navigation behavior control
+  const [resetFrameOnSliceChange, setResetFrameOnSliceChange] = useState<boolean>(false); // Reset frame to 0 when slice changes
+
   // Initialize tar image cache - setup component on mount
   useEffect(() => {
     const initializeCache = async () => {
@@ -330,6 +333,11 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     const slice = parseInt(value, 10);
     if (!isNaN(slice) && availableSlices.includes(slice)) {
       setCurrentSlice(slice);
+
+      // Reset frame to first available frame if checkbox is enabled
+      if (resetFrameOnSliceChange && availableFrames.length > 0) {
+        setCurrentFrame(availableFrames[0]);
+      }
     }
   };
 
@@ -345,10 +353,21 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
 
   const navigateSlice = (direction: "prev" | "next") => {
     const currentIndex = availableSlices.indexOf(currentSlice);
+    let newSlice: number | null = null;
+
     if (direction === "prev" && currentIndex > 0) {
-      setCurrentSlice(availableSlices[currentIndex - 1]);
+      newSlice = availableSlices[currentIndex - 1];
     } else if (direction === "next" && currentIndex < availableSlices.length - 1) {
-      setCurrentSlice(availableSlices[currentIndex + 1]);
+      newSlice = availableSlices[currentIndex + 1];
+    }
+
+    if (newSlice !== null) {
+      setCurrentSlice(newSlice);
+
+      // Reset frame to first available frame if checkbox is enabled
+      if (resetFrameOnSliceChange && availableFrames.length > 0) {
+        setCurrentFrame(availableFrames[0]);
+      }
     }
   };
 
@@ -499,6 +518,14 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
                 </div>
                 <div className="text-sm text-muted-foreground">Available: {availableSlices.join(", ")}</div>
               </div>
+            </div>
+
+            {/* Navigation Behavior Settings */}
+            <div className="flex items-center space-x-2 p-3 bg-muted/20 rounded">
+              <input id="reset-frame-checkbox" type="checkbox" checked={resetFrameOnSliceChange} onChange={(e) => setResetFrameOnSliceChange(e.target.checked)} className="h-4 w-4" />
+              <Label htmlFor="reset-frame-checkbox" className="text-sm cursor-pointer">
+                Reset frame on slice change
+              </Label>
             </div>
           </div>
         )}
