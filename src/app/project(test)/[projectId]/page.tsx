@@ -23,8 +23,8 @@ export default function ProjectPage() {
   if (error) return <ErrorProject error={error} />;
 
   return projectData ? (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-6xl mx-auto space-y-4">
+    <div className="p-6">
+      <div className="max-w-4xl mx-auto">
         <div className="bg-card text-card-foreground rounded-lg border p-6">
           <h1 className="text-2xl font-bold mb-4">Project: {projectData.name}</h1>
           <p className="text-muted-foreground mb-6">{projectData.description}</p>

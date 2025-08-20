@@ -22,7 +22,7 @@ import { projectApi, segmentationApi } from "@/lib/api";
 import { ShowForUser, ShowForRegisteredUser } from "@/components/RoleGuard";
 
 // Icon imports
-import { RefreshCw, Clock, CheckCircle, XCircle, AlertCircle, Play, AlertTriangle, Shield } from "lucide-react";
+import { RefreshCw, Clock, CheckCircle, XCircle, AlertCircle, Play, AlertTriangle, Shield, Database } from "lucide-react";
 
 // Type definitions
 import * as ProjectTypes from "@/types/project(test)";
@@ -155,8 +155,9 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button className="text-background bg-foreground" variant="ghost" size="sm">
-          Project Information
+        <Button variant="outline" size="sm" className="h-8 text-xs">
+          <Database className="h-3 w-3 mr-1" />
+          Project Data
         </Button>
       </SheetTrigger>
       <SheetContent className="w-[90vw] max-w-[800px] min-w-[500px] z-100 pt-8">
