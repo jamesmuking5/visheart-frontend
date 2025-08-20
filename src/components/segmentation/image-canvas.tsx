@@ -67,7 +67,6 @@ NavigationControls.displayName = 'NavigationControls';
 export function ImageCanvas({
   projectData,
   decodedMasks,
-  isUndoRedoOperation = false,
   onMaskUpdate,
   currentFrame,
   currentSlice,
@@ -87,10 +86,6 @@ export function ImageCanvas({
   const [imageStatus, setImageStatus] = useState<"loading" | "loaded" | "error">("loading");
   const [drawingPoints, setDrawingPoints] = useState<number[] | null>(null);
   
-  // Local browser state using editable key format
-  const [localMasks, setLocalMasks] = useState<Record<string, Uint8Array>>({});
-  const [pendingChanges, setPendingChanges] = useState<Set<string>>(new Set());
-  
   // Refs for performance
   const stageRef = useRef<any>(null);
   const isDrawing = useRef(false);
@@ -100,12 +95,6 @@ export function ImageCanvas({
     totalFrames: projectData.dimensions?.frames || 1,
     totalSlices: projectData.dimensions?.slices || 1,
   }), [projectData.dimensions]);
-
-  // Combined state management - merges backend + local changes
-  const getCombinedMasks = useCallback(() => {
-    // Priority: Local changes override backend data
-    return { ...decodedMasks, ...localMasks };
-  }, [decodedMasks, localMasks]);
 
   // Image loading with VisHeart API patterns
   useEffect(() => {
@@ -136,15 +125,6 @@ export function ImageCanvas({
 
     return () => clearTimeout(timeoutId);
   }, [projectData.projectId, currentFrame, currentSlice]);
-
-  // Clear local state during undo/redo operations
-  useEffect(() => {
-    if (isUndoRedoOperation) {
-      console.log('[ImageCanvas] Undo/Redo operation - clearing local state');
-      setLocalMasks({});
-      setPendingChanges(new Set());
-    }
-  }, [isUndoRedoOperation]);
 
   // Optimized drawing handlers with useCallback
   const getRelativePointerPosition = useCallback(() => {
@@ -224,7 +204,7 @@ export function ImageCanvas({
     }
   }, []);
 
-  // Manual segmentation with editable masks
+  // Manual segmentation with editable masks - apply edits directly to decodedMasks
   const handleMouseUp = useCallback(() => {
     if (!isDrawing.current || !drawingPoints) return;
     
@@ -232,26 +212,17 @@ export function ImageCanvas({
 
     try {
       const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${activeLabel}`;
-      const combinedMasks = getCombinedMasks();
       
       // Get existing mask or create new empty one
-      const existingMask = combinedMasks[editableMaskKey];
+      const existingMask = decodedMasks[editableMaskKey];
       const newMask = existingMask ? new Uint8Array(existingMask) : new Uint8Array(height * width);
       const labelValue = tool === "eraser" ? 0 : 1;
       
       // Apply brush stroke to mask
       drawBrushStroke(newMask, width, height, drawingPoints, brushSize, labelValue);
       
-      // Update local state
-      setLocalMasks(prev => ({
-        ...prev,
-        [editableMaskKey]: newMask
-      }));
-      
-      setPendingChanges(prev => new Set(prev).add(editableMaskKey));
-      
-      // Update parent component
-      const updatedMasks = { ...combinedMasks, [editableMaskKey]: newMask };
+      // Update decodedMasks directly - no local state needed
+      const updatedMasks = { ...decodedMasks, [editableMaskKey]: newMask };
       onMaskUpdate(updatedMasks, tool as 'brush' | 'eraser');
       
     } catch (error) {
@@ -262,81 +233,19 @@ export function ImageCanvas({
   }, [
     drawingPoints, currentFrame, currentSlice, activeLabel, 
     width, height, tool, brushSize, drawBrushStroke, 
-    onMaskUpdate, getCombinedMasks, localMasks
+    onMaskUpdate, decodedMasks
   ]);
 
-  // Save function becomes straightforward - no key conversion needed
-  const savePendingChanges = useCallback(async () => {
-    if (pendingChanges.size === 0) {
-      return { success: true, message: 'No changes to save' };
-    }
-
-    try {
-      // No key conversion needed - local keys ARE editable keys
-      const masksToSave = Array.from(pendingChanges).reduce((acc, editableKey) => {
-        if (localMasks[editableKey]) {
-          acc[editableKey] = localMasks[editableKey];
-        }
-        return acc;
-      }, {} as Record<string, Uint8Array>);
-
-      // VisHeart API pattern with session credentials
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/segmentation/${projectData.projectId}/editable-masks`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // VisHeart session-based auth
-        body: JSON.stringify({
-          masks: Object.entries(masksToSave).map(([key, data]) => ({
-            key,
-            data: Array.from(data), // Convert Uint8Array for JSON
-            frame: currentFrame,
-            slice: currentSlice,
-            label: activeLabel,
-            isMedSAMOutput: false // Explicitly mark as editable
-          }))
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Save failed: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.success) {
-        // Clear pending changes after successful save
-        setPendingChanges(new Set());
-        console.log(`[ImageCanvas] Successfully saved ${Object.keys(masksToSave).length} editable masks to backend`);
-        return { success: true, count: Object.keys(masksToSave).length };
-      } else {
-        throw new Error(result.message || 'Save failed');
-      }
-    } catch (error) {
-      console.error('[ImageCanvas] Failed to save editable masks:', error);
-      return { 
-        success: false, 
-        error: typeof error === 'object' && error !== null && 'message' in error 
-          ? (error as { message: string }).message 
-          : String(error) 
-      };
-    }
-  }, [pendingChanges, localMasks, projectData.projectId, currentFrame, currentSlice, activeLabel]);
-
-  // Direct mask redering - create ImageData directly from mask data for each label
+  // Direct mask rendering - create ImageData directly from decodedMasks for each label
   const allMaskElements = useMemo(() => {
-    const combinedMasks = getCombinedMasks();
     const maskElements: Array<{ label: string; image: HTMLImageElement; color: string }> = [];
     Object.entries(LABEL_COLORS).forEach(([label, color]) => {
       if (!visibleMasks.has(label as AnatomicalLabel)) return; // Only show visible masks
       
       const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
-      const maskData = combinedMasks[editableMaskKey];
-      if (!maskData || maskData.every(val => val === 0)) return;
+      const maskData = decodedMasks[editableMaskKey];
       
-      if (!maskData || maskData.every(val => val === 0)) {
-        console.log(`[ImageCanvas] No mask data for ${label} at frame ${currentFrame}, slice ${currentSlice}`);
+      if (!maskData || maskData.every((val: number) => val === 0)) {
         return;
       }
       
@@ -382,7 +291,7 @@ export function ImageCanvas({
     
     console.log(`[ImageCanvas] Total mask elements found: ${maskElements.length}`);
     return maskElements;
-  }, [getCombinedMasks, currentFrame, currentSlice, width, height, opacity, visibleMasks]);
+  }, [decodedMasks, currentFrame, currentSlice, width, height, opacity, visibleMasks]);
 
   return (
     <div className="flex flex-col items-center w-full h-full">
@@ -395,20 +304,6 @@ export function ImageCanvas({
         onFrameChange={onFrameChange}
         onSliceChange={onSliceChange}
       />
-
-      {/* Pending changes indicator */}
-      {pendingChanges.size > 0 && (
-        <div className={cn(
-          "mb-2 px-3 py-1 text-sm rounded-md",
-          "bg-yellow-100 dark:bg-yellow-900",
-          "text-yellow-800 dark:text-yellow-200",
-          "border border-yellow-200 dark:border-yellow-700",
-          "flex items-center gap-2"
-        )}>
-          <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-          {pendingChanges.size} unsaved change{pendingChanges.size > 1 ? 's' : ''} in browser state
-        </div>
-      )}
 
       {/* Canvas */}
       <div className="border-4 border-muted-foreground rounded-lg overflow-hidden relative">

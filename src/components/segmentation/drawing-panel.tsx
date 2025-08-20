@@ -124,7 +124,8 @@ export function DrawingPanel({
               style={{ 
                 color: activeLabel === key ? color : undefined,
                 backgroundColor: activeLabel === key ? `${color}20` : undefined,
-                borderColor: activeLabel === key ? color : undefined
+                borderColor: activeLabel === key ? color : undefined,
+               borderLeftWidth: 1, borderRightWidth: 1
               }}
             >
               <span 
