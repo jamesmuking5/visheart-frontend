@@ -13,23 +13,14 @@ import { DebugMRIViewer } from "@/components/project(test)/DebugMRIViewer";
 
 export default function PreviewPage() {
   const { projectId } = useParams<{ projectId: string }>();
-  const {
-    loading,
-    projectData,
-    hasMasks,
-    undecodedMasks,
-    decodedMasks,
-    jobs,
-    error,
-    jobsError,
-  } = useProject();
+  const { loading, projectData, hasMasks, undecodedMasks, decodedMasks, jobs, error, jobsError } = useProject();
 
   // Missing projectId handling
   if (!projectId) return <NoProjectFound message="Project ID is missing." />;
-  
+
   // Loading state
   if (loading !== "done") return <LoadingProject loadingStage={loading} />;
-  
+
   // Error states
   if (error) return <ErrorProject error={error} />;
 
@@ -38,22 +29,15 @@ export default function PreviewPage() {
       <div className="max-w-6xl mx-auto space-y-4">
         {/* Simple name and description viewer */}
         <DebugProjectPageInfo projectData={projectData} />
-        
+
         {/* Debug MRI Image Viewer */}
         <DebugMRIViewer projectId={projectId} />
-        
+
         {/* Mask Viewer - Show decoded masks when available */}
         {/* {hasMasks && decodedMasks && <MaskViewer decodedMasks={decodedMasks} projectDimensions={projectData.dimensions} />} */}
-        
+
         {/* Sheet to show project, mask or job metadata on a right-side popup */}
-        <ShowProjectData 
-          project={projectData} 
-          hasMasks={hasMasks} 
-          decodedMasks={decodedMasks} 
-          masks={undecodedMasks} 
-          jobs={jobs} 
-          jobsError={jobsError} 
-        />
+        <ShowProjectData project={projectData} hasMasks={hasMasks} decodedMasks={decodedMasks} masks={undecodedMasks} jobs={jobs} jobsError={jobsError} />
       </div>
     </div>
   ) : null;
