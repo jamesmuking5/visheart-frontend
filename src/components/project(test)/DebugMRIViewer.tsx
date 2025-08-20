@@ -10,14 +10,30 @@
  * - Stores images in IndexedDB for persistent caching
  * - Preloads all images into memory for instant switching
  * - Provides frame/slice navigation with keyboard shortcuts
+ * - Interactive zoom and pan functionality for detailed viewing
  * - Handles filename pattern: projectid_filehash_frame_slice.jpg
  * - Memory management with proper URL cleanup
  * - Debug information and progress tracking
  *
  * Navigation Controls:
  * - Arrow keys: ← → for frames, ↑ ↓ for slices
+ * - Zoom controls: + - keys for zoom in/out, 0 to reset
+ * - Mouse interactions: wheel to zoom, drag to pan
  * - Input fields: Direct frame/slice number entry
  * - Navigation buttons: Click-based prev/next controls
+ *
+ * Viewing Features:
+ * - Large 600px image display area for detailed examination
+ * - Smooth zoom (0.1x to 5x) with mouse wheel or keyboard
+ * - Click and drag panning for exploring zoomed images
+ * - Optional zoom/pan preservation when switching images
+ * - Scrollbar interference prevention during zoom operations
+ * - Visual zoom indicator overlay
+ *
+ * User Preferences:
+ * - Checkbox to reset frame when slice changes
+ * - Checkbox to preserve zoom/pan across image navigation
+ * - Configurable navigation behavior for optimal workflow
  *
  * Performance Optimizations:
  * - URL caching prevents duplicate object URLs for same blob
@@ -30,7 +46,7 @@
 
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
 import { tarImageCache } from "@/lib/tar-image-cache";
 import { projectApi } from "@/lib/api";
@@ -39,8 +55,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Download, RefreshCw, Image as ImageIcon, AlertCircle } from "lucide-react";
+import { Loader2, Download, RefreshCw, Image as ImageIcon, AlertCircle, ArrowLeft, ArrowRight, ArrowUp, ArrowDown, ZoomIn, ZoomOut, RotateCcw, Move } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface DebugMRIViewerProps {
   projectId: string;
@@ -70,6 +88,17 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
 
   // Navigation behavior control
   const [resetFrameOnSliceChange, setResetFrameOnSliceChange] = useState<boolean>(false); // Reset frame to 0 when slice changes
+  const [preserveZoomPan, setPreserveZoomPan] = useState<boolean>(true); // Preserve zoom and pan when switching images
+
+  // Ref for image container to attach native event listeners
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+
+  // Image zoom and pan controls
+  const [zoom, setZoom] = useState<number>(1); // Current zoom level (1 = 100%)
+  const [panX, setPanX] = useState<number>(0); // Pan offset X in pixels
+  const [panY, setPanY] = useState<number>(0); // Pan offset Y in pixels
+  const [isPanning, setIsPanning] = useState<boolean>(false); // Track if user is currently panning
+  const [lastPanPoint, setLastPanPoint] = useState<{ x: number; y: number } | null>(null); // Last mouse position for panning
 
   // Initialize tar image cache - setup component on mount
   useEffect(() => {
@@ -371,6 +400,77 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     }
   };
 
+  // Image zoom and pan control functions for enhanced viewing
+  const handleZoomIn = () => {
+    setZoom((prev) => Math.min(prev * 1.2, 5)); // Max zoom 5x with 20% increments
+  };
+
+  const handleZoomOut = () => {
+    setZoom((prev) => Math.max(prev / 1.2, 0.1)); // Min zoom 0.1x with 20% decrements
+  };
+
+  const handleZoomReset = () => {
+    setZoom(1); // Reset to 100% zoom
+    setPanX(0); // Reset horizontal pan
+    setPanY(0); // Reset vertical pan
+  };
+
+  // Mouse event handlers for pan functionality
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 0) {
+      // Left mouse button only
+      setIsPanning(true);
+      setLastPanPoint({ x: e.clientX, y: e.clientY });
+      e.preventDefault(); // Prevent text selection
+      e.stopPropagation(); // Prevent event bubbling
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isPanning && lastPanPoint) {
+      // Calculate mouse movement delta
+      const deltaX = e.clientX - lastPanPoint.x;
+      const deltaY = e.clientY - lastPanPoint.y;
+
+      // Update pan position based on movement
+      setPanX((prev) => prev + deltaX);
+      setPanY((prev) => prev + deltaY);
+      setLastPanPoint({ x: e.clientX, y: e.clientY });
+      e.preventDefault(); // Prevent any default behavior during panning
+      e.stopPropagation(); // Prevent event bubbling
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsPanning(false); // Stop panning
+    setLastPanPoint(null); // Clear last pan point
+  };
+
+  // Mouse wheel zoom handler with enhanced scroll prevention
+  const handleWheel = useCallback((e: WheelEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1; // 10% zoom steps
+    setZoom((prev) => Math.max(0.1, Math.min(5, prev * delta))); // Apply zoom limits
+  }, []);
+
+  const handleMouseEnter = useCallback(() => {
+    window.addEventListener("wheel", handleWheel, { passive: false });
+  }, [handleWheel]);
+
+  const handleMouseLeave = useCallback(() => {
+    window.removeEventListener("wheel", handleWheel);
+  }, [handleWheel]);
+
+  // Reset zoom and pan when image changes - now conditional based on user preference
+  useEffect(() => {
+    if (!preserveZoomPan) {
+      setZoom(1);
+      setPanX(0);
+      setPanY(0);
+    }
+  }, [currentFrame, currentSlice, preserveZoomPan]);
+
   // Keyboard navigation - enhance user experience with arrow key controls
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -393,6 +493,19 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
           event.preventDefault();
           navigateSlice("next");
           break;
+        case "=":
+        case "+":
+          event.preventDefault();
+          handleZoomIn();
+          break;
+        case "-":
+          event.preventDefault();
+          handleZoomOut();
+          break;
+        case "0":
+          event.preventDefault();
+          handleZoomReset();
+          break;
       }
     };
 
@@ -404,211 +517,336 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
   }, [totalImages, availableFrames, availableSlices, currentFrame, currentSlice]);
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ImageIcon className="h-5 w-5" />
-          Debug MRI Image Viewer
-        </CardTitle>
-        <CardDescription>Load and view MRI images from tar file for project {projectId}</CardDescription>
-      </CardHeader>
+    <TooltipProvider>
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ImageIcon className="h-5 w-5" />
+            Debug MRI Image Viewer
+          </CardTitle>
+          <CardDescription>Load and view MRI images from tar file for project {projectId}</CardDescription>
+        </CardHeader>
 
-      <CardContent className="space-y-6">
-        {/* Error Display */}
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="flex items-center justify-between">
-              <span>{error}</span>
-              {!isInitialized && (
-                <Button variant="outline" size="sm" onClick={retryInitialization} className="ml-2">
-                  Retry
-                </Button>
-              )}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Cache Stats */}
-        <div className="flex flex-wrap gap-2">
-          <Badge variant={isInitialized ? "default" : "destructive"}>Status: {isInitialized ? "Ready" : "Not Initialized"}</Badge>
-          <Badge variant="secondary">Images: {totalImages}</Badge>
-          <Badge variant="secondary">Frames: {availableFrames.length}</Badge>
-          <Badge variant="secondary">Slices: {availableSlices.length}</Badge>
-          <Badge variant="secondary">Cache Size: {(cacheSize / (1024 * 1024)).toFixed(2)} MB</Badge>
-          {isPreloading && (
-            <Badge variant="outline">
-              Preloading: {preloadProgress.loaded}/{preloadProgress.total}
-            </Badge>
-          )}
-          {Object.keys(preloadedImages).length > 0 && !isPreloading && <Badge variant="default">Preloaded: {Object.keys(preloadedImages).length}</Badge>}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex gap-2">
-          <Button onClick={fetchTarImages} disabled={!isInitialized || isLoading} className="flex items-center gap-2">
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {isLoading ? "Fetching..." : "Fetch TAR Images"}
-          </Button>
-
-          {totalImages > 0 && Object.keys(preloadedImages).length === 0 && (
-            <Button onClick={preloadAllImages} disabled={!isInitialized || isPreloading} variant="outline" className="flex items-center gap-2">
-              {isPreloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-              {isPreloading ? "Preloading..." : "Preload All Images"}
-            </Button>
+        <CardContent className="space-y-6">
+          {/* Error Display */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>{error}</span>
+                {!isInitialized && (
+                  <Button variant="outline" size="sm" onClick={retryInitialization} className="ml-2">
+                    Retry
+                  </Button>
+                )}
+              </AlertDescription>
+            </Alert>
           )}
 
-          <Button variant="outline" onClick={clearCache} disabled={!isInitialized || totalImages === 0} className="flex items-center gap-2">
-            <RefreshCw className="h-4 w-4" />
-            Clear Cache
-          </Button>
-        </div>
-
-        {/* Image Navigation Controls */}
-        {totalImages > 0 && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h4 className="text-sm font-medium">Image Navigation</h4>
-              <div className="text-xs text-muted-foreground">Use ← → for frames, ↑ ↓ for slices</div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              {/* Frame Control */}
-              <div className="space-y-2">
-                <Label htmlFor="frame-input">Frame</Label>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => navigateFrame("prev")} disabled={availableFrames.indexOf(currentFrame) <= 0}>
-                    ←
-                  </Button>
-                  <Input
-                    id="frame-input"
-                    type="number"
-                    value={currentFrame}
-                    onChange={(e) => handleFrameChange(e.target.value)}
-                    min={Math.min(...availableFrames)}
-                    max={Math.max(...availableFrames)}
-                    className="flex-1"
-                  />
-                  <Button variant="outline" size="sm" onClick={() => navigateFrame("next")} disabled={availableFrames.indexOf(currentFrame) >= availableFrames.length - 1}>
-                    →
-                  </Button>
-                </div>
-                <div className="text-sm text-muted-foreground">Available: {availableFrames.join(", ")}</div>
-              </div>
-
-              {/* Slice Control */}
-              <div className="space-y-2">
-                <Label htmlFor="slice-input">Slice</Label>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => navigateSlice("prev")} disabled={availableSlices.indexOf(currentSlice) <= 0}>
-                    ↑
-                  </Button>
-                  <Input
-                    id="slice-input"
-                    type="number"
-                    value={currentSlice}
-                    onChange={(e) => handleSliceChange(e.target.value)}
-                    min={Math.min(...availableSlices)}
-                    max={Math.max(...availableSlices)}
-                    className="flex-1"
-                  />
-                  <Button variant="outline" size="sm" onClick={() => navigateSlice("next")} disabled={availableSlices.indexOf(currentSlice) >= availableSlices.length - 1}>
-                    ↓
-                  </Button>
-                </div>
-                <div className="text-sm text-muted-foreground">Available: {availableSlices.join(", ")}</div>
-              </div>
-            </div>
-
-            {/* Navigation Behavior Settings */}
-            <div className="flex items-center space-x-2 p-3 bg-muted/20 rounded">
-              <input id="reset-frame-checkbox" type="checkbox" checked={resetFrameOnSliceChange} onChange={(e) => setResetFrameOnSliceChange(e.target.checked)} className="h-4 w-4" />
-              <Label htmlFor="reset-frame-checkbox" className="text-sm cursor-pointer">
-                Reset frame on slice change
-              </Label>
-            </div>
+          {/* Cache Stats */}
+          <div className="flex flex-wrap gap-2">
+            <Badge variant={isInitialized ? "default" : "destructive"}>Status: {isInitialized ? "Ready" : "Not Initialized"}</Badge>
+            <Badge variant="secondary">Images: {totalImages}</Badge>
+            <Badge variant="secondary">Frames: {availableFrames.length}</Badge>
+            <Badge variant="secondary">Slices: {availableSlices.length}</Badge>
+            <Badge variant="secondary">Cache Size: {(cacheSize / (1024 * 1024)).toFixed(2)} MB</Badge>
+            {isPreloading && (
+              <Badge variant="outline">
+                Preloading: {preloadProgress.loaded}/{preloadProgress.total}
+              </Badge>
+            )}
+            {Object.keys(preloadedImages).length > 0 && !isPreloading && <Badge variant="default">Preloaded: {Object.keys(preloadedImages).length}</Badge>}
           </div>
-        )}
 
-        {/* Image Display */}
-        <div className="border rounded-lg p-4 bg-muted/20">
-          {currentImageUrl ? (
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-sm text-muted-foreground">
-                <span>
-                  Frame: {currentFrame}, Slice: {currentSlice}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span>
-                    Image: {projectId}_f{currentFrame}_s{currentSlice}
-                  </span>
-                  {preloadedImages[`${projectId}_f${currentFrame}_s${currentSlice}`] && (
-                    <Badge variant="outline" className="text-xs px-1 py-0">
-                      ⚡ Preloaded
-                    </Badge>
-                  )}
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={fetchTarImages} disabled={!isInitialized || isLoading} className="flex items-center gap-2">
+                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                  {isLoading ? "Fetching..." : "Fetch TAR"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Download and extract TAR images</TooltipContent>
+            </Tooltip>
+
+            {totalImages > 0 && Object.keys(preloadedImages).length === 0 && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={preloadAllImages} disabled={!isInitialized || isPreloading} variant="outline" className="flex items-center gap-2">
+                    {isPreloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    {isPreloading ? "Preloading..." : "Preload All"}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Preload images for faster navigation</TooltipContent>
+              </Tooltip>
+            )}
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" onClick={clearCache} disabled={!isInitialized || totalImages === 0} className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Clear Cache
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Clear cached images</TooltipContent>
+            </Tooltip>
+          </div>
+
+          {/* Image Navigation Controls */}
+          {totalImages > 0 && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h4 className="text-sm font-medium">Image Navigation</h4>
+                <div className="text-xs text-muted-foreground">← → frames | ↑ ↓ slices | + - 0 zoom</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Frame Control */}
+                <div className="space-y-2">
+                  <Label htmlFor="frame-input">Frame</Label>
+                  <div className="flex gap-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={() => navigateFrame("prev")} disabled={availableFrames.indexOf(currentFrame) <= 0}>
+                          <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Previous frame</TooltipContent>
+                    </Tooltip>
+                    <Input
+                      id="frame-input"
+                      type="number"
+                      value={currentFrame}
+                      onChange={(e) => handleFrameChange(e.target.value)}
+                      min={Math.min(...availableFrames)}
+                      max={Math.max(...availableFrames)}
+                      className="flex-1"
+                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={() => navigateFrame("next")} disabled={availableFrames.indexOf(currentFrame) >= availableFrames.length - 1}>
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Next frame</TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div className="text-sm text-muted-foreground">Available: {availableFrames.join(", ")}</div>
+                </div>
+
+                {/* Slice Control */}
+                <div className="space-y-2">
+                  <Label htmlFor="slice-input">Slice</Label>
+                  <div className="flex gap-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={() => navigateSlice("prev")} disabled={availableSlices.indexOf(currentSlice) <= 0}>
+                          <ArrowUp className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Previous slice</TooltipContent>
+                    </Tooltip>
+                    <Input
+                      id="slice-input"
+                      type="number"
+                      value={currentSlice}
+                      onChange={(e) => handleSliceChange(e.target.value)}
+                      min={Math.min(...availableSlices)}
+                      max={Math.max(...availableSlices)}
+                      className="flex-1"
+                    />
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="icon" onClick={() => navigateSlice("next")} disabled={availableSlices.indexOf(currentSlice) >= availableSlices.length - 1}>
+                          <ArrowDown className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Next slice</TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <div className="text-sm text-muted-foreground">Available: {availableSlices.join(", ")}</div>
                 </div>
               </div>
-              <Image
-                src={currentImageUrl}
-                alt={`MRI Frame ${currentFrame}, Slice ${currentSlice}`}
-                width={0}
-                height={0}
-                sizes="100vw"
-                className="max-w-full max-h-96 mx-auto object-contain border rounded w-auto h-auto"
-                style={{ imageRendering: "crisp-edges" }}
-                unoptimized
-              />
-            </div>
-          ) : totalImages > 0 ? (
-            <div className="h-48 flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>
-                  No image found for Frame {currentFrame}, Slice {currentSlice}
-                </p>
+
+              {/* Navigation Behavior Settings */}
+              <div className="space-y-2 p-3 bg-muted/20 rounded">
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="reset-frame-checkbox" checked={resetFrameOnSliceChange} onCheckedChange={(checked) => setResetFrameOnSliceChange(!!checked)} />
+                  <Label htmlFor="reset-frame-checkbox" className="text-sm cursor-pointer">
+                    Reset frame on slice change
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="preserve-zoom-checkbox" checked={preserveZoomPan} onCheckedChange={(checked) => setPreserveZoomPan(!!checked)} />
+                  <Label htmlFor="preserve-zoom-checkbox" className="text-sm cursor-pointer">
+                    Preserve zoom and pan when switching images
+                  </Label>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="h-48 flex items-center justify-center text-muted-foreground">
-              <div className="text-center">
-                <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                <p>Click "Fetch TAR Images" to load MRI images</p>
+
+              {/* Zoom and Pan Controls */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <h4 className="text-sm font-medium">View Controls</h4>
+                  <div className="text-xs text-muted-foreground">Wheel/Drag to zoom/pan, + - 0 keys</div>
+                </div>
+                <div className="flex items-center gap-2 p-3 bg-muted/20 rounded">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="icon" onClick={handleZoomOut} disabled={zoom <= 0.1}>
+                        <ZoomOut className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Zoom out</TooltipContent>
+                  </Tooltip>
+                  <div className="flex-1 text-center text-sm font-medium">{Math.round(zoom * 100)}%</div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="icon" onClick={handleZoomIn} disabled={zoom >= 5}>
+                        <ZoomIn className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Zoom in</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="outline" size="icon" onClick={handleZoomReset}>
+                        <RotateCcw className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Reset zoom/pan</TooltipContent>
+                  </Tooltip>
+                </div>
               </div>
             </div>
           )}
-        </div>
 
-        {/* Debug Info */}
-        {process.env.NEXT_PUBLIC_ENV === "development" && (
-          <details className="text-xs">
-            <summary className="cursor-pointer text-muted-foreground">Debug Info</summary>
-            <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto">
-              {JSON.stringify(
-                {
-                  projectId,
-                  isInitialized,
-                  currentFrame,
-                  currentSlice,
-                  availableFrames,
-                  availableSlices,
-                  totalImages,
-                  cacheSize,
-                  currentImageUrl: currentImageUrl ? "Present" : "None",
-                },
-                null,
-                2,
-              )}
-            </pre>
-          </details>
-        )}
-      </CardContent>
-    </Card>
+          {/* Image Display */}
+          <div className="border rounded-lg bg-muted/20">
+            {currentImageUrl ? (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center p-4 text-sm text-muted-foreground border-b">
+                  <span>
+                    Frame: {currentFrame}, Slice: {currentSlice}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span>Zoom: {Math.round(zoom * 100)}%</span>
+                    <span>
+                      Image: {projectId}_f{currentFrame}_s{currentSlice}
+                    </span>
+                    {preloadedImages[`${projectId}_f${currentFrame}_s${currentSlice}`] && (
+                      <Badge variant="outline" className="text-xs px-1 py-0">
+                        ⚡ Preloaded
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+
+                {/* Image Container with Zoom and Pan */}
+                <div
+                  ref={imageContainerRef}
+                  className="relative w-full h-[600px] overflow-hidden cursor-grab active:cursor-grabbing"
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={() => {
+                    handleMouseUp();
+                    handleMouseLeave();
+                  }}
+                  style={{
+                    userSelect: "none",
+                    WebkitUserSelect: "none", // webkit browsers
+                    touchAction: "none", // Prevent default touch behaviors
+                    overscrollBehavior: "none", // Prevent scroll chaining
+                    scrollBehavior: "auto", // Override smooth scroll
+                    overflowX: "hidden", // Ensure no horizontal scroll
+                    overflowY: "hidden", // Ensure no vertical scroll
+                  }}
+                >
+                  <div
+                    className="absolute inset-0 flex items-center justify-center"
+                    style={{
+                      transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+                      transformOrigin: "center",
+                      transition: isPanning ? "none" : "transform 0.1s ease-out",
+                    }}
+                  >
+                    <Image
+                      src={currentImageUrl}
+                      alt={`MRI Frame ${currentFrame}, Slice ${currentSlice}`}
+                      width={0}
+                      height={0}
+                      sizes="100vw"
+                      className="max-w-full max-h-full object-contain w-auto h-auto"
+                      style={{
+                        imageRendering: "crisp-edges",
+                        pointerEvents: "none", // Prevent image from interfering with mouse events
+                      }}
+                      unoptimized
+                      draggable={false}
+                    />
+                  </div>
+
+                  {/* Zoom indicator overlay */}
+                  {zoom !== 1 && <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">{Math.round(zoom * 100)}%</div>}
+
+                  {/* Pan indicator */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
+                        <Move className="h-3 w-3" /> Pan
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>Click and drag to pan</TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+            ) : totalImages > 0 ? (
+              <div className="h-[600px] flex items-center justify-center text-muted-foreground">
+                <div className="text-center">
+                  <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>
+                    No image found for Frame {currentFrame}, Slice {currentSlice}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="h-[600px] flex items-center justify-center text-muted-foreground">
+                <div className="text-center">
+                  <ImageIcon className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p>Click "Fetch TAR" to load MRI images</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Debug Info */}
+          {process.env.NEXT_PUBLIC_ENV === "development" && (
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground">Debug Info</summary>
+              <pre className="mt-2 p-2 bg-muted rounded text-xs overflow-auto">
+                {JSON.stringify(
+                  {
+                    projectId,
+                    isInitialized,
+                    currentFrame,
+                    currentSlice,
+                    availableFrames,
+                    availableSlices,
+                    totalImages,
+                    cacheSize,
+                    currentImageUrl: currentImageUrl ? "Present" : "None",
+                  },
+                  null,
+                  2,
+                )}
+              </pre>
+            </details>
+          )}
+        </CardContent>
+      </Card>
+    </TooltipProvider>
   );
 }
-
-// Component Export Summary:
-// - DebugMRIViewer: Complete MRI viewer with tar extraction and preloading
-// - Key features: instant navigation, keyboard shortcuts, debug information
-// - Performance optimized with URL caching and memory management
-// - Environment-aware logging and debug panel visibility
