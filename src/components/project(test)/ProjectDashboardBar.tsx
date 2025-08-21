@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Heart, Clock, CheckCircle2, XCircle, AlertCircle, Database, Activity, Download, Settings } from "lucide-react";
 
 export function ProjectDashboardBar() {
-  const { projectData, loading, hasMasks, jobs, error, jobsError } = useProject();
+  const { projectData, loading, hasMasks, undecodedMasks, decodedMasks, jobs, error, jobsError } = useProject();
 
   if (!projectData) return null;
 
@@ -28,8 +28,8 @@ export function ProjectDashboardBar() {
   const statusInfo = getProjectStatus();
   const StatusIcon = statusInfo.icon;
 
-  // Get mask count
-  const maskCount = hasMasks ? jobs?.length || 0 : 0;
+  // Get mask count from actual mask data, not jobs
+  const maskCount = hasMasks ? (undecodedMasks?.length || 0) : 0;
 
   return (
     <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -93,7 +93,14 @@ export function ProjectDashboardBar() {
             </Button>
 
             {/* Show Project Data Sheet */}
-            <ShowProjectData project={projectData} hasMasks={hasMasks} masks={undefined} decodedMasks={undefined} jobs={jobs} jobsError={jobsError} />
+            <ShowProjectData 
+              project={projectData}
+              hasMasks={hasMasks}
+              masks={undecodedMasks}
+              decodedMasks={decodedMasks}
+              jobs={jobs}
+              jobsError={jobsError}
+            />
           </div>
         </div>
       </div>
