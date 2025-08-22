@@ -335,23 +335,26 @@ export function ImageCanvas({
         return null;
       }
       
+      const maskWidth = projectData.dimensions?.width || width;
+      const maskHeight = projectData.dimensions?.height || height;
+
       // Direct conversion: mask data to canvas
       const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = maskWidth;
+      canvas.height = maskHeight;
       const ctx = canvas.getContext("2d")!;
-      
-      const imageData = ctx.createImageData(width, height);
-      const [r, g, b] = [
-        parseInt(color.slice(1, 3), 16),
-        parseInt(color.slice(3, 5), 16),
-        parseInt(color.slice(5, 7), 16)
-      ];
-      
-      const data = imageData.data;
+
+      const imageData = ctx.createImageData(maskWidth, maskHeight);
+            const [r, g, b] = [
+              parseInt(color.slice(1, 3), 16),
+              parseInt(color.slice(3, 5), 16),
+              parseInt(color.slice(5, 7), 16)
+            ];
+            
+            const data = imageData.data;
       
       // Simple 1:1 pixel mapping: direct array index to canvas pixel mapping
-      for (let i = 0; i < maskData.length && i < (width * height); i++) {
+      for (let i = 0; i < maskData.length && i < (maskWidth * maskHeight); i++) {
         if (maskData[i] > 0) {
           const pixelIndex = i * 4;
           data[pixelIndex] = r;       // Red
