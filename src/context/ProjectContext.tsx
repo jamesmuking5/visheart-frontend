@@ -54,7 +54,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
   const [hasMasks, setHasMasks] = useState<boolean>(false);
   const [undecodedMasks, setUndecodedMasks] = useState<ProjectTypes.BaseSegmentationMask[] | null>(null);
   const [segmentationError, setSegmentationError] = useState<string | null>(null);
-  const decodedMasksRef = useRef<Record<string, Uint8Array> | null>(null);
+  const [decodedMasks, setDecodedMasks] = useState<Record<string, Uint8Array> | null>(null);
   const [maskFetchDone, setMaskFetchDone] = useState<boolean>(false);
 
   // 3. Jobs state
@@ -116,13 +116,13 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       .then((response) => {
         // Handle segmentation masks
         console.log("Segmentation masks response:", response);
-        console.log("Decoded masks ref:", decodedMasksRef.current);
+        console.log("Decoded masks state:", decodedMasks);
 
         // If masks not found in backend, set mask error state, but not project/page error
         if (!response.success) {
           setHasMasks(false);
           setSegmentationError(response.message);
-          decodedMasksRef.current = null;
+          setDecodedMasks(null);
           console.warn("No masks found:", response.message);
           return;
         }
@@ -135,8 +135,9 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
         console.log("Undecoded masks:", response.segmentations);
 
         // Decode the masks
-        decodedMasksRef.current = decodeSegmentationMasks(response.segmentations, projectData?.dimensions?.width || 0, projectData?.dimensions?.height || 0).masks;
-        console.log("Decoded masks:", decodedMasksRef.current);
+        const decodedResult = decodeSegmentationMasks(response.segmentations, projectData?.dimensions?.width || 0, projectData?.dimensions?.height || 0);
+        setDecodedMasks(decodedResult.masks);
+        console.log("Decoded masks:", decodedResult.masks);
       })
       .catch((error: unknown) => {
         setSegmentationError("Failed to fetch segmentation masks.");
@@ -208,7 +209,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     projectData,
     hasMasks,
     undecodedMasks,
-    decodedMasks: decodedMasksRef.current,
+    decodedMasks,
     jobs,
     error,
     segmentationError,

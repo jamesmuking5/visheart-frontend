@@ -14,6 +14,7 @@ import { LoadingProject } from "@/components/project(test)/LoadingProject";
 import { ErrorProject } from "@/components/project(test)/ErrorProject";
 import { SegmentationSidebar } from "@/components/segmentation/segmentation-sidebar";
 import type { AnatomicalLabel, HistoryEntry, DrawingTool } from "@/types/segmentation";
+import { useProject } from "@/context/ProjectContext";
 
 // Import tar cache for background image preloading
 import { tarImageCache } from "@/lib/tar-image-cache";
@@ -31,13 +32,36 @@ export default function SegmentationResultsPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
 
-  // Backend state
-  const [loading, setLoading] = useState<LoadingStage>("idle");
-  const [error, setError] = useState<string | null>(null);
-  const [projectData, setProjectData] = useState<ProjectData | null>(null);
-  const [undecodedMasks, setUndecodedMasks] = useState<BaseSegmentationMask[] | null>(null);
-  const [decodedMasks, setDecodedMasks] = useState<Record<string, Uint8Array> | null>(null);
+  // Get data from ProjectContext (eliminates duplicate API calls and state)
+  const { 
+    loading, 
+    error, 
+    projectData, 
+    undecodedMasks, 
+    decodedMasks: contextDecodedMasks,
+    hasMasks,
+    segmentationError 
+  } = useProject();
+
+  // Segmentation-specific state (not duplicated in context)
   const [masksInitialized, setMasksInitialized] = useState(false);
+  const [localDecodedMasks, setLocalDecodedMasks] = useState<Record<string, Uint8Array> | null>(null);
+
+  // Use local decoded masks if available (for edits), otherwise use context masks
+  const decodedMasks = localDecodedMasks || contextDecodedMasks;
+  const setDecodedMasks = setLocalDecodedMasks;
+
+  // After loading guard, we know contextDecodedMasks is available, so create a safe version
+  const safeDecodedMasks = decodedMasks || {};
+
+  // Debug: Log mask data flow for troubleshooting
+  useEffect(() => {
+    console.log("[Segmentation Debug] Data flow check:");
+    console.log("- contextDecodedMasks:", contextDecodedMasks ? Object.keys(contextDecodedMasks) : null);
+    console.log("- localDecodedMasks:", localDecodedMasks ? Object.keys(localDecodedMasks) : null);  
+    console.log("- final decodedMasks:", decodedMasks ? Object.keys(decodedMasks) : null);
+    console.log("- masksInitialized:", masksInitialized);
+  }, [contextDecodedMasks, localDecodedMasks, decodedMasks, masksInitialized]);
 
   // Tar cache state for background images
   const [isTarCacheReady, setIsTarCacheReady] = useState(false);
@@ -380,121 +404,70 @@ export default function SegmentationResultsPage() {
     console.log("Export triggered from page level");
   }, []);
 
-  // Load project data and initialize tar cache
+  // Initialize tar cache for background images when project data is available
   useEffect(() => {
-    if (!projectId) {
-      setError("Project ID is missing.");
-      setLoading("done");
-      return;
-    }
+    if (!projectData || !projectId) return;
 
-    setLoading("project");
+    // Initialize tar cache for background images
+    const initializeTarCache = async () => {
+      try {
+        console.log("[Segmentation] Initializing tar cache for background images...");
+        await tarImageCache.init();
 
-    projectApi
-      .getProjectInfo(projectId)
-      .then(async (response) => {
-        if (!response.success) {
-          setError(response.message);
-          setLoading("done");
-          return;
-        }
-        setProjectData(response.project);
-
-        // Initialize tar cache for background images after project is loaded
-        try {
-          console.log("[Segmentation] Initializing tar cache for background images...");
-          await tarImageCache.init();
-
-          // Check if images are already cached
-          const { frames, slices } = await tarImageCache.getAvailableFramesAndSlices(projectId);
-          if (frames.length > 0 && slices.length > 0) {
-            console.log(`[Segmentation] Found ${frames.length} frames and ${slices.length} slices in tar cache`);
-            setIsTarCacheReady(true);
-          } else {
-            console.log("[Segmentation] No cached images found, will attempt to extract from tar");
-            // Attempt to fetch and extract images in background
-            try {
-              const result = await tarImageCache.fetchAndExtractProjectImages(projectId, projectApi.getProjectPresignedUrl);
-              if (result.success) {
-                console.log(`[Segmentation] Successfully extracted ${result.extractedImages} images to cache`);
-                setIsTarCacheReady(true);
-              } else {
-                console.warn("[Segmentation] Failed to extract images, will use API fallback");
-                setTarCacheError(`Image extraction failed: ${result.errors.join(", ")}`);
-              }
-            } catch (extractError) {
-              console.warn("[Segmentation] Image extraction error, will use API fallback:", extractError);
-              setTarCacheError(extractError instanceof Error ? extractError.message : "Unknown extraction error");
+        // Check if images are already cached
+        const { frames, slices } = await tarImageCache.getAvailableFramesAndSlices(projectId);
+        if (frames.length > 0 && slices.length > 0) {
+          console.log(`[Segmentation] Found ${frames.length} frames and ${slices.length} slices in tar cache`);
+          setIsTarCacheReady(true);
+        } else {
+          console.log("[Segmentation] No cached images found, will attempt to extract from tar");
+          // Attempt to fetch and extract images in background
+          try {
+            const result = await tarImageCache.fetchAndExtractProjectImages(projectId, projectApi.getProjectPresignedUrl);
+            if (result.success) {
+              console.log(`[Segmentation] Successfully extracted ${result.extractedImages} images to cache`);
+              setIsTarCacheReady(true);
+            } else {
+              console.warn("[Segmentation] Failed to extract images, will use API fallback");
+              setTarCacheError(`Image extraction failed: ${result.errors.join(", ")}`);
             }
+          } catch (extractError) {
+            console.warn("[Segmentation] Image extraction error, will use API fallback:", extractError);
+            setTarCacheError(extractError instanceof Error ? extractError.message : "Unknown extraction error");
           }
-        } catch (cacheError) {
-          console.warn("[Segmentation] Tar cache initialization failed, will use API fallback:", cacheError);
-          setTarCacheError(cacheError instanceof Error ? cacheError.message : "Cache initialization failed");
         }
-      })
-      .catch(() => {
-        setError("Failed to fetch project data.");
-      })
-      .finally(() => {
-        setLoading("mask");
-      });
-  }, [projectId]);
-
-  // Load masks with history initialization - ONLY ONCE
-  useEffect(() => {
-    // Prevent reloading if masks are already initialized
-    if (masksInitialized || error || !projectData || !projectId) {
-      if (!masksInitialized && projectData && projectId && !error) {
-        console.log("[Segmentation] Ready to load masks but not initialized yet");
+      } catch (cacheError) {
+        console.warn("[Segmentation] Tar cache initialization failed, will use API fallback:", cacheError);
+        setTarCacheError(cacheError instanceof Error ? cacheError.message : "Cache initialization failed");
       }
-      setLoading("done");
-      return;
+    };
+
+    initializeTarCache();
+  }, [projectData, projectId]);
+
+  // Initialize history when masks become available from context - ONLY ONCE
+  useEffect(() => {
+    // Only initialize history if we have masks from context and haven't initialized yet
+    if (!masksInitialized && contextDecodedMasks && Object.keys(contextDecodedMasks).length > 0) {
+      console.log("[Segmentation] Initializing history with context masks...");
+      
+      // Set local masks to context masks initially
+      setLocalDecodedMasks(contextDecodedMasks);
+      
+      // Initialize history
+      initializeHistory(contextDecodedMasks);
+      setMasksInitialized(true);
+      
+      console.log("[Segmentation] History initialized successfully with", Object.keys(contextDecodedMasks).length, "masks");
     }
+  }, [contextDecodedMasks, masksInitialized, initializeHistory]);
 
-    console.log("[Segmentation] Loading masks for the first time...");
-
-    segmentationApi
-      .getSegmentationResults(projectId)
-      .then((response) => {
-        if (!response.success) {
-          setError("No segmentation masks found. Please run segmentation first.");
-          return;
-        }
-
-        setUndecodedMasks(response.segmentations);
-        // Console log dimensions for masks (use original DB dimensions)
-        console.log("[Segmentation] Decoding with original DB dimensions:", {
-          width: projectData.dimensions?.width,
-          height: projectData.dimensions?.height,
-          format: `${projectData.dimensions?.width} × ${projectData.dimensions?.height}`,
-        });
-
-        // Decode masks using ORIGINAL database dimensions (no swapping)
-        const decoded = decodeSegmentationMasks(response.segmentations, projectData.dimensions?.width || 0, projectData.dimensions?.height || 0);
-
-        // Console log the decoded masks as expandable arrays
-        console.log("[Segmentation] Decoded Masks Overview");
-        console.log("Total masks found:", Object.keys(decoded.masks).length);
-        console.log("Raw decoded masks object:", decoded.masks);
-
-        setDecodedMasks(decoded.masks);
-        initializeHistory(decoded.masks); // Initialize history
-        setMasksInitialized(true); // Mark as initialized to prevent reloading
-        console.log("[Segmentation] Masks initialized successfully");
-      })
-      .catch(() => {
-        setError("Failed to load segmentation masks.");
-      })
-      .finally(() => {
-        setLoading("done");
-      });
-  }, [projectData, projectId, error, masksInitialized]); // Removed initializeHistory from dependencies
-
-  // Loading states
+  // Loading states - now much simpler since ProjectContext handles main data loading
   if (!projectId) return <ErrorProject error="Project ID is missing." />;
   if (loading !== "done") return <LoadingProject loadingStage={loading} />;
   if (error) return <ErrorProject error={error} />;
-  if (!projectData || !decodedMasks) return <ErrorProject error="No data available" />;
+  if (segmentationError && !hasMasks) return <ErrorProject error={segmentationError} />;
+  if (!projectData || !contextDecodedMasks) return <ErrorProject error="No data available" />;
 
   return (
     <div className="h-full w-full p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6 bg-muted/40">
@@ -512,7 +485,7 @@ export default function SegmentationResultsPage() {
         <div className="flex-1 relative bg-background rounded-xl border shadow-sm p-4 flex items-center justify-center">
           <ImageCanvas
             projectData={projectData}
-            decodedMasks={decodedMasks}
+            decodedMasks={safeDecodedMasks}
             onMaskUpdate={updateMasksWithHistory}
             currentFrame={currentFrame}
             currentSlice={currentSlice}
@@ -536,7 +509,7 @@ export default function SegmentationResultsPage() {
         <div className="bg-background rounded-xl border shadow-sm h-full">
           <SegmentationSidebar
             projectData={projectData}
-            decodedMasks={decodedMasks}
+            decodedMasks={safeDecodedMasks}
             tool={tool}
             setTool={setTool}
             brushSize={brushSize}
