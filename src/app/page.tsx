@@ -16,7 +16,7 @@ import { ContactSection } from "@/components/contact-section";
 import { InteractiveGallerySection } from '@/components/interactive-gallery-section';
 import { Commands } from '@/components/commands';
 import { Heart3DSection } from '@/components/heart-3d-section';
-// import { TechnicalSpecsSection } from '@/components/technical-specs-section';
+import { TechnicalSpecsSection } from '@/components/technical-specs-section';
 
 // Register the GSAP ScrollTrigger plugin if in a browser environment
 if (typeof window !== 'undefined') {
@@ -57,6 +57,9 @@ export default function Home() {
 
         {/* Hero Section - Main introduction with The Challenge and Our Solution */}
         <HeroSection />
+
+        {/* Technical Specifications Section - Displaying key metrics */}
+        <TechnicalSpecsSection />
 
         {/* Target Users Section - Detailed information on the targeted users */}
         <TargetUsersSection />
