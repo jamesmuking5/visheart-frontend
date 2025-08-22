@@ -2,128 +2,138 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { Typewriter } from "react-simple-typewriter";
+import { useInView } from "react-intersection-observer";
 
 export function ServicesSection() {
+  const { ref, inView } = useInView({
+    triggerOnce: false,
+    threshold: 0.2,
+  });
+
+  // Service data based on your FYP objectives
+  const services = [
+    {
+      id: 1,
+      title: "2D Cardiac Segmentation",
+      description: "Slice-by-slice analysis of cardiac MRI images with AI-powered detection and segmentation of LVC, MYO, and RV components using YOLOv11 and MedSAM models.",
+      link: "/services/ai-segmentation",
+      linkText: "Go to 2D Cardiac Segmentation",
+      icon: "🫀",
+      gradient: "from-red-500 to-pink-500"
+    },
+    {
+      id: 2,
+      title: "3D Cardiac Segmentation",
+      description: "Advanced 3D modeling and visualization from 2D segmentation results, enabling comprehensive cardiac analysis and motion tracking capabilities.",
+      link: "/services/real-time-analysis",
+      linkText: "Go to 3D Cardiac Segmentation",
+      icon: "🏗️",
+      gradient: "from-blue-500 to-cyan-500"
+    },
+    {
+      id: 3,
+      title: "Consultation & Support",
+      description: "Comprehensive support for healthcare professionals with secure data handling, anonymization, and seamless integration into clinical workflows.",
+      link: "#contact-section",
+      linkText: "Go to Consultation & Support",
+      icon: "🏥",
+      gradient: "from-green-500 to-emerald-500"
+    }
+  ];
+
   return (
-    <section id="services-section" aria-label="VisHeart Services" className="services-section">
-      <div className="py-24 bg-gradient-to-br from-background to-muted">
-        <div className="max-w-6xl mx-auto px-8">
+    <section
+      ref={ref}
+      id="services-section"
+      aria-label="VisHeart Services"
+      className="relative overflow-hidden py-20 min-h-[60vh] scroll-mt-[80px] bg-gradient-to-br from-blue-50 via-white to-pink-50 dark:from-gray-900 dark:via-card dark:to-gray-800"
+    >
+      <motion.div
+        initial={{ opacity: 0, y: -40 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false }}
+        transition={{ duration: 0.8 }}
+        className="text-center mb-10"
+      >
+        <h2 className="text-5xl font-extrabold text-foreground mb-4 drop-shadow-lg">
+          {inView && (
+            <Typewriter
+              words={["Our Services"]}
+              loop={1}
+              cursor
+              cursorStyle="|"
+              typeSpeed={70}
+              deleteSpeed={50}
+              delaySpeed={1000}
+            />
+          )}
+        </h2>
+        <p className="text-lg lg:text-xl text-muted-foreground text-center">
+          Comprehensive cardiac MRI analysis solutions powered by state-of-the-art AI models, designed to bridge the gap between research and clinical practice.
+        </p>
+      </motion.div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-6xl mx-auto">
+        {services.map((service, index) => (
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="text-center mb-16"
+            key={service.id}
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            whileInView={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.8, delay: index * 0.2 }}
+            viewport={{ once: false }}
+            className="relative bg-white/60 dark:bg-card/70 backdrop-blur-xl rounded-3xl border border-primary/20 shadow-xl p-8 flex flex-col items-center justify-center hover:shadow-2xl transition-all duration-300"
           >
-            <h2 className="text-4xl font-light mb-6 text-foreground">
-              Our Services
-            </h2>
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
-              ...
+            <div className={`w-14 h-14 bg-gradient-to-br ${service.gradient} rounded-full flex items-center justify-center mb-4 shadow-lg text-3xl`}>
+              <span>{service.icon}</span>
+            </div>
+            <h3 className="text-2xl font-bold text-foreground mb-2 text-center group-hover:text-primary transition-colors duration-300">
+              {service.title}
+            </h3>
+            <p className="text-muted-foreground text-base mb-4 text-center">
+              {service.description}
             </p>
+            {service.id === 3 ? (
+              <button
+                type="button"
+                className="inline-flex items-center text-primary hover:text-primary/80 transition-colors duration-200 font-medium mt-auto"
+                onClick={() => {
+                  const el = document.getElementById('contact-section');
+                  if (el) el.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
+                <span className="mr-2 text-sm">{service.linkText}</span>
+                <motion.svg
+                  whileHover={{ x: 3 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </motion.svg>
+              </button>
+            ) : (
+              <Link
+                href={service.link}
+                className="inline-flex items-center text-primary hover:text-primary/80 transition-colors duration-200 font-medium mt-auto"
+              >
+                <span className="mr-2 text-sm">{service.linkText}</span>
+                <motion.svg
+                  whileHover={{ x: 3 }}
+                  transition={{ duration: 0.2 }}
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </motion.svg>
+              </Link>
+            )}
           </motion.div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Service 1 */}
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-              viewport={{ once: true }}
-              className="group"
-            >
-              <div className="h-64 hover:border-primary/40 transition-all duration-300 hover:shadow-xl overflow-hidden bg-card backdrop-blur-sm rounded-2xl border border-border shadow-lg">
-                {/* Empty container for future pictures */}
-              </div>
-              <div className="mt-4 text-center">
-                <h3 className="text-xl font-semibold text-foreground mb-2">2D Cardiac Segmentation</h3>
-                <p className="text-muted-foreground leading-relaxed mb-4">
-                  ...
-                </p>
-                <Link 
-                  href="/services/ai-segmentation" 
-                  className="inline-flex items-center text-primary hover:text-primary/80 transition-colors duration-200 group"
-                >
-                  <span className="mr-2">Go to 2D Cardiac Segmentation</span>
-                  <svg 
-                    className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              </div>
-            </motion.div>
-
-            {/* Service 2 */}
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              viewport={{ once: true }}
-              className="group"
-            >
-              <div className="h-64 hover:border-primary/40 transition-all duration-300 hover:shadow-xl overflow-hidden bg-card backdrop-blur-sm rounded-2xl border border-border shadow-lg">
-                {/* Empty container for future pictures */}
-              </div>
-              <div className="mt-4 text-center">
-                <h3 className="text-xl font-semibold text-foreground mb-2">3D Cardiac Segmentation</h3>
-                <p className="text-muted-foreground leading-relaxed mb-4">
-                  ...
-                </p>
-                <Link 
-                  href="/services/real-time-analysis" 
-                  className="inline-flex items-center text-primary hover:text-primary/80 transition-colors duration-200 group"
-                >
-                  <span className="mr-2">Go to 3D Cardiac Segmentation</span>
-                  <svg 
-                    className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              </div>
-            </motion.div>
-
-            {/* Service 3 */}
-            <motion.div
-              initial={{ opacity: 0, y: 50 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.3 }}
-              viewport={{ once: true }}
-              className="group"
-            >
-              <div className="h-64 hover:border-primary/40 transition-all duration-300 hover:shadow-xl overflow-hidden bg-card backdrop-blur-sm rounded-2xl border border-border shadow-lg">
-                {/* Empty container for future pictures */}
-              </div>
-              <div className="mt-4 text-center">
-                <h3 className="text-xl font-semibold text-foreground mb-2">Consultation & Support</h3>
-                <p className="text-muted-foreground leading-relaxed mb-4">
-                  ...
-                </p>
-                <Link 
-                  href="/services/cloud-integration" 
-                  className="inline-flex items-center text-primary hover:text-primary/80 transition-colors duration-200 group"
-                >
-                  <span className="mr-2">Go to Consultation & Support</span>
-                  <svg 
-                    className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              </div>
-            </motion.div>
-          </div>
-        </div>
+        ))}
       </div>
     </section>
   );
