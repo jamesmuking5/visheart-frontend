@@ -216,17 +216,28 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
           return;
         }
 
-        // Set into undecoded masks state, then start decoding
+        // Set into undecoded masks state first
         setUndecodedMasks(response.segmentations);
         // Determine if masks actually exist (non-empty set)
         const hasAnyMasks = Array.isArray(response.segmentations) && response.segmentations.length > 0;
         setHasMasks(hasAnyMasks);
         console.log("Undecoded masks:", response.segmentations);
 
-        // Decode the masks
-        const decodedResult = decodeSegmentationMasks(response.segmentations, projectData?.dimensions?.width || 0, projectData?.dimensions?.height || 0);
-        setDecodedMasks(decodedResult.masks);
-        console.log("Decoded masks:", decodedResult.masks);
+        // Only decode masks if we have valid project dimensions
+        // This prevents race conditions where masks are decoded with width/height = 0
+        if (projectData?.dimensions?.width && projectData?.dimensions?.height) {
+          console.log("Decoding masks with dimensions:", projectData.dimensions);
+          const decodedResult = decodeSegmentationMasks(
+            response.segmentations, 
+            projectData.dimensions.width, 
+            projectData.dimensions.height
+          );
+          setDecodedMasks(decodedResult.masks);
+          console.log("Decoded masks:", decodedResult.masks);
+        } else {
+          console.warn("Cannot decode masks - missing or invalid project dimensions:", projectData?.dimensions);
+          // Don't set decodedMasks to null - leave it for retry when dimensions are available
+        }
       })
       .catch((error: unknown) => {
         setSegmentationError("Failed to fetch segmentation masks.");
@@ -237,6 +248,34 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
         setMaskFetchDone(true);
       });
   }, [projectData, projectId, error]);
+
+  // 2b. Retry mask decoding when project dimensions become available (fixes race condition)
+  useEffect(() => {
+    // Only retry if we have undecoded masks, valid dimensions, but no decoded masks yet
+    if (
+      undecodedMasks && 
+      Array.isArray(undecodedMasks) && 
+      undecodedMasks.length > 0 &&
+      projectData?.dimensions?.width && 
+      projectData?.dimensions?.height &&
+      !decodedMasks
+    ) {
+      console.log("Retrying mask decoding with available dimensions:", projectData.dimensions);
+      
+      try {
+        const decodedResult = decodeSegmentationMasks(
+          undecodedMasks, 
+          projectData.dimensions.width, 
+          projectData.dimensions.height
+        );
+        setDecodedMasks(decodedResult.masks);
+        console.log("Successfully decoded masks on retry:", decodedResult.masks);
+      } catch (error) {
+        console.error("Failed to decode masks on retry:", error);
+        setSegmentationError("Failed to decode segmentation masks");
+      }
+    }
+  }, [projectData, undecodedMasks, decodedMasks]);
 
   // 3. If no masks exist, check if jobs exist
   useEffect(() => {
