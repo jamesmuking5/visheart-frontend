@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode, useCallback, useMemo } from "react";
 import { projectApi, segmentationApi } from "@/lib/api";
 import { decodeSegmentationMasks } from "@/lib/decode-RLE(test)";
 import { tarImageCache } from "@/lib/tar-image-cache";
@@ -54,6 +54,18 @@ interface ProjectProviderProps {
 export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
   const [loading, setLoading] = useState<LoadingStage>("idle");
 
+  // Performance monitoring effect - logs loading time metrics
+  useEffect(() => {
+    const startTime = Date.now();
+    console.log(`[Performance] ProjectContext loading started for project ${projectId} at ${new Date().toISOString()}`);
+
+    return () => {
+      const endTime = Date.now();
+      const duration = endTime - startTime;
+      console.log(`[Performance] ProjectContext lifecycle completed in ${duration}ms for project ${projectId}`);
+    };
+  }, [projectId]);
+
   // General state variables
   const [error, setError] = useState<string | null>(null);
 
@@ -75,18 +87,35 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
   const [tarCacheReady, setTarCacheReady] = useState<boolean>(false);
   const [tarCacheError, setTarCacheError] = useState<string | null>(null);
 
-  // Tar cache methods - NEW
-  const getMRIImage = async (frame: number, slice: number): Promise<string | null> => {
-    if (!projectId) return null;
-    try {
-      return await tarImageCache.getImageURL(projectId, frame, slice);
-    } catch (error) {
-      console.error("[ProjectContext] Failed to get MRI image:", error);
-      return null;
-    }
-  };
+  // Performance optimization: Use refs to track loading states and prevent race conditions
+  const loadingRef = useRef<LoadingStage>("idle");
+  const projectDataRef = useRef<ProjectTypes.ProjectData | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  const preloadMRIImages = async (): Promise<void> => {
+  // Update refs when state changes
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
+
+  useEffect(() => {
+    projectDataRef.current = projectData;
+  }, [projectData]);
+
+  // Tar cache methods - NEW - Memoized for performance
+  const getMRIImage = useCallback(
+    async (frame: number, slice: number): Promise<string | null> => {
+      if (!projectId) return null;
+      try {
+        return await tarImageCache.getImageURL(projectId, frame, slice);
+      } catch (error) {
+        console.error("[ProjectContext] Failed to get MRI image:", error);
+        return null;
+      }
+    },
+    [projectId],
+  );
+
+  const preloadMRIImages = useCallback(async (): Promise<void> => {
     if (!projectId || !projectData) return;
 
     try {
@@ -103,9 +132,9 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       setTarCacheError(errorMessage);
       console.error("[ProjectContext] Preload error:", error);
     }
-  };
+  }, [projectId, projectData]);
 
-  const getAvailableFramesAndSlices = async (): Promise<{ frames: number[]; slices: number[] }> => {
+  const getAvailableFramesAndSlices = useCallback(async (): Promise<{ frames: number[]; slices: number[] }> => {
     if (!projectId) return { frames: [], slices: [] };
 
     try {
@@ -114,9 +143,9 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       console.error("[ProjectContext] Failed to get available frames and slices:", error);
       return { frames: [], slices: [] };
     }
-  };
+  }, [projectId]);
 
-  const fetchAndExtractProjectImages = async (): Promise<{ success: boolean; extractedImages: number; totalImages: number; errors: string[] }> => {
+  const fetchAndExtractProjectImages = useCallback(async (): Promise<{ success: boolean; extractedImages: number; totalImages: number; errors: string[] }> => {
     if (!projectId) return { success: false, extractedImages: 0, totalImages: 0, errors: ["No project ID"] };
 
     try {
@@ -134,9 +163,9 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       console.error("[ProjectContext] Extraction error:", error);
       return { success: false, extractedImages: 0, totalImages: 0, errors: [errorMessage] };
     }
-  };
+  }, [projectId]);
 
-  const clearProjectCache = async (): Promise<void> => {
+  const clearProjectCache = useCallback(async (): Promise<void> => {
     if (!projectId) return;
 
     try {
@@ -148,10 +177,19 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       console.error("[ProjectContext] Failed to clear cache:", error);
       setTarCacheError(`Failed to clear cache: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
-  };
+  }, [projectId]);
 
-  // 1. Fetch project data from backend
+  // 1. Fetch project data from backend - Optimized with abort controller
   useEffect(() => {
+    // Abort any pending requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+    const signal = abortControllerRef.current.signal;
+
     setLoading("project");
 
     // Check if projectId is available
@@ -166,6 +204,9 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     projectApi
       .getProjectInfo(projectId)
       .then((response) => {
+        // Check if request was aborted
+        if (signal.aborted) return;
+
         // If backend cannot find project, set error state, end loading
         if (!response.success) {
           setError(response.message);
@@ -178,25 +219,35 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
         console.log("Verifying project data:", response.project);
       })
       .catch((error: unknown) => {
+        // Don't set error if request was aborted
+        if (signal.aborted) return;
+
         setError("Failed to fetch project data.");
         console.error("Error fetching project:", error);
       })
       .finally(() => {
+        // Don't update loading if request was aborted
+        if (signal.aborted) return;
+
         setLoading("idle");
       });
+
+    // Cleanup function
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [projectId]);
 
-  // 2. If projectId exists, check if segmentation masks exist
+  // 2. Optimized mask loading - improved dependency checking and performance
   useEffect(() => {
-    setLoading("mask");
-
-    // If there is an error fetching project data, do not proceed with fetching masks
-    if (error || !projectId) {
-      // Don't set loading to done here - let final loading state management handle it
+    // Early returns for better performance
+    if (error || !projectId || !projectData) {
       return;
     }
 
-    // Reset mask fetch done when project changes
+    setLoading("mask");
     setMaskFetchDone(false);
 
     // Fetch segmentation masks for the project
@@ -227,11 +278,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
         // This prevents race conditions where masks are decoded with width/height = 0
         if (projectData?.dimensions?.width && projectData?.dimensions?.height) {
           console.log("Decoding masks with dimensions:", projectData.dimensions);
-          const decodedResult = decodeSegmentationMasks(
-            response.segmentations, 
-            projectData.dimensions.width, 
-            projectData.dimensions.height
-          );
+          const decodedResult = decodeSegmentationMasks(response.segmentations, projectData.dimensions.width, projectData.dimensions.height);
           setDecodedMasks(decodedResult.masks);
           console.log("Decoded masks:", decodedResult.masks);
         } else {
@@ -252,22 +299,11 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
   // 2b. Retry mask decoding when project dimensions become available (fixes race condition)
   useEffect(() => {
     // Only retry if we have undecoded masks, valid dimensions, but no decoded masks yet
-    if (
-      undecodedMasks && 
-      Array.isArray(undecodedMasks) && 
-      undecodedMasks.length > 0 &&
-      projectData?.dimensions?.width && 
-      projectData?.dimensions?.height &&
-      !decodedMasks
-    ) {
+    if (undecodedMasks && Array.isArray(undecodedMasks) && undecodedMasks.length > 0 && projectData?.dimensions?.width && projectData?.dimensions?.height && !decodedMasks) {
       console.log("Retrying mask decoding with available dimensions:", projectData.dimensions);
-      
+
       try {
-        const decodedResult = decodeSegmentationMasks(
-          undecodedMasks, 
-          projectData.dimensions.width, 
-          projectData.dimensions.height
-        );
+        const decodedResult = decodeSegmentationMasks(undecodedMasks, projectData.dimensions.width, projectData.dimensions.height);
         setDecodedMasks(decodedResult.masks);
         console.log("Successfully decoded masks on retry:", decodedResult.masks);
       } catch (error) {
@@ -277,59 +313,69 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     }
   }, [projectData, undecodedMasks, decodedMasks]);
 
-  // 3. If no masks exist, check if jobs exist
+  // 3. Optimized jobs loading - if no masks exist, check for jobs with race condition prevention
   useEffect(() => {
+    const abortController = new AbortController();
+
     // If masks are present, clear any previous job error about missing results
     if (hasMasks && jobsError) {
       setJobsError(null);
+      return;
     }
 
     // Only fetch jobs if mask fetch is done, we don't have masks, and project data is loaded
     // Don't block on segmentationError (e.g., 'No masks found')
-    if (maskFetchDone && !hasMasks && projectData && projectId) {
-      setLoading("job");
-
-      // Fetch jobs for the current user
-      segmentationApi
-        .getUserJobs()
-        .then((response) => {
-          console.log("Jobs response:", response);
-
-          // Handle job fetch error
-          if (!response.success) {
-            setJobsError(response.message);
-            console.warn("Failed to fetch jobs:", response.message);
-            setJobs(null);
-            return;
-          }
-
-          // Filter jobs by current project ID
-          const projectJobs = response.jobs.filter((job: ProjectTypes.UserJob) => job.projectId === projectId);
-          setJobs(projectJobs);
-          console.log(`Found ${projectJobs.length} jobs for project ${projectId}:`, projectJobs);
-
-          // Check for logical errors: completed jobs should have masks
-          const completedJobs = projectJobs.filter((job: ProjectTypes.UserJob) => job.status === ProjectTypes.JobStatus.COMPLETED);
-          if (completedJobs.length > 0 && !hasMasks) {
-            console.warn(`Warning: Found ${completedJobs.length} completed job(s) but no masks for project ${projectId}. This may indicate a server-side issue.`);
-            setJobsError(`Found completed segmentation job(s) but no results. Please contact support or try re-creating the project.`);
-          }
-        })
-        .catch((error: unknown) => {
-          setJobsError("Failed to fetch job data.");
-          console.error("Error fetching jobs:", error);
-          setJobs(null);
-        })
-        .finally(() => {
-          // Don't set loading to done here - let final loading state management handle it
-        });
-    } else if (!maskFetchDone) {
-      // wait for mask fetch to complete before deciding about jobs
+    if (!maskFetchDone || hasMasks || !projectData || !projectId) {
       return;
-    } else {
-      // If we have masks or there's an error, no need to fetch jobs - final loading state will handle completion
     }
-  }, [maskFetchDone, hasMasks, projectData, segmentationError, projectId, jobsError]);
+
+    setLoading("job");
+
+    // Fetch jobs for the current user
+    segmentationApi
+      .getUserJobs()
+      .then((response) => {
+        // Check if request was aborted
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        console.log("Jobs response:", response);
+
+        // Handle job fetch error
+        if (!response.success) {
+          setJobsError(response.message);
+          console.warn("Failed to fetch jobs:", response.message);
+          setJobs(null);
+          return;
+        }
+
+        // Filter jobs by current project ID
+        const projectJobs = response.jobs.filter((job: ProjectTypes.UserJob) => job.projectId === projectId);
+        setJobs(projectJobs);
+        console.log(`Found ${projectJobs.length} jobs for project ${projectId}:`, projectJobs);
+
+        // Check for logical errors: completed jobs should have masks
+        const completedJobs = projectJobs.filter((job: ProjectTypes.UserJob) => job.status === ProjectTypes.JobStatus.COMPLETED);
+        if (completedJobs.length > 0 && !hasMasks) {
+          console.warn(`Warning: Found ${completedJobs.length} completed job(s) but no masks for project ${projectId}. This may indicate a server-side issue.`);
+          setJobsError(`Found completed segmentation job(s) but no results. Please contact support or try re-creating the project.`);
+        }
+      })
+      .catch((error: unknown) => {
+        if (abortController.signal.aborted) {
+          console.log("Jobs fetch request was aborted");
+          return;
+        }
+        setJobsError("Failed to fetch job data.");
+        console.error("Error fetching jobs:", error);
+        setJobs(null);
+      });
+
+    return () => {
+      abortController.abort();
+    };
+  }, [maskFetchDone, hasMasks, projectData, projectId, jobsError]);
 
   // 4. Initialize tar cache when project data is available and mask fetch is done - NEW
   useEffect(() => {
@@ -386,7 +432,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     };
   }, [projectData, projectId, maskFetchDone]);
 
-  // 5. Final loading state management - set to done when all components are ready or there's an error
+  // 5. Optimized final loading state management - set to done when all components are ready or there's an error
   useEffect(() => {
     // Set to done when:
     // 1. There's an error (project not found, etc.)
@@ -396,26 +442,48 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     }
   }, [error, projectData, maskFetchDone, tarCacheReady, tarCacheError, loading]);
 
-  const contextValue: ProjectContextType = {
-    loading,
-    projectData,
-    hasMasks,
-    undecodedMasks,
-    decodedMasks,
-    jobs,
-    error,
-    segmentationError,
-    jobsError,
-    maskFetchDone,
-    // NEW: Tar cache properties and methods
-    tarCacheReady,
-    tarCacheError,
-    getMRIImage,
-    preloadMRIImages,
-    getAvailableFramesAndSlices,
-    fetchAndExtractProjectImages,
-    clearProjectCache,
-  };
+  // Memoized context value to prevent unnecessary re-renders
+  const contextValue: ProjectContextType = useMemo(
+    () => ({
+      loading,
+      projectData,
+      hasMasks,
+      undecodedMasks,
+      decodedMasks,
+      jobs,
+      error,
+      segmentationError,
+      jobsError,
+      maskFetchDone,
+      // NEW: Tar cache properties and methods
+      tarCacheReady,
+      tarCacheError,
+      getMRIImage,
+      preloadMRIImages,
+      getAvailableFramesAndSlices,
+      fetchAndExtractProjectImages,
+      clearProjectCache,
+    }),
+    [
+      loading,
+      projectData,
+      hasMasks,
+      undecodedMasks,
+      decodedMasks,
+      jobs,
+      error,
+      segmentationError,
+      jobsError,
+      maskFetchDone,
+      tarCacheReady,
+      tarCacheError,
+      getMRIImage,
+      preloadMRIImages,
+      getAvailableFramesAndSlices,
+      fetchAndExtractProjectImages,
+      clearProjectCache,
+    ],
+  );
 
   return <ProjectContext.Provider value={contextValue}>{children}</ProjectContext.Provider>;
 }
