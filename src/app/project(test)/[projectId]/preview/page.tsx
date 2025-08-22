@@ -26,7 +26,7 @@ export default function PreviewPage() {
   return projectData ? (
     <div className="p-6 space-y-6">
       {/* Simple name and description viewer */}
-      <DebugProjectPageInfo projectData={projectData} />
+      {/* <DebugProjectPageInfo projectData={projectData} /> */}
 
       {/* Debug MRI Image Viewer */}
       <DebugMRIViewer projectId={projectId} />
