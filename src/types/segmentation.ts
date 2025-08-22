@@ -84,6 +84,9 @@ export interface ImageCanvasProps {
   brushSize: number;
   opacity: number;
   hardness: BrushHardness;
+  // Tar cache props for background image optimization
+  isTarCacheReady?: boolean;
+  tarCacheError?: string | null;
 }
 
 export interface HistoryPanelProps {

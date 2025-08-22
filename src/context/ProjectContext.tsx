@@ -93,10 +93,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
         console.error("Error fetching project:", error);
       })
       .finally(() => {
-        // Simulate a delay for loading state (todo)
-        setTimeout(() => {
-          setLoading("idle");
-        }, 500);
+        setLoading("idle");
       });
   }, [projectId]);
 
@@ -146,11 +143,8 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
         console.error("Error fetching segmentation masks:", error);
       })
       .finally(() => {
-        // Simulate a delay for loading state (todo)
-        setTimeout(() => {
-          setLoading("done");
-          setMaskFetchDone(true);
-        }, 500);
+        setLoading("done");
+        setMaskFetchDone(true);
       });
   }, [projectData, projectId, error]);
 
