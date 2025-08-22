@@ -8,7 +8,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 // --- Page Section Component Imports ---
 import { HeroSection } from '@/components/hero-section';
-// import { TargetUsersSection } from '@/components/target-users-section'; 
+import { TargetUsersSection } from '@/components/target-users-section'; 
 import { ServicesSection } from '@/components/services-section';
 import { FaqSection } from "@/components/faq-section";
 import { GallerySection } from "@/components/gallery-section";
@@ -57,6 +57,9 @@ export default function Home() {
 
         {/* Hero Section - Main introduction with The Challenge and Our Solution */}
         <HeroSection />
+
+        {/* Target Users Section - Detailed information on the targeted users */}
+        <TargetUsersSection />
 
         {/* Services Section - Our medical services and offerings */}
         <ServicesSection />
