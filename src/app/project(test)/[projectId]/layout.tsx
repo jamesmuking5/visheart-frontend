@@ -14,7 +14,7 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
         <ProjectProvider projectId={projectId}>
           <div className="min-h-screen bg-background">
             <ProjectDashboardBar />
-            <div className="container mx-auto">{children}</div>
+            <div className="container min-w-full">{children}</div>
           </div>
         </ProjectProvider>
       )}
