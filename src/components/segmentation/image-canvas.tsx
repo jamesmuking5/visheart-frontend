@@ -14,6 +14,9 @@ import {
   PERFORMANCE_CONSTANTS 
 } from "@/types/segmentation";
 
+// Import tar cache for background images
+import { tarImageCache } from "@/lib/tar-image-cache";
+
 // Memoized Navigation Controls Component
 const NavigationControls = memo(({ 
   currentFrame, 
@@ -80,11 +83,15 @@ export function ImageCanvas({
   brushSize,
   opacity,
   hardness,
+  isTarCacheReady = false,
+  tarCacheError = null,
 }: ImageCanvasProps) {
   // Browser state management for manual segmentation
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [imageStatus, setImageStatus] = useState<"loading" | "loaded" | "error">("loading");
   const [drawingPoints, setDrawingPoints] = useState<number[] | null>(null);
+  const [imageLoadMethod, setImageLoadMethod] = useState<"tar" | "api" | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true); // Track if this is the first image load
   
   // Refs for performance
   const stageRef = useRef<any>(null);
@@ -96,35 +103,111 @@ export function ImageCanvas({
     totalSlices: projectData.dimensions?.slices || 1,
   }), [projectData.dimensions]);
 
-  // Image loading with VisHeart API patterns
+  // Enhanced image loading with tar cache + API fallback
   useEffect(() => {
     if (!projectData.projectId) return;
 
-    setImageStatus("loading");
-    const img = new window.Image();
-    
-    // VisHeart API pattern with session credentials
-    img.crossOrigin = "use-credentials";
-    img.src = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/projects/${projectData.projectId}/images/frame_${currentFrame}_slice_${currentSlice}.jpeg`;
-     
-    const timeoutId = setTimeout(() => {
-      setImageStatus("error");
-    }, PERFORMANCE_CONSTANTS?.IMAGE_LOAD_TIMEOUT_MS || 10000);
+    const loadImageWithFallback = async () => {
+      // Only show loading spinner on initial load or when there's no current image
+      if (isInitialLoad || !image) {
+        setImageStatus("loading");
+      }
+      
+      let imageLoaded = false;
 
-    img.onload = () => {
-      clearTimeout(timeoutId);
-      setImage(img);
-      setImageStatus("loaded");
-    };
-    
-    img.onerror = () => {
-      clearTimeout(timeoutId);
-      console.warn(`[ImageCanvas] Failed to load image for frame ${currentFrame}, slice ${currentSlice}`);
-      setImageStatus("error");
+      // Method 1: Try loading from tar cache (if ready and available)
+      if (isTarCacheReady && !tarCacheError) {
+        try {
+          console.log(`[ImageCanvas] Attempting to load from tar cache: frame ${currentFrame}, slice ${currentSlice}`);
+          const imageUrl = await tarImageCache.getImageURL(projectData.projectId, currentFrame, currentSlice);
+          
+          if (imageUrl) {
+            const img = new window.Image();
+            img.crossOrigin = "anonymous"; // For tar cache images
+            img.src = imageUrl;
+            
+            try {
+              await new Promise<void>((resolve, reject) => {
+                const timeoutId = setTimeout(() => reject("Tar cache timeout"), 5000);
+                
+                img.onload = () => {
+                  clearTimeout(timeoutId);
+                  setImage(img);
+                  setImageStatus("loaded");
+                  setImageLoadMethod("tar");
+                  setIsInitialLoad(false); // Mark initial load as complete
+                  imageLoaded = true;
+                  console.log(`[ImageCanvas] Successfully loaded from tar cache: frame ${currentFrame}, slice ${currentSlice}`);
+                  resolve();
+                };
+                
+                img.onerror = () => {
+                  clearTimeout(timeoutId);
+                  reject("Failed to load tar image");
+                };
+              });
+            } catch (loadError) {
+              console.log(`[ImageCanvas] Tar cache image loading failed:`, loadError);
+            }
+          } else {
+            console.log(`[ImageCanvas] No image URL found in tar cache for frame ${currentFrame}, slice ${currentSlice}`);
+          }
+        } catch (error) {
+          console.log(`[ImageCanvas] Tar cache loading failed, falling back to API:`, error);
+        }
+      } else if (tarCacheError) {
+        console.log(`[ImageCanvas] Skipping tar cache due to error: ${tarCacheError}`);
+      } else {
+        console.log(`[ImageCanvas] Tar cache not ready yet (${isTarCacheReady}), falling back to API`);
+      }
+
+      // Method 2: Fallback to API loading (if tar cache failed or not available)
+      if (!imageLoaded) {
+        try {
+          console.log(`[ImageCanvas] Loading from API: frame ${currentFrame}, slice ${currentSlice}`);
+          const img = new window.Image();
+          img.crossOrigin = "use-credentials"; // For API images
+          img.src = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/projects/${projectData.projectId}/images/frame_${currentFrame}_slice_${currentSlice}.jpeg`;
+          
+          await new Promise<void>((resolve, reject) => {
+            const timeoutId = setTimeout(() => reject("API timeout"), PERFORMANCE_CONSTANTS?.IMAGE_LOAD_TIMEOUT_MS || 10000);
+            
+            img.onload = () => {
+              clearTimeout(timeoutId);
+              setImage(img);
+              setImageStatus("loaded");
+              setImageLoadMethod("api");
+              setIsInitialLoad(false); // Mark initial load as complete
+              console.log(`[ImageCanvas] Successfully loaded from API: frame ${currentFrame}, slice ${currentSlice}`);
+              resolve();
+            };
+            
+            img.onerror = () => {
+              clearTimeout(timeoutId);
+              reject("API load failed");
+            };
+          });
+        } catch (error) {
+          console.error(`[ImageCanvas] Both tar cache and API loading failed:`, error);
+          setImageStatus("error");
+          setImageLoadMethod(null);
+        }
+      }
     };
 
-    return () => clearTimeout(timeoutId);
-  }, [projectData.projectId, currentFrame, currentSlice]);
+    loadImageWithFallback().catch((error) => {
+      console.error(`[ImageCanvas] Image loading error:`, error);
+      setImageStatus("error");
+      setImageLoadMethod(null);
+    });
+  }, [projectData.projectId, currentFrame, currentSlice, isTarCacheReady, tarCacheError, isInitialLoad]);
+
+  // Additional effect to reload image when tar cache becomes ready (for initial load)
+  useEffect(() => {
+    if (isTarCacheReady && imageStatus === "loading" && !image) {
+      console.log(`[ImageCanvas] Tar cache became ready, triggering image reload`);
+    }
+  }, [isTarCacheReady, imageStatus, image]);
 
   // Optimized drawing handlers with useCallback
   const getRelativePointerPosition = useCallback(() => {
@@ -326,12 +409,16 @@ export function ImageCanvas({
 
       {/* Canvas */}
       <div className="border-4 border-muted-foreground rounded-lg overflow-hidden relative">
-        {imageStatus === "loading" && (
+        {/* Only show loading spinner on initial load or when there's no current image */}
+        {imageStatus === "loading" && isInitialLoad && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
-            <div className="text-sm text-muted-foreground">Loading image...</div>
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+              Loading image...
+            </div>
           </div>
         )}
-        
+
         <Stage
           ref={stageRef}
           width={width}
@@ -374,15 +461,27 @@ export function ImageCanvas({
         </Stage>
       </div>
 
-      {/* Image Status Indicator */}
-      {imageStatus === "error" && (
-        <div className={cn(
-          "mt-2 text-sm text-destructive",
-          "flex items-center gap-2"
-        )}>
-          Failed to load image for Frame {currentFrame + 1}, Slice {currentSlice + 1}
-        </div>
-      )}
+      {/* Image Status Indicators */}
+      <div className="mt-2 flex flex-col items-center gap-1">
+        {imageStatus === "error" && (
+          <div className="text-sm text-destructive flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-destructive"></div>
+            Failed to load image for Frame {currentFrame + 1}, Slice {currentSlice + 1}
+            {!isTarCacheReady && tarCacheError && (
+              <span className="text-muted-foreground text-xs">(Cache error: {tarCacheError})</span>
+            )}
+            {!isTarCacheReady && !tarCacheError && (
+              <span className="text-muted-foreground text-xs">(Cache not ready)</span>
+            )}
+          </div>
+        )}
+        
+        {imageStatus === "loaded" && imageLoadMethod && (
+          <div className="text-xs text-muted-foreground">
+            Frame {currentFrame + 1}/{totalFrames}, Slice {currentSlice + 1}/{totalSlices}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

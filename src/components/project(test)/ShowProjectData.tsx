@@ -164,77 +164,191 @@ export const ShowProjectData = ({ project, hasMasks, decodedMasks, masks, jobs, 
         <SheetHeader>
           <SheetTitle className="text-center font-extrabold w-full text-foreground text-2xl">Project Information</SheetTitle>
         </SheetHeader>
-        <Tabs className="w-full px-5" defaultValue="project">
-          <TabsList className="flex w-full flex-row gap-2 h-14">
+        <Tabs className="w-full px-5 items-center" defaultValue="project">
+          <TabsList className="flex w-52 flex-row gap-2 h-8">
             <TabsTrigger value="project">Project Data</TabsTrigger>
             {hasMasks && <TabsTrigger value="mask">Mask Data</TabsTrigger>} {/* Show mask tab only if masks exist */}
             {!hasMasks && <TabsTrigger value="job">Job Data</TabsTrigger>}
           </TabsList>
 
           {/* Project Data Section */}
-          <TabsContent value="project" className="p-2">
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Project ID</span>
-                <span className="text-muted-foreground">{project.projectId}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Name</span>
-                <span className="text-muted-foreground">{localProject.name}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Description</span>
-                <span className="text-muted-foreground max-w-[60%] truncate" title={localProject.description}>
-                  {localProject.description}
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Status</span>
-                <ShowForRegisteredUser fallback={<Badge variant={localProject.isSaved ? "default" : "secondary"}>{localProject.isSaved ? "Saved" : "Temp"}</Badge>}>
-                  <Button variant="ghost" size="sm" onClick={() => handleSaveProject(!localProject.isSaved)} className="h-auto p-1" disabled={isUpdating}>
-                    <Badge variant={localProject.isSaved ? "default" : "secondary"} className="cursor-pointer hover:opacity-80">
-                      {localProject.isSaved ? "Saved" : "Temp"}
-                    </Badge>
-                  </Button>
-                </ShowForRegisteredUser>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-medium">File Type</span>
-                <span className="text-muted-foreground">
-                  {localProject.filetype} • {localProject.filesize} bytes
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Dimensions</span>
-                <span className="text-muted-foreground">
-                  {width} × {height}
-                  {localProject.dimensions?.slices !== undefined && ` × ${localProject.dimensions.slices}`}
-                  {localProject.dimensions?.frames !== undefined && ` × ${localProject.dimensions.frames}`}
-                </span>
-              </div>
-              {localProject.voxelsize && (
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Voxel Size</span>
-                  <span className="text-muted-foreground">
-                    x: {localProject.voxelsize.x}, y: {localProject.voxelsize.y}
-                    {localProject.voxelsize.z !== undefined && `, z: ${localProject.voxelsize.z}`}
-                    {localProject.voxelsize.t !== undefined && `, t: ${localProject.voxelsize.t}`}
-                  </span>
+          <TabsContent value="project" className="p-6">
+            <ScrollArea className="h-[70vh] min-h-[400px]">
+              <div className="space-y-6 pr-4">
+                {/* Header Section */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                      <Database className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-foreground">{localProject.name}</h3>
+                      <p className="text-sm text-muted-foreground">Project ID: {project.projectId}</p>
+                    </div>
+                  </div>
+
+                  {localProject.description && (
+                    <div className="rounded-lg border bg-muted/30 p-4">
+                      <p className="text-sm text-muted-foreground italic leading-relaxed">&ldquo;{localProject.description}&rdquo;</p>
+                    </div>
+                  )}
                 </div>
-              )}
-              {localProject.createdAt && (
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Created</span>
-                  <span className="text-muted-foreground">{new Date(localProject.createdAt).toLocaleString()}</span>
+
+                {/* Status and Basic Info Card */}
+                <div className="rounded-xl border bg-card p-6 shadow-sm">
+                  <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-primary" />
+                    Project Status
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between py-2 border-b border-border/50">
+                        <span className="font-medium text-foreground">Status</span>
+                        <ShowForRegisteredUser
+                          fallback={
+                            <Badge variant={localProject.isSaved ? "default" : "secondary"} className="text-xs">
+                              {localProject.isSaved ? "Saved" : "Temp"}
+                            </Badge>
+                          }
+                        >
+                          <Button variant="ghost" size="sm" onClick={() => handleSaveProject(!localProject.isSaved)} className="h-auto p-1" disabled={isUpdating}>
+                            <Badge variant={localProject.isSaved ? "default" : "secondary"} className="cursor-pointer hover:opacity-80 text-xs">
+                              {localProject.isSaved ? "Saved" : "Temp"}
+                            </Badge>
+                          </Button>
+                        </ShowForRegisteredUser>
+                      </div>
+                      <div className="flex items-center justify-between py-2 border-b border-border/50">
+                        <span className="font-medium text-foreground">File Type</span>
+                        <div className="text-right">
+                          <Badge variant="outline" className="text-xs font-mono">
+                            {localProject.filetype}
+                          </Badge>
+                          <p className="text-xs text-muted-foreground mt-1">{(localProject.filesize / 1024 / 1024).toFixed(2)} MB</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {localProject.createdAt && (
+                        <div className="flex items-center justify-between py-2 border-b border-border/50">
+                          <span className="font-medium text-foreground">Created</span>
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">{new Date(localProject.createdAt).toLocaleDateString()}</p>
+                            <p className="text-xs text-muted-foreground">{new Date(localProject.createdAt).toLocaleTimeString()}</p>
+                          </div>
+                        </div>
+                      )}
+                      {localProject.updatedAt && (
+                        <div className="flex items-center justify-between py-2 border-b border-border/50">
+                          <span className="font-medium text-foreground">Updated</span>
+                          <div className="text-right">
+                            <p className="text-sm text-muted-foreground">{new Date(localProject.updatedAt).toLocaleDateString()}</p>
+                            <p className="text-xs text-muted-foreground">{new Date(localProject.updatedAt).toLocaleTimeString()}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              )}
-              {localProject.updatedAt && (
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Updated</span>
-                  <span className="text-muted-foreground">{new Date(localProject.updatedAt).toLocaleString()}</span>
+
+                {/* Technical Specifications Card */}
+                <div className="rounded-xl border bg-card p-6 shadow-sm">
+                  <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-primary" />
+                    Technical Specifications
+                  </h4>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Dimensions Section */}
+                    <div className="space-y-3">
+                      <h5 className="font-medium text-foreground">Image Dimensions</h5>
+                      <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Width × Height</span>
+                          <Badge variant="secondary" className="font-mono text-xs">
+                            {width} × {height}
+                          </Badge>
+                        </div>
+                        {localProject.dimensions?.slices !== undefined && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Slices</span>
+                            <Badge variant="secondary" className="font-mono text-xs">
+                              {localProject.dimensions.slices}
+                            </Badge>
+                          </div>
+                        )}
+                        {localProject.dimensions?.frames !== undefined && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Frames</span>
+                            <Badge variant="secondary" className="font-mono text-xs">
+                              {localProject.dimensions.frames}
+                            </Badge>
+                          </div>
+                        )}
+                        <div className="pt-2 border-t border-border/50">
+                          <span className="text-xs text-muted-foreground">Total pixels: {(width * height).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Voxel Size Section */}
+                    {localProject.voxelsize && (
+                      <div className="space-y-3">
+                        <h5 className="font-medium text-foreground">Voxel Properties</h5>
+                        <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">X spacing</span>
+                            <Badge variant="secondary" className="font-mono text-xs">
+                              {localProject.voxelsize.x}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-muted-foreground">Y spacing</span>
+                            <Badge variant="secondary" className="font-mono text-xs">
+                              {localProject.voxelsize.y}
+                            </Badge>
+                          </div>
+                          {localProject.voxelsize.z !== undefined && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">Z spacing</span>
+                              <Badge variant="secondary" className="font-mono text-xs">
+                                {localProject.voxelsize.z}
+                              </Badge>
+                            </div>
+                          )}
+                          {localProject.voxelsize.t !== undefined && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm text-muted-foreground">T spacing</span>
+                              <Badge variant="secondary" className="font-mono text-xs">
+                                {localProject.voxelsize.t}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* Quick Actions Card - if needed in the future */}
+                <div className="rounded-xl border bg-gradient-to-br from-primary/5 to-primary/10 p-6 shadow-sm">
+                  <h4 className="text-lg font-semibold mb-3 text-primary">Quick Overview</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary">{hasMasks ? "✓" : "○"}</div>
+                      <p className="text-xs text-muted-foreground">Segmented</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary">{localProject.isSaved ? "✓" : "○"}</div>
+                      <p className="text-xs text-muted-foreground">Saved</p>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-primary">{localProject.dimensions?.slices || localProject.dimensions?.frames || 1}</div>
+                      <p className="text-xs text-muted-foreground">Slices/Frames</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
           </TabsContent>
 
           {/* Mask Data Section */}

@@ -14,6 +14,9 @@ import { LoadingProject } from "@/components/project(test)/LoadingProject";
 import { ErrorProject } from "@/components/project(test)/ErrorProject";
 import { SegmentationSidebar } from "@/components/segmentation/segmentation-sidebar";
 import type { AnatomicalLabel, HistoryEntry, DrawingTool } from "@/types/segmentation";
+
+// Import tar cache for background image preloading
+import { tarImageCache } from "@/lib/tar-image-cache";
  
 const ImageCanvas = dynamic(
   () => import("@/components/segmentation/image-canvas").then((mod) => mod.ImageCanvas),
@@ -37,7 +40,11 @@ export default function SegmentationResultsPage() {
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [undecodedMasks, setUndecodedMasks] = useState<BaseSegmentationMask[] | null>(null);
   const [decodedMasks, setDecodedMasks] = useState<Record<string, Uint8Array> | null>(null);
-  const [masksInitialized, setMasksInitialized] = useState(false); 
+  const [masksInitialized, setMasksInitialized] = useState(false);
+
+  // Tar cache state for background images
+  const [isTarCacheReady, setIsTarCacheReady] = useState(false);
+  const [tarCacheError, setTarCacheError] = useState<string | null>(null); 
 
   // UI state
   const [activeLabel, setActiveLabel] = useState<AnatomicalLabel>('lvc');
@@ -392,7 +399,7 @@ export default function SegmentationResultsPage() {
     console.log("Export triggered from page level");
   }, []);
 
-  // Load project data 
+  // Load project data and initialize tar cache
   useEffect(() => {
     if (!projectId) {
       setError("Project ID is missing.");
@@ -403,13 +410,45 @@ export default function SegmentationResultsPage() {
     setLoading("project");
     
     projectApi.getProjectInfo(projectId)
-      .then((response) => {
+      .then(async (response) => {
         if (!response.success) {
           setError(response.message); 
           setLoading("done");
           return;
         }
         setProjectData(response.project);
+        
+        // Initialize tar cache for background images after project is loaded
+        try {
+          console.log("[Segmentation] Initializing tar cache for background images...");
+          await tarImageCache.init();
+          
+          // Check if images are already cached
+          const { frames, slices } = await tarImageCache.getAvailableFramesAndSlices(projectId);
+          if (frames.length > 0 && slices.length > 0) {
+            console.log(`[Segmentation] Found ${frames.length} frames and ${slices.length} slices in tar cache`);
+            setIsTarCacheReady(true);
+          } else {
+            console.log("[Segmentation] No cached images found, will attempt to extract from tar");
+            // Attempt to fetch and extract images in background
+            try {
+              const result = await tarImageCache.fetchAndExtractProjectImages(projectId, projectApi.getProjectPresignedUrl);
+              if (result.success) {
+                console.log(`[Segmentation] Successfully extracted ${result.extractedImages} images to cache`);
+                setIsTarCacheReady(true);
+              } else {
+                console.warn("[Segmentation] Failed to extract images, will use API fallback");
+                setTarCacheError(`Image extraction failed: ${result.errors.join(", ")}`);
+              }
+            } catch (extractError) {
+              console.warn("[Segmentation] Image extraction error, will use API fallback:", extractError);
+              setTarCacheError(extractError instanceof Error ? extractError.message : "Unknown extraction error");
+            }
+          }
+        } catch (cacheError) {
+          console.warn("[Segmentation] Tar cache initialization failed, will use API fallback:", cacheError);
+          setTarCacheError(cacheError instanceof Error ? cacheError.message : "Cache initialization failed");
+        }
       })
       .catch(() => {
         setError("Failed to fetch project data.");
@@ -513,6 +552,8 @@ export default function SegmentationResultsPage() {
             brushSize={brushSize}
             opacity={opacity}
             hardness={hardness}
+            isTarCacheReady={isTarCacheReady}
+            tarCacheError={tarCacheError}
           />
         </div>
       </main>
