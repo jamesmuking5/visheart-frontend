@@ -320,35 +320,41 @@ export function ImageCanvas({
   ]);
 
   // Direct mask rendering - create ImageData directly from decodedMasks for each label
+  // Render active mask last so it appears on top
   const allMaskElements = useMemo(() => {
     const maskElements: Array<{ label: string; image: HTMLImageElement; color: string }> = [];
-    Object.entries(LABEL_COLORS).forEach(([label, color]) => {
-      if (!visibleMasks.has(label as AnatomicalLabel)) return; // Only show visible masks
+    
+    // Helper function to create mask element for a given label
+    const createMaskElement = (label: string, color: string) => {
+      if (!visibleMasks.has(label as AnatomicalLabel)) return null; // Only show visible masks
       
       const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
       const maskData = decodedMasks[editableMaskKey];
       
       if (!maskData || maskData.every((val: number) => val === 0)) {
-        return;
+        return null;
       }
       
+      const maskWidth = projectData.dimensions?.width || width;
+      const maskHeight = projectData.dimensions?.height || height;
+
       // Direct conversion: mask data to canvas
       const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = maskWidth;
+      canvas.height = maskHeight;
       const ctx = canvas.getContext("2d")!;
-      
-      const imageData = ctx.createImageData(width, height);
-      const [r, g, b] = [
-        parseInt(color.slice(1, 3), 16),
-        parseInt(color.slice(3, 5), 16),
-        parseInt(color.slice(5, 7), 16)
-      ];
-      
-      const data = imageData.data;
+
+      const imageData = ctx.createImageData(maskWidth, maskHeight);
+            const [r, g, b] = [
+              parseInt(color.slice(1, 3), 16),
+              parseInt(color.slice(3, 5), 16),
+              parseInt(color.slice(5, 7), 16)
+            ];
+            
+            const data = imageData.data;
       
       // Simple 1:1 pixel mapping: direct array index to canvas pixel mapping
-      for (let i = 0; i < maskData.length && i < (width * height); i++) {
+      for (let i = 0; i < maskData.length && i < (maskWidth * maskHeight); i++) {
         if (maskData[i] > 0) {
           const pixelIndex = i * 4;
           data[pixelIndex] = r;       // Red
@@ -363,18 +369,34 @@ export function ImageCanvas({
       const img = new window.Image();
       img.src = canvas.toDataURL();
       
-      maskElements.push({
+      return {
         label,
         image: img,
         color
-      });
-      
-      console.log(`[ImageCanvas] Creating direct mask element for ${label} | frame: ${currentFrame}, slice: ${currentSlice}`);
+      };
+    };
+    
+    // Render all mask layers for the current frame/slice.
+    Object.entries(LABEL_COLORS).forEach(([label, color]) => {
+      if (label !== activeLabel) {
+        const maskElement = createMaskElement(label, color);
+        if (maskElement) {
+          maskElements.push(maskElement);
+        }
+      }
     });
     
-    console.log(`[ImageCanvas] Total mask elements found: ${maskElements.length}`);
+    // Render the active mask last so it appears on top of other masks
+    if (LABEL_COLORS[activeLabel]) {
+      const activeMaskElement = createMaskElement(activeLabel, LABEL_COLORS[activeLabel]);
+      if (activeMaskElement) {
+        maskElements.push(activeMaskElement);
+      }
+    }
+    
+    console.log(`[ImageCanvas] Total mask elements found: ${maskElements.length}, active mask "${activeLabel}" rendered last`);
     return maskElements;
-  }, [decodedMasks, currentFrame, currentSlice, width, height, opacity, visibleMasks]);
+  }, [decodedMasks, currentFrame, currentSlice, width, height, opacity, visibleMasks, activeLabel]);
 
   return (
     <div className="flex flex-col items-center w-full h-full">
