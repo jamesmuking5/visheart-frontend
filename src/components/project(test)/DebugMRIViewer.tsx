@@ -48,8 +48,8 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import Image from "next/image";
+import { useProject } from "@/context/ProjectContext";
 import { tarImageCache } from "@/lib/tar-image-cache";
-import { projectApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -65,10 +65,17 @@ interface DebugMRIViewerProps {
 }
 
 export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
-  // Loading and error states - manage component lifecycle and error handling
+  // Use ProjectContext instead of managing tar cache directly
+  const { 
+    tarCacheReady, 
+    tarCacheError, 
+    getMRIImage, 
+    getAvailableFramesAndSlices, 
+    fetchAndExtractProjectImages, 
+    clearProjectCache 
+  } = useProject();
+  // Loading and error states - simplified since ProjectContext handles tar cache state
   const [isLoading, setIsLoading] = useState<boolean>(false); // Overall loading state for tar extraction
-  const [isInitialized, setIsInitialized] = useState<boolean>(false); // Flag to track if component is fully loaded
-  const [error, setError] = useState<string | null>(null); // Error message display for user feedback
 
   // Image data and navigation - core image viewing functionality
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null); // URL for displaying current image
@@ -100,30 +107,26 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
   const [isPanning, setIsPanning] = useState<boolean>(false); // Track if user is currently panning
   const [lastPanPoint, setLastPanPoint] = useState<{ x: number; y: number } | null>(null); // Last mouse position for panning
 
-  // Initialize tar image cache - setup component on mount
+  // Initialize component and load available frames/slices when cache is ready
   useEffect(() => {
-    const initializeCache = async () => {
+    const initializeNavigation = async () => {
+      if (!tarCacheReady) return; // Wait for tar cache to be ready from ProjectContext
+      
       try {
         if (process.env.NEXT_PUBLIC_ENV === "development") {
-          console.log("[DebugMRIViewer] Initializing tar image cache...");
+          console.log("[DebugMRIViewer] Tar cache ready, loading navigation options...");
         }
-        await tarImageCache.init();
-        if (process.env.NEXT_PUBLIC_ENV === "development") {
-          console.log("[DebugMRIViewer] Tar image cache initialized successfully");
-        }
-        setIsInitialized(true);
-
-        // Check if we already have images for this project
-        const { frames, slices } = await tarImageCache.getAvailableFramesAndSlices(projectId);
+        
+        // Get available frames and slices from ProjectContext
+        const { frames, slices } = await getAvailableFramesAndSlices();
         if (frames.length > 0 && slices.length > 0) {
-          // Initialize navigation with first available frame/slice combination
           setAvailableFrames(frames);
           setAvailableSlices(slices);
           setCurrentFrame(frames[0]);
           setCurrentSlice(slices[0]);
           setTotalImages(frames.length * slices.length);
           if (process.env.NEXT_PUBLIC_ENV === "development") {
-            console.log(`[DebugMRIViewer] Found cached images: ${frames.length} frames, ${slices.length} slices`);
+            console.log(`[DebugMRIViewer] Found ${frames.length} frames, ${slices.length} slices`);
           }
         }
 
@@ -131,20 +134,16 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
         const size = await tarImageCache.getCacheSize();
         setCacheSize(size);
       } catch (err) {
-        // Handle initialization errors gracefully
-        console.error("[DebugMRIViewer] Failed to initialize cache:", err);
-        const errorMessage = err instanceof Error ? err.message : "Failed to initialize image cache";
-        setError(`Cache initialization failed: ${errorMessage}`);
-        setIsInitialized(false);
+        console.error("[DebugMRIViewer] Failed to initialize navigation:", err);
       }
     };
 
-    initializeCache();
-  }, [projectId]); // Re-initialize when project changes
+    initializeNavigation();
+  }, [tarCacheReady, getAvailableFramesAndSlices]); // Re-run when tar cache is ready
 
   // Load current image when frame/slice changes - core image display logic
   const loadCurrentImage = useCallback(async () => {
-    if (!isInitialized) return; // Wait for initialization to complete
+    if (!tarCacheReady) return; // Wait for tar cache to be ready from ProjectContext
 
     try {
       const imageKey = `${projectId}_f${currentFrame}_s${currentSlice}`;
@@ -155,8 +154,8 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
         return;
       }
 
-      // Fallback to loading from IndexedDB cache (slower but more reliable)
-      const imageUrl = await tarImageCache.getImageURL(projectId, currentFrame, currentSlice);
+      // Use ProjectContext getMRIImage method instead of direct tarImageCache
+      const imageUrl = await getMRIImage(currentFrame, currentSlice);
       setCurrentImageUrl(imageUrl);
 
       if (!imageUrl) {
@@ -164,13 +163,12 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
       }
     } catch (err) {
       console.error("[DebugMRIViewer] Failed to load image:", err);
-      setError("Failed to load image");
     }
-  }, [isInitialized, projectId, currentFrame, currentSlice, preloadedImages]);
+  }, [tarCacheReady, projectId, currentFrame, currentSlice, preloadedImages, getMRIImage]);
 
   // Preload all images for instant switching - performance optimization
   const preloadAllImages = useCallback(async () => {
-    if (!isInitialized || availableFrames.length === 0 || availableSlices.length === 0) {
+    if (!tarCacheReady || availableFrames.length === 0 || availableSlices.length === 0) {
       return; // Skip preloading if data not ready
     }
 
@@ -192,8 +190,8 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
           const imageKey = `${projectId}_f${frame}_s${slice}`;
 
           try {
-            // Load image URL from cache and store in memory map
-            const imageUrl = await tarImageCache.getImageURL(projectId, frame, slice);
+            // Use ProjectContext getMRIImage instead of direct tarImageCache call
+            const imageUrl = await getMRIImage(frame, slice);
             if (imageUrl) {
               imageUrls[imageKey] = imageUrl;
             }
@@ -216,7 +214,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     } finally {
       setIsPreloading(false); // Complete preloading operation
     }
-  }, [isInitialized, availableFrames, availableSlices, projectId]);
+  }, [tarCacheReady, availableFrames, availableSlices, projectId, getMRIImage]);
 
   // Trigger preloading when frames and slices are available - automatic optimization
   useEffect(() => {
@@ -238,24 +236,23 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
 
   // Fetch and extract images from tar file - main data loading function
   const fetchTarImages = async () => {
-    if (!isInitialized) {
-      setError("Cache not initialized");
+    if (!tarCacheReady) {
+      console.warn("Tar cache not ready from ProjectContext");
       return;
     }
 
     setIsLoading(true);
-    setError(null);
 
     try {
       console.log("[DebugMRIViewer] Starting tar fetch and extraction...");
-      // Fetch tar file from server and extract all images to IndexedDB
-      const result = await tarImageCache.fetchAndExtractProjectImages(projectId, projectApi.getProjectPresignedUrl);
+      // Use ProjectContext fetchAndExtractProjectImages method
+      const result = await fetchAndExtractProjectImages();
 
       if (result.success) {
         console.log(`[DebugMRIViewer] Successfully extracted ${result.extractedImages}/${result.totalImages} images`);
 
         // Refresh available frames and slices after successful extraction
-        const { frames, slices } = await tarImageCache.getAvailableFramesAndSlices(projectId);
+        const { frames, slices } = await getAvailableFramesAndSlices();
         setAvailableFrames(frames);
         setAvailableSlices(slices);
 
@@ -267,13 +264,14 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
 
         // Update UI state with extraction results
         setTotalImages(result.extractedImages);
-        setCacheSize(result.cacheSize);
+        const size = await tarImageCache.getCacheSize();
+        setCacheSize(size);
 
         if (result.errors.length > 0) {
           console.warn("[DebugMRIViewer] Extraction completed with errors:", result.errors);
         }
       } else {
-        setError(`Failed to extract images: ${result.errors.join(", ")}`);
+        console.error(`Failed to extract images: ${result.errors.join(", ")}`);
       }
 
       // Log debug info for troubleshooting
@@ -281,7 +279,6 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
       console.log("[DebugMRIViewer] Debug info:", debugInfo);
     } catch (err) {
       console.error("[DebugMRIViewer] Tar fetch failed:", err);
-      setError(err instanceof Error ? err.message : "Failed to fetch tar file");
     } finally {
       setIsLoading(false); // Always clear loading state
     }
@@ -289,14 +286,14 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
 
   // Clear cache for current project - cleanup function
   const clearCache = async () => {
-    if (!isInitialized) {
-      setError("Cache not initialized. Please refresh the page.");
+    if (!tarCacheReady) {
+      console.warn("Tar cache not ready from ProjectContext");
       return;
     }
 
     try {
-      // Clear cache and cleanup all associated URLs
-      await tarImageCache.clearProjectCache(projectId);
+      // Use ProjectContext clearProjectCache method
+      await clearProjectCache();
 
       // Reset all component state to initial values
       setAvailableFrames([]);
@@ -315,38 +312,6 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
       console.log("[DebugMRIViewer] Cache cleared for project:", projectId);
     } catch (err) {
       console.error("[DebugMRIViewer] Failed to clear cache:", err);
-      setError("Failed to clear cache");
-    }
-  };
-
-  // Retry initialization - error recovery function
-  const retryInitialization = async () => {
-    setError(null);
-    setIsInitialized(false);
-
-    try {
-      console.log("[DebugMRIViewer] Retrying cache initialization...");
-      await tarImageCache.init();
-      console.log("[DebugMRIViewer] Retry successful");
-      setIsInitialized(true);
-
-      // Check for existing images after successful retry
-      const { frames, slices } = await tarImageCache.getAvailableFramesAndSlices(projectId);
-      if (frames.length > 0 && slices.length > 0) {
-        // Restore navigation state if images are available
-        setAvailableFrames(frames);
-        setAvailableSlices(slices);
-        setCurrentFrame(frames[0]);
-        setCurrentSlice(slices[0]);
-        setTotalImages(frames.length * slices.length);
-      }
-
-      const size = await tarImageCache.getCacheSize();
-      setCacheSize(size);
-    } catch (err) {
-      console.error("[DebugMRIViewer] Retry failed:", err);
-      const errorMessage = err instanceof Error ? err.message : "Retry failed";
-      setError(`Retry failed: ${errorMessage}`);
     }
   };
 
@@ -531,8 +496,8 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
 
             {/* Compact status badges */}
             <div className="flex items-center gap-2">
-              <Badge variant={isInitialized ? "default" : "destructive"} className="text-xs">
-                {isInitialized ? "Ready" : "Not Ready"}
+              <Badge variant={tarCacheReady ? "default" : "destructive"} className="text-xs">
+                {tarCacheReady ? "Ready" : "Not Ready"}
               </Badge>
               {totalImages > 0 && (
                 <Badge variant="secondary" className="text-xs">
@@ -550,17 +515,11 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
 
         <CardContent className="space-y-4">
           {/* Error Display */}
-          {error && (
+          {tarCacheError && (
             <Alert variant="destructive" className="py-2">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="flex items-center justify-between">
-                <span className="text-sm">{error}</span>
-                {!isInitialized && (
-                  <Button variant="outline" size="sm" onClick={retryInitialization}>
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Retry
-                  </Button>
-                )}
+                <span className="text-sm">{tarCacheError}</span>
               </AlertDescription>
             </Alert>
           )}
@@ -569,19 +528,19 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
           {process.env.NEXT_PUBLIC_ENV === "development" && (
             <div className="flex items-center justify-between gap-2 p-3 bg-muted/30 rounded-lg">
               <div className="flex items-center gap-2">
-                <Button onClick={fetchTarImages} disabled={!isInitialized || isLoading} size="sm" className="flex items-center gap-1">
+                <Button onClick={fetchTarImages} disabled={!tarCacheReady || isLoading} size="sm" className="flex items-center gap-1">
                   {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
                   {isLoading ? "Loading..." : "Load Images"}
                 </Button>
 
                 {totalImages > 0 && Object.keys(preloadedImages).length === 0 && (
-                  <Button onClick={preloadAllImages} disabled={!isInitialized || isPreloading} variant="outline" size="sm" className="flex items-center gap-1">
+                  <Button onClick={preloadAllImages} disabled={!tarCacheReady || isPreloading} variant="outline" size="sm" className="flex items-center gap-1">
                     {isPreloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
                     Preload
                   </Button>
                 )}
 
-                <Button variant="outline" onClick={clearCache} disabled={!isInitialized || totalImages === 0} size="sm" className="flex items-center gap-1">
+                <Button variant="outline" onClick={clearCache} disabled={!tarCacheReady || totalImages === 0} size="sm" className="flex items-center gap-1">
                   <RefreshCw className="h-3 w-3" />
                   Clear
                 </Button>
@@ -799,7 +758,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
               <summary className="cursor-pointer text-muted-foreground hover:text-foreground">🔧 Debug Info</summary>
               <div className="mt-2 p-3 bg-muted/20 rounded text-xs space-y-1">
                 <div>Project ID: {projectId}</div>
-                <div>Status: {isInitialized ? "✅ Ready" : "❌ Not Ready"}</div>
+                <div>Status: {tarCacheReady ? "✅ Ready" : "❌ Not Ready"}</div>
                 <div>
                   Images: {totalImages} | Frames: {availableFrames.length} | Slices: {availableSlices.length}
                 </div>

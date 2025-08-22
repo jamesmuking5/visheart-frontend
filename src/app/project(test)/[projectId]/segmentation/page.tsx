@@ -16,9 +16,6 @@ import { SegmentationSidebar } from "@/components/segmentation/segmentation-side
 import type { AnatomicalLabel, HistoryEntry, DrawingTool } from "@/types/segmentation";
 import { useProject } from "@/context/ProjectContext";
 
-// Import tar cache for background image preloading
-import { tarImageCache } from "@/lib/tar-image-cache";
-
 const ImageCanvas = dynamic(() => import("@/components/segmentation/image-canvas").then((mod) => mod.ImageCanvas), {
   ssr: false,
   loading: () => (
@@ -40,7 +37,11 @@ export default function SegmentationResultsPage() {
     undecodedMasks, 
     decodedMasks: contextDecodedMasks,
     hasMasks,
-    segmentationError 
+    segmentationError,
+    // NEW: Tar cache from context
+    tarCacheReady,
+    tarCacheError,
+    getMRIImage
   } = useProject();
 
   // Segmentation-specific state (not duplicated in context)
@@ -61,11 +62,9 @@ export default function SegmentationResultsPage() {
     console.log("- localDecodedMasks:", localDecodedMasks ? Object.keys(localDecodedMasks) : null);  
     console.log("- final decodedMasks:", decodedMasks ? Object.keys(decodedMasks) : null);
     console.log("- masksInitialized:", masksInitialized);
-  }, [contextDecodedMasks, localDecodedMasks, decodedMasks, masksInitialized]);
-
-  // Tar cache state for background images
-  const [isTarCacheReady, setIsTarCacheReady] = useState(false);
-  const [tarCacheError, setTarCacheError] = useState<string | null>(null);
+    console.log("- tarCacheReady:", tarCacheReady);
+    console.log("- tarCacheError:", tarCacheError);
+  }, [contextDecodedMasks, localDecodedMasks, decodedMasks, masksInitialized, tarCacheReady, tarCacheError]);
 
   // UI state
   const [activeLabel, setActiveLabel] = useState<AnatomicalLabel>("lvc");
@@ -404,47 +403,6 @@ export default function SegmentationResultsPage() {
     console.log("Export triggered from page level");
   }, []);
 
-  // Initialize tar cache for background images when project data is available
-  useEffect(() => {
-    if (!projectData || !projectId) return;
-
-    // Initialize tar cache for background images
-    const initializeTarCache = async () => {
-      try {
-        console.log("[Segmentation] Initializing tar cache for background images...");
-        await tarImageCache.init();
-
-        // Check if images are already cached
-        const { frames, slices } = await tarImageCache.getAvailableFramesAndSlices(projectId);
-        if (frames.length > 0 && slices.length > 0) {
-          console.log(`[Segmentation] Found ${frames.length} frames and ${slices.length} slices in tar cache`);
-          setIsTarCacheReady(true);
-        } else {
-          console.log("[Segmentation] No cached images found, will attempt to extract from tar");
-          // Attempt to fetch and extract images in background
-          try {
-            const result = await tarImageCache.fetchAndExtractProjectImages(projectId, projectApi.getProjectPresignedUrl);
-            if (result.success) {
-              console.log(`[Segmentation] Successfully extracted ${result.extractedImages} images to cache`);
-              setIsTarCacheReady(true);
-            } else {
-              console.warn("[Segmentation] Failed to extract images, will use API fallback");
-              setTarCacheError(`Image extraction failed: ${result.errors.join(", ")}`);
-            }
-          } catch (extractError) {
-            console.warn("[Segmentation] Image extraction error, will use API fallback:", extractError);
-            setTarCacheError(extractError instanceof Error ? extractError.message : "Unknown extraction error");
-          }
-        }
-      } catch (cacheError) {
-        console.warn("[Segmentation] Tar cache initialization failed, will use API fallback:", cacheError);
-        setTarCacheError(cacheError instanceof Error ? cacheError.message : "Cache initialization failed");
-      }
-    };
-
-    initializeTarCache();
-  }, [projectData, projectId]);
-
   // Initialize history when masks become available from context - ONLY ONCE
   useEffect(() => {
     // Only initialize history if we have masks from context and haven't initialized yet
@@ -499,8 +457,6 @@ export default function SegmentationResultsPage() {
             brushSize={brushSize}
             opacity={opacity}
             hardness={hardness}
-            isTarCacheReady={isTarCacheReady}
-            tarCacheError={tarCacheError}
           />
         </div>
       </main>

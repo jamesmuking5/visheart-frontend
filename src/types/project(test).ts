@@ -9,9 +9,10 @@
  * - "project": Loading project data from the backend.
  * - "mask": Loading segmentation masks for the project from the backend.
  * - "job": Loading job data for the project from the backend.
+ * - "tar-cache": Loading and initializing tar cache for MRI images.
  * - "done": All loading actions are complete and the page is ready to display content.
  */
-export type LoadingStage = "idle" | "project" | "mask" | "job" | "done";
+export type LoadingStage = "idle" | "project" | "mask" | "job" | "tar-cache" | "done";
 
 /**
  * Interface representing the structure of project data.

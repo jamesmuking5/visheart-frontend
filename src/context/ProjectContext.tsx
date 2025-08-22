@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { projectApi, segmentationApi } from "@/lib/api";
 import { decodeSegmentationMasks } from "@/lib/decode-RLE(test)";
+import { tarImageCache } from "@/lib/tar-image-cache";
 import * as ProjectTypes from "@/types/project(test)";
 import { LoadingStage } from "@/types/project(test)";
 
@@ -24,6 +25,15 @@ interface ProjectContextType {
 
   // Status flags
   maskFetchDone: boolean;
+
+  // NEW: Tar cache management
+  tarCacheReady: boolean;
+  tarCacheError: string | null;
+  getMRIImage: (frame: number, slice: number) => Promise<string | null>;
+  preloadMRIImages: () => Promise<void>;
+  getAvailableFramesAndSlices: () => Promise<{ frames: number[]; slices: number[] }>;
+  fetchAndExtractProjectImages: () => Promise<{ success: boolean; extractedImages: number; totalImages: number; errors: string[] }>;
+  clearProjectCache: () => Promise<void>;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -61,6 +71,85 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
   const [jobs, setJobs] = useState<ProjectTypes.UserJob[] | null>(null);
   const [jobsError, setJobsError] = useState<string | null>(null);
 
+  // 4. Tar cache state - NEW
+  const [tarCacheReady, setTarCacheReady] = useState<boolean>(false);
+  const [tarCacheError, setTarCacheError] = useState<string | null>(null);
+
+  // Tar cache methods - NEW
+  const getMRIImage = async (frame: number, slice: number): Promise<string | null> => {
+    if (!projectId) return null;
+    try {
+      return await tarImageCache.getImageURL(projectId, frame, slice);
+    } catch (error) {
+      console.error("[ProjectContext] Failed to get MRI image:", error);
+      return null;
+    }
+  };
+
+  const preloadMRIImages = async (): Promise<void> => {
+    if (!projectId || !projectData) return;
+
+    try {
+      const result = await tarImageCache.fetchAndExtractProjectImages(projectId, projectApi.getProjectPresignedUrl);
+      if (result.success) {
+        setTarCacheReady(true);
+        setTarCacheError(null);
+        console.log(`[ProjectContext] Preloaded ${result.extractedImages} images for project ${projectId}`);
+      } else {
+        setTarCacheError(`Failed to preload images: ${result.errors.join(", ")}`);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown preload error";
+      setTarCacheError(errorMessage);
+      console.error("[ProjectContext] Preload error:", error);
+    }
+  };
+
+  const getAvailableFramesAndSlices = async (): Promise<{ frames: number[]; slices: number[] }> => {
+    if (!projectId) return { frames: [], slices: [] };
+
+    try {
+      return await tarImageCache.getAvailableFramesAndSlices(projectId);
+    } catch (error) {
+      console.error("[ProjectContext] Failed to get available frames and slices:", error);
+      return { frames: [], slices: [] };
+    }
+  };
+
+  const fetchAndExtractProjectImages = async (): Promise<{ success: boolean; extractedImages: number; totalImages: number; errors: string[] }> => {
+    if (!projectId) return { success: false, extractedImages: 0, totalImages: 0, errors: ["No project ID"] };
+
+    try {
+      const result = await tarImageCache.fetchAndExtractProjectImages(projectId, projectApi.getProjectPresignedUrl);
+      if (result.success) {
+        setTarCacheReady(true);
+        setTarCacheError(null);
+      } else {
+        setTarCacheError(`Image extraction failed: ${result.errors.join(", ")}`);
+      }
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown extraction error";
+      setTarCacheError(errorMessage);
+      console.error("[ProjectContext] Extraction error:", error);
+      return { success: false, extractedImages: 0, totalImages: 0, errors: [errorMessage] };
+    }
+  };
+
+  const clearProjectCache = async (): Promise<void> => {
+    if (!projectId) return;
+
+    try {
+      await tarImageCache.clearProjectCache(projectId);
+      setTarCacheReady(false);
+      setTarCacheError(null);
+      console.log(`[ProjectContext] Cleared cache for project ${projectId}`);
+    } catch (error) {
+      console.error("[ProjectContext] Failed to clear cache:", error);
+      setTarCacheError(`Failed to clear cache: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  };
+
   // 1. Fetch project data from backend
   useEffect(() => {
     setLoading("project");
@@ -69,7 +158,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     if (!projectId) {
       setProjectData(null);
       setError("Project ID is missing.");
-      setLoading("done");
+      // Don't set loading to done here - let final loading state management handle it
       return;
     }
 
@@ -80,7 +169,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
         // If backend cannot find project, set error state, end loading
         if (!response.success) {
           setError(response.message);
-          setLoading("done");
+          // Don't set loading to done here - let final loading state management handle it
           return;
         }
 
@@ -103,7 +192,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
 
     // If there is an error fetching project data, do not proceed with fetching masks
     if (error || !projectId) {
-      setLoading("done");
+      // Don't set loading to done here - let final loading state management handle it
       return;
     }
 
@@ -144,7 +233,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
         console.error("Error fetching segmentation masks:", error);
       })
       .finally(() => {
-        setLoading("done");
+        // Don't set loading to done here - let final loading state management handle it
         setMaskFetchDone(true);
       });
   }, [projectData, projectId, error]);
@@ -193,16 +282,80 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
           setJobs(null);
         })
         .finally(() => {
-          setLoading("done");
+          // Don't set loading to done here - let final loading state management handle it
         });
     } else if (!maskFetchDone) {
       // wait for mask fetch to complete before deciding about jobs
       return;
     } else {
-      // If we have masks or there's an error, no need to fetch jobs
-      setLoading("done");
+      // If we have masks or there's an error, no need to fetch jobs - final loading state will handle completion
     }
   }, [maskFetchDone, hasMasks, projectData, segmentationError, projectId, jobsError]);
+
+  // 4. Initialize tar cache when project data is available and mask fetch is done - NEW
+  useEffect(() => {
+    if (!projectData || !projectId || !maskFetchDone) {
+      setTarCacheReady(false);
+      setTarCacheError(null);
+      return;
+    }
+
+    // Set loading to tar-cache stage when we start tar cache initialization
+    setLoading("tar-cache");
+
+    const initializeTarCache = async () => {
+      try {
+        console.log(`[ProjectContext] Initializing tar cache for project ${projectId}`);
+
+        // Initialize tar cache system
+        await tarImageCache.init();
+
+        // Check if images are already cached
+        const { frames, slices } = await tarImageCache.getAvailableFramesAndSlices(projectId);
+        if (frames.length > 0 && slices.length > 0) {
+          console.log(`[ProjectContext] Found ${frames.length} frames and ${slices.length} slices in tar cache`);
+          setTarCacheReady(true);
+          setTarCacheError(null);
+        } else {
+          console.log("[ProjectContext] No cached images found, will attempt to extract from tar");
+          // Attempt to fetch and extract images in background
+          const result = await tarImageCache.fetchAndExtractProjectImages(projectId, projectApi.getProjectPresignedUrl);
+          if (result.success) {
+            console.log(`[ProjectContext] Successfully extracted ${result.extractedImages} images to cache`);
+            setTarCacheReady(true);
+            setTarCacheError(null);
+          } else {
+            console.warn("[ProjectContext] Failed to extract images");
+            setTarCacheError(`Image extraction failed: ${result.errors.join(", ")}`);
+            setTarCacheReady(false);
+          }
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Unknown tar cache error";
+        console.error("[ProjectContext] Tar cache initialization error:", error);
+        setTarCacheError(errorMessage);
+        setTarCacheReady(false);
+      }
+    };
+
+    initializeTarCache();
+
+    // Cleanup function - clear project-specific cache when component unmounts or project changes
+    return () => {
+      console.log(`[ProjectContext] Cleaning up tar cache for project ${projectId}`);
+      tarImageCache.clearProjectCache(projectId).catch((error) => console.warn(`[ProjectContext] Cleanup error for project ${projectId}:`, error));
+    };
+  }, [projectData, projectId, maskFetchDone]);
+
+  // 5. Final loading state management - set to done when all components are ready or there's an error
+  useEffect(() => {
+    // Set to done when:
+    // 1. There's an error (project not found, etc.)
+    // 2. OR we have project data, masks are fetched, and tar cache is ready (or has error)
+    if (error || (projectData && maskFetchDone && (tarCacheReady || tarCacheError) && loading !== "done")) {
+      setLoading("done");
+    }
+  }, [error, projectData, maskFetchDone, tarCacheReady, tarCacheError, loading]);
 
   const contextValue: ProjectContextType = {
     loading,
@@ -215,6 +368,14 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     segmentationError,
     jobsError,
     maskFetchDone,
+    // NEW: Tar cache properties and methods
+    tarCacheReady,
+    tarCacheError,
+    getMRIImage,
+    preloadMRIImages,
+    getAvailableFramesAndSlices,
+    fetchAndExtractProjectImages,
+    clearProjectCache,
   };
 
   return <ProjectContext.Provider value={contextValue}>{children}</ProjectContext.Provider>;

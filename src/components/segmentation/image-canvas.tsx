@@ -16,6 +16,7 @@ import {
 
 // Import tar cache for background images
 import { tarImageCache } from "@/lib/tar-image-cache";
+import { useProject } from "@/context/ProjectContext";
 
 // Memoized Navigation Controls Component
 const NavigationControls = memo(({ 
@@ -83,9 +84,10 @@ export function ImageCanvas({
   brushSize,
   opacity,
   hardness,
-  isTarCacheReady = false,
-  tarCacheError = null,
 }: ImageCanvasProps) {
+  // Get image loading method from ProjectContext
+  const { getMRIImage, tarCacheReady, tarCacheError } = useProject();
+
   // Browser state management for manual segmentation
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [imageStatus, setImageStatus] = useState<"loading" | "loaded" | "error">("loading");
@@ -116,10 +118,10 @@ export function ImageCanvas({
       let imageLoaded = false;
 
       // Method 1: Try loading from tar cache (if ready and available)
-      if (isTarCacheReady && !tarCacheError) {
+      if (tarCacheReady && !tarCacheError) {
         try {
           console.log(`[ImageCanvas] Attempting to load from tar cache: frame ${currentFrame}, slice ${currentSlice}`);
-          const imageUrl = await tarImageCache.getImageURL(projectData.projectId, currentFrame, currentSlice);
+          const imageUrl = await getMRIImage(currentFrame, currentSlice);
           
           if (imageUrl) {
             const img = new window.Image();
@@ -158,7 +160,7 @@ export function ImageCanvas({
       } else if (tarCacheError) {
         console.log(`[ImageCanvas] Skipping tar cache due to error: ${tarCacheError}`);
       } else {
-        console.log(`[ImageCanvas] Tar cache not ready yet (${isTarCacheReady}), falling back to API`);
+        console.log(`[ImageCanvas] Tar cache not ready yet (${tarCacheReady}), falling back to API`);
       }
 
       // Method 2: Fallback to API loading (if tar cache failed or not available)
@@ -200,14 +202,14 @@ export function ImageCanvas({
       setImageStatus("error");
       setImageLoadMethod(null);
     });
-  }, [projectData.projectId, currentFrame, currentSlice, isTarCacheReady, tarCacheError, isInitialLoad]);
+  }, [projectData.projectId, currentFrame, currentSlice, tarCacheReady, tarCacheError, isInitialLoad, getMRIImage]);
 
   // Additional effect to reload image when tar cache becomes ready (for initial load)
   useEffect(() => {
-    if (isTarCacheReady && imageStatus === "loading" && !image) {
+    if (tarCacheReady && imageStatus === "loading" && !image) {
       console.log(`[ImageCanvas] Tar cache became ready, triggering image reload`);
     }
-  }, [isTarCacheReady, imageStatus, image]);
+  }, [tarCacheReady, imageStatus, image]);
 
   // Optimized drawing handlers with useCallback
   const getRelativePointerPosition = useCallback(() => {
@@ -470,10 +472,10 @@ export function ImageCanvas({
           <div className="text-sm text-destructive flex items-center gap-2">
             <div className="h-2 w-2 rounded-full bg-destructive"></div>
             Failed to load image for Frame {currentFrame + 1}, Slice {currentSlice + 1}
-            {!isTarCacheReady && tarCacheError && (
+            {!tarCacheReady && tarCacheError && (
               <span className="text-muted-foreground text-xs">(Cache error: {tarCacheError})</span>
             )}
-            {!isTarCacheReady && !tarCacheError && (
+            {!tarCacheReady && !tarCacheError && (
               <span className="text-muted-foreground text-xs">(Cache not ready)</span>
             )}
           </div>

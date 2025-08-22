@@ -26,6 +26,10 @@ export const LoadingProject = ({ loadingStage }: { loadingStage: LoadingStage })
         setProgress(60);
         setMessage("Loading job data...");
         break;
+      case "tar-cache":
+        setProgress(80);
+        setMessage("Initializing MRI image cache...");
+        break;
       case "idle":
         // Progress does not change
         setMessage("Awaiting next action...");
