@@ -58,8 +58,6 @@ export default function Home() {
         {/* Hero Section - Main introduction with The Challenge and Our Solution */}
         <HeroSection />
 
-
-
         {/* FAQ Section - Frequently Asked Questions */}
         <FaqSection />
         
