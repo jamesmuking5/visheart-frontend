@@ -237,16 +237,19 @@ export function ImageCanvas({
   ]);
 
   // Direct mask rendering - create ImageData directly from decodedMasks for each label
+  // Render active mask last so it appears on top
   const allMaskElements = useMemo(() => {
     const maskElements: Array<{ label: string; image: HTMLImageElement; color: string }> = [];
-    Object.entries(LABEL_COLORS).forEach(([label, color]) => {
-      if (!visibleMasks.has(label as AnatomicalLabel)) return; // Only show visible masks
+    
+    // Helper function to create mask element for a given label
+    const createMaskElement = (label: string, color: string) => {
+      if (!visibleMasks.has(label as AnatomicalLabel)) return null; // Only show visible masks
       
       const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
       const maskData = decodedMasks[editableMaskKey];
       
       if (!maskData || maskData.every((val: number) => val === 0)) {
-        return;
+        return null;
       }
       
       // Direct conversion: mask data to canvas
@@ -280,18 +283,34 @@ export function ImageCanvas({
       const img = new window.Image();
       img.src = canvas.toDataURL();
       
-      maskElements.push({
+      return {
         label,
         image: img,
         color
-      });
-      
-      console.log(`[ImageCanvas] Creating direct mask element for ${label} | frame: ${currentFrame}, slice: ${currentSlice}`);
+      };
+    };
+    
+    // Render all mask layers for the current frame/slice.
+    Object.entries(LABEL_COLORS).forEach(([label, color]) => {
+      if (label !== activeLabel) {
+        const maskElement = createMaskElement(label, color);
+        if (maskElement) {
+          maskElements.push(maskElement);
+        }
+      }
     });
     
-    console.log(`[ImageCanvas] Total mask elements found: ${maskElements.length}`);
+    // Render the active mask last so it appears on top of other masks
+    if (LABEL_COLORS[activeLabel]) {
+      const activeMaskElement = createMaskElement(activeLabel, LABEL_COLORS[activeLabel]);
+      if (activeMaskElement) {
+        maskElements.push(activeMaskElement);
+      }
+    }
+    
+    console.log(`[ImageCanvas] Total mask elements found: ${maskElements.length}, active mask "${activeLabel}" rendered last`);
     return maskElements;
-  }, [decodedMasks, currentFrame, currentSlice, width, height, opacity, visibleMasks]);
+  }, [decodedMasks, currentFrame, currentSlice, width, height, opacity, visibleMasks, activeLabel]);
 
   return (
     <div className="flex flex-col items-center w-full h-full">
