@@ -29,7 +29,7 @@ export function ProjectDashboardBar() {
   const StatusIcon = statusInfo.icon;
 
   // Get mask count from actual mask data, not jobs
-  const maskCount = hasMasks ? (undecodedMasks?.length || 0) : 0;
+  const maskCount = hasMasks ? undecodedMasks?.length || 0 : 0;
 
   return (
     <div className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -91,16 +91,6 @@ export function ProjectDashboardBar() {
               <Settings className="h-3 w-3 mr-1" />
               Settings
             </Button>
-
-            {/* Show Project Data Sheet */}
-            <ShowProjectData 
-              project={projectData}
-              hasMasks={hasMasks}
-              masks={undecodedMasks}
-              decodedMasks={decodedMasks}
-              jobs={jobs}
-              jobsError={jobsError}
-            />
           </div>
         </div>
       </div>

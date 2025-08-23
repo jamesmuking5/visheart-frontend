@@ -66,13 +66,8 @@ interface DebugMRIViewerProps {
 
 export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
   // Use ProjectContext instead of managing tar cache directly
-  const { 
-    tarCacheReady, 
-    tarCacheError, 
-    getMRIImage, 
-    getAvailableFramesAndSlices
-  } = useProject();
-  
+  const { tarCacheReady, tarCacheError, getMRIImage, getAvailableFramesAndSlices } = useProject();
+
   // Image data and navigation - core image viewing functionality
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null); // URL for displaying current image
   const [currentFrame, setCurrentFrame] = useState<number>(0); // Currently selected frame index (0-based)
@@ -107,12 +102,12 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
   useEffect(() => {
     const initializeNavigation = async () => {
       if (!tarCacheReady) return; // Wait for tar cache to be ready from ProjectContext
-      
+
       try {
         if (process.env.NEXT_PUBLIC_ENV === "development") {
           console.log("[DebugMRIViewer] Tar cache ready, loading navigation options...");
         }
-        
+
         // Get available frames and slices from ProjectContext
         const { frames, slices } = await getAvailableFramesAndSlices();
         if (frames.length > 0 && slices.length > 0) {
