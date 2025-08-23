@@ -175,6 +175,12 @@ export default function ProjectPage() {
     {} as Record<ProjectTypes.JobStatus, number>,
   );
 
+  // Check if there are any active jobs (pending or in progress)
+  const hasActiveJobs = (jobs || []).some(job => 
+    job.status === ProjectTypes.JobStatus.PENDING || 
+    job.status === ProjectTypes.JobStatus.IN_PROGRESS
+  );
+
   // Get mask statistics
   const maskStats = undecodedMasks
     ? {
@@ -361,19 +367,33 @@ export default function ProjectPage() {
                       </Tooltip>
                     ) : (
                       <ShowForUser fallback={null}>
-                        <Button onClick={handleStartSegmentation} disabled={isStartingSegmentation} className="h-12">
-                          {isStartingSegmentation ? (
-                            <>
-                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                              Starting...
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-4 w-4 mr-2" />
-                              Start Segmentation
-                            </>
-                          )}
-                        </Button>
+                        {hasActiveJobs ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button disabled className="h-12" variant="secondary">
+                                <RefreshCw className="h-4 w-4 mr-2" />
+                                Segmentation in Progress
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Segmentation is already running. Check the Processing Jobs section below.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <Button onClick={handleStartSegmentation} disabled={isStartingSegmentation} className="h-12">
+                            {isStartingSegmentation ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                Starting...
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-4 w-4 mr-2" />
+                                Start Segmentation
+                              </>
+                            )}
+                          </Button>
+                        )}
                       </ShowForUser>
                     )}
                   </div>
