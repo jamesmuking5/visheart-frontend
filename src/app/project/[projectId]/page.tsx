@@ -23,13 +23,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Play, Eye, Edit, Save, X, RefreshCw, Calendar, FileText, Database, CheckCircle, XCircle, Clock, AlertCircle, Settings, Image as ImageIcon, Activity, Layers } from "lucide-react";
 
 // Custom components
-import { NoProjectFound } from "@/components/project(test)/NoProjectFound";
-import { ErrorProject } from "@/components/project(test)/ErrorProject";
-import { LoadingProject } from "@/components/project(test)/LoadingProject";
+import { NoProjectFound } from "@/components/project/NoProjectFound";
+import { ErrorProject } from "@/components/project/ErrorProject";
+import { LoadingProject } from "@/components/project/LoadingProject";
 import { ShowForUser, ShowForRegisteredUser } from "@/components/RoleGuard";
 
 // Types
-import * as ProjectTypes from "@/types/project(test)";
+import * as ProjectTypes from "@/types/project";
 
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -340,7 +340,7 @@ export default function ProjectPage() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button asChild className="h-12" variant="outline">
-                          <Link href={`/project(test)/${projectId}/preview`}>
+                          <Link href={`/project/${projectId}/preview`}>
                             <Eye className="h-4 w-4 mr-2" />
                             Preview Images
                           </Link>
@@ -355,7 +355,7 @@ export default function ProjectPage() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button asChild className="h-12">
-                            <Link href={`/project(test)/${projectId}/segmentation`}>
+                            <Link href={`/project/${projectId}/segmentation`}>
                               <Edit className="h-4 w-4 mr-2 " />
                               Edit Segmentation
                             </Link>

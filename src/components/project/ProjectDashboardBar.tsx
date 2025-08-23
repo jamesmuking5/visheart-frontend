@@ -1,7 +1,7 @@
 "use client";
 
 import { useProject } from "@/context/ProjectContext";
-import { ShowProjectData } from "@/components/project(test)/ShowProjectData";
+import { ShowProjectData } from "@/components/project/ShowProjectData";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";

@@ -25,8 +25,8 @@ import { ShowForUser, ShowForRegisteredUser } from "@/components/RoleGuard";
 import { RefreshCw, Clock, CheckCircle, XCircle, AlertCircle, Play, AlertTriangle, Shield, Database } from "lucide-react";
 
 // Type definitions
-import * as ProjectTypes from "@/types/project(test)";
-import { getMaskStats } from "@/lib/decode-RLE(test)";
+import * as ProjectTypes from "@/types/project";
+import { getMaskStats } from "@/lib/decode-RLE";
 
 type ShowProjectDataProps = {
   project: ProjectTypes.ProjectData;

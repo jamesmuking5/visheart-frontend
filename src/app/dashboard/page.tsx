@@ -470,7 +470,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Link href={`/project(test)/${project.projectId}`} title={`Open project ${project.name}`} className="flex-1">
+                    <Link href={`/project/${project.projectId}`} title={`Open project ${project.name}`} className="flex-1">
                       <Button size="sm" className="w-full flex-1">
                         <Edit className="mr-1 h-3 w-3" />
                         Open

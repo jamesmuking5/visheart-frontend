@@ -2,10 +2,10 @@
 
 import { createContext, useContext, useEffect, useState, useRef, ReactNode, useCallback, useMemo } from "react";
 import { projectApi, segmentationApi } from "@/lib/api";
-import { decodeSegmentationMasks } from "@/lib/decode-RLE(test)";
+import { decodeSegmentationMasks } from "@/lib/decode-RLE";
 import { tarImageCache } from "@/lib/tar-image-cache";
-import * as ProjectTypes from "@/types/project(test)";
-import { LoadingStage } from "@/types/project(test)";
+import * as ProjectTypes from "@/types/project";
+import { LoadingStage } from "@/types/project";
 
 interface ProjectContextType {
   // Loading states

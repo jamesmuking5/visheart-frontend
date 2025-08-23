@@ -4,10 +4,10 @@ import { useParams } from "next/navigation";
 import { useProject } from "@/context/ProjectContext";
 
 // Custom components
-import { NoProjectFound } from "@/components/project(test)/NoProjectFound";
-import { ErrorProject } from "@/components/project(test)/ErrorProject";
-import { LoadingProject } from "@/components/project(test)/LoadingProject";
-import { DebugMRIViewer } from "@/components/project(test)/DebugMRIViewer";
+import { NoProjectFound } from "@/components/project/NoProjectFound";
+import { ErrorProject } from "@/components/project/ErrorProject";
+import { LoadingProject } from "@/components/project/LoadingProject";
+import { DebugMRIViewer } from "@/components/project/DebugMRIViewer";
 
 export default function PreviewPage() {
   const { projectId } = useParams<{ projectId: string }>();

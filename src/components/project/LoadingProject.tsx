@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { useEffect, useState } from "react";
 
 // Type for loading state
-import { LoadingStage } from "@/types/project(test)";
+import { LoadingStage } from "@/types/project";
 export const LoadingProject = ({ loadingStage }: { loadingStage: LoadingStage }) => {
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState("Loading...");

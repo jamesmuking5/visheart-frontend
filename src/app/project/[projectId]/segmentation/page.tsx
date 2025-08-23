@@ -8,10 +8,10 @@ import { useEffect } from "react";
 
 // Backend integration
 import { projectApi, segmentationApi } from "@/lib/api";
-import { decodeSegmentationMasks, createFramesStructureFromEditableMasks } from "@/lib/decode-RLE(test)";
-import type { ProjectData, BaseSegmentationMask, LoadingStage } from "@/types/project(test)";
-import { LoadingProject } from "@/components/project(test)/LoadingProject";
-import { ErrorProject } from "@/components/project(test)/ErrorProject";
+import { decodeSegmentationMasks, createFramesStructureFromEditableMasks } from "@/lib/decode-RLE";
+import type { ProjectData, BaseSegmentationMask, LoadingStage } from "@/types/project";
+import { LoadingProject } from "@/components/project/LoadingProject";
+import { ErrorProject } from "@/components/project/ErrorProject";
 import { SegmentationSidebar } from "@/components/segmentation/segmentation-sidebar";
 import type { AnatomicalLabel, HistoryEntry, DrawingTool } from "@/types/segmentation";
 import { useProject } from "@/context/ProjectContext";
@@ -30,11 +30,11 @@ export default function SegmentationResultsPage() {
   const router = useRouter();
 
   // Get data from ProjectContext (eliminates duplicate API calls and state)
-  const { 
-    loading, 
-    error, 
-    projectData, 
-    undecodedMasks, 
+  const {
+    loading,
+    error,
+    projectData,
+    undecodedMasks,
     decodedMasks: contextDecodedMasks,
     hasMasks,
     segmentationError,
@@ -43,7 +43,7 @@ export default function SegmentationResultsPage() {
     tarCacheError,
     getMRIImage,
     // Cache invalidation
-    refreshMasks
+    refreshMasks,
   } = useProject();
 
   // Segmentation-specific state (not duplicated in context)
@@ -61,7 +61,7 @@ export default function SegmentationResultsPage() {
   useEffect(() => {
     console.log("[Segmentation Debug] Data flow check:");
     console.log("- contextDecodedMasks:", contextDecodedMasks ? Object.keys(contextDecodedMasks) : null);
-    console.log("- localDecodedMasks:", localDecodedMasks ? Object.keys(localDecodedMasks) : null);  
+    console.log("- localDecodedMasks:", localDecodedMasks ? Object.keys(localDecodedMasks) : null);
     console.log("- final decodedMasks:", decodedMasks ? Object.keys(decodedMasks) : null);
     console.log("- masksInitialized:", masksInitialized);
     console.log("- tarCacheReady:", tarCacheReady);
@@ -379,7 +379,7 @@ export default function SegmentationResultsPage() {
 
       // Convert masks to the proper backend format with RLE encoding
       const frames = createFramesStructureFromEditableMasks(editableMasks);
-      
+
       console.log("[Segmentation] Converted to backend frames format:", frames);
 
       // Temporary: Test RLE encoding to verify it works
@@ -424,14 +424,14 @@ export default function SegmentationResultsPage() {
     // Only initialize history if we have masks from context and haven't initialized yet
     if (!masksInitialized && contextDecodedMasks && Object.keys(contextDecodedMasks).length > 0) {
       console.log("[Segmentation] Initializing history with context masks...");
-      
+
       // Set local masks to context masks initially
       setLocalDecodedMasks(contextDecodedMasks);
-      
+
       // Initialize history
       initializeHistory(contextDecodedMasks);
       setMasksInitialized(true);
-      
+
       console.log("[Segmentation] History initialized successfully with", Object.keys(contextDecodedMasks).length, "masks");
     }
   }, [contextDecodedMasks, masksInitialized, initializeHistory]);
@@ -441,12 +441,12 @@ export default function SegmentationResultsPage() {
   if (loading !== "done") return <LoadingProject loadingStage={loading} />;
   if (error) return <ErrorProject error={error} />;
   if (segmentationError && !hasMasks) return <ErrorProject error={segmentationError} />;
-  
+
   // Don't show error if we're currently saving (refreshing masks) - show loading instead
   if (!projectData || (!contextDecodedMasks && !isSaving)) {
     return <ErrorProject error="No data available" />;
   }
-  
+
   // Show loading state while saving/refreshing masks
   if (isSaving && !contextDecodedMasks) {
     return <LoadingProject loadingStage="mask" />;
@@ -455,77 +455,77 @@ export default function SegmentationResultsPage() {
   return (
     <div className="h-full w-full bg-muted/40">
       <div className="container mx-auto h-full p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6">
-      <main className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
-        <div className="flex-none">
-          <div className="flex items-center gap-2 mb-4">
-            <button onClick={() => router.push(`/project(test)/${projectId}`)} className="text-sm text-muted-foreground hover:text-foreground">
-              ← Back to Project
-            </button>
+        <main className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
+          <div className="flex-none">
+            <div className="flex items-center gap-2 mb-4">
+              <button onClick={() => router.push(`/project/${projectId}`)} className="text-sm text-muted-foreground hover:text-foreground">
+                ← Back to Project
+              </button>
+            </div>
+            <h1 className="text-2xl font-bold text-center">Cardiac Segmentation Editor</h1>
+            <p className="text-center text-gray-500 mb-4">Project: {projectData.name} • Edit AI-generated masks or create manual annotations</p>
           </div>
-          <h1 className="text-2xl font-bold text-center">Cardiac Segmentation Editor</h1>
-          <p className="text-center text-gray-500 mb-4">Project: {projectData.name} • Edit AI-generated masks or create manual annotations</p>
-        </div>
 
-        <div className="flex-1 relative bg-background rounded-xl border shadow-sm p-4 flex items-center justify-center">
-          <ImageCanvas
-            projectData={projectData}
-            decodedMasks={safeDecodedMasks}
-            onMaskUpdate={updateMasksWithHistory}
-            currentFrame={currentFrame}
-            currentSlice={currentSlice}
-            onFrameChange={setCurrentFrame}
-            onSliceChange={setCurrentSlice}
-            width={canvasDimensions.width}
-            height={canvasDimensions.height}
-            activeLabel={activeLabel}
-            visibleMasks={visibleMasks}
-            tool={tool}
-            brushSize={brushSize}
-            opacity={opacity}
-            hardness={hardness}
-          />
-        </div>
-      </main>
+          <div className="flex-1 relative bg-background rounded-xl border shadow-sm p-4 flex items-center justify-center">
+            <ImageCanvas
+              projectData={projectData}
+              decodedMasks={safeDecodedMasks}
+              onMaskUpdate={updateMasksWithHistory}
+              currentFrame={currentFrame}
+              currentSlice={currentSlice}
+              onFrameChange={setCurrentFrame}
+              onSliceChange={setCurrentSlice}
+              width={canvasDimensions.width}
+              height={canvasDimensions.height}
+              activeLabel={activeLabel}
+              visibleMasks={visibleMasks}
+              tool={tool}
+              brushSize={brushSize}
+              opacity={opacity}
+              hardness={hardness}
+            />
+          </div>
+        </main>
 
-      <aside className="w-full lg:w-80 flex-none">
-        <div className="bg-background rounded-xl border shadow-sm h-full">
-          <SegmentationSidebar
-            projectData={projectData}
-            decodedMasks={safeDecodedMasks}
-            tool={tool}
-            setTool={setTool}
-            brushSize={brushSize}
-            setBrushSize={setBrushSize}
-            opacity={opacity}
-            setOpacity={setOpacity}
-            hardness={hardness}
-            setHardness={setHardness}
-            activeLabel={activeLabel}
-            setActiveLabel={setActiveLabel}
-            visibleMasks={visibleMasks}
-            setVisibleMasks={setVisibleMasks}
-            handleUndo={handleUndo}
-            handleRedo={handleRedo}
-            handleClear={handleClear}
-            canUndo={canUndo}
-            canRedo={canRedo}
-            canClear={canClear}
-            hasUnsavedChanges={hasUnsavedChanges}
-            isSaving={isSaving}
-            onSave={handleSave}
-            currentFrame={currentFrame}
-            currentSlice={currentSlice}
-            totalFrames={projectData.dimensions?.frames || 1}
-            totalSlices={projectData.dimensions?.slices || 1}
-            historyData={currentHistory}
-            currentHistoryStep={currentHistoryStep}
-            onHistoryStepChange={handleHistoryStepChange}
-            onHistoryClear={handleHistoryClear}
-            onHistoryExport={handleHistoryExport}
-            onHistoryCheckpoint={handleHistoryCheckpoint}
-          />
-        </div>
-      </aside>
+        <aside className="w-full lg:w-80 flex-none">
+          <div className="bg-background rounded-xl border shadow-sm h-full">
+            <SegmentationSidebar
+              projectData={projectData}
+              decodedMasks={safeDecodedMasks}
+              tool={tool}
+              setTool={setTool}
+              brushSize={brushSize}
+              setBrushSize={setBrushSize}
+              opacity={opacity}
+              setOpacity={setOpacity}
+              hardness={hardness}
+              setHardness={setHardness}
+              activeLabel={activeLabel}
+              setActiveLabel={setActiveLabel}
+              visibleMasks={visibleMasks}
+              setVisibleMasks={setVisibleMasks}
+              handleUndo={handleUndo}
+              handleRedo={handleRedo}
+              handleClear={handleClear}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              canClear={canClear}
+              hasUnsavedChanges={hasUnsavedChanges}
+              isSaving={isSaving}
+              onSave={handleSave}
+              currentFrame={currentFrame}
+              currentSlice={currentSlice}
+              totalFrames={projectData.dimensions?.frames || 1}
+              totalSlices={projectData.dimensions?.slices || 1}
+              historyData={currentHistory}
+              currentHistoryStep={currentHistoryStep}
+              onHistoryStepChange={handleHistoryStepChange}
+              onHistoryClear={handleHistoryClear}
+              onHistoryExport={handleHistoryExport}
+              onHistoryCheckpoint={handleHistoryCheckpoint}
+            />
+          </div>
+        </aside>
       </div>
     </div>
   );

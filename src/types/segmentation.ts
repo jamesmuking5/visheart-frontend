@@ -1,4 +1,4 @@
-import type { ProjectData } from "@/types/project(test)";
+import type { ProjectData } from "@/types/project";
 
 // Centralized anatomical label definitions
 export const ANATOMICAL_LABELS = ['lvc', 'rv', 'myo'] as const;
