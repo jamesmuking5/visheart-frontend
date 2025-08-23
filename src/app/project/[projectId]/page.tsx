@@ -20,7 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Icons
-import { Play, Eye, Edit, Save, X, RefreshCw, Calendar, FileText, Database, CheckCircle, XCircle, Clock, AlertCircle, Settings, Image as ImageIcon, Activity, Layers } from "lucide-react";
+import { Play, Eye, Edit, Save, X, RefreshCw, FileText, Database, CheckCircle, XCircle, Clock, AlertCircle, Image as ImageIcon, Activity, Layers } from "lucide-react";
 
 // Custom components
 import { NoProjectFound } from "@/components/project/NoProjectFound";
@@ -46,12 +46,6 @@ export default function ProjectPage() {
   // Segmentation state
   const [isStartingSegmentation, setIsStartingSegmentation] = useState(false);
   const [segmentationError, setSegmentationError] = useState<string | null>(null);
-
-  // Save project state
-  const [isSavingProject, setIsSavingProject] = useState(false);
-
-  // Local project save status (for optimistic updates)
-  const [localIsSaved, setLocalIsSaved] = useState<boolean | null>(null);
 
   // Local project data (for optimistic updates after editing)
   const [localProjectName, setLocalProjectName] = useState<string | null>(null);
@@ -142,30 +136,6 @@ export default function ProjectPage() {
     }
   };
 
-  // Handle save/unsave project
-  const handleSaveProject = async () => {
-    if (!projectData) return;
-
-    const currentStatus = localIsSaved !== null ? localIsSaved : projectData.isSaved;
-    const newSaveStatus = !currentStatus;
-    setIsSavingProject(true);
-
-    // Optimistic update
-    setLocalIsSaved(newSaveStatus);
-
-    try {
-      await projectApi.saveProject(projectId, newSaveStatus);
-      // Success - the optimistic update was correct
-      console.log(`Project ${newSaveStatus ? "saved" : "marked as temporary"} successfully`);
-    } catch (error: unknown) {
-      // Error - revert the optimistic update
-      setLocalIsSaved(currentStatus);
-      console.error("Error updating project save status:", error);
-    } finally {
-      setIsSavingProject(false);
-    }
-  };
-
   // Get job statistics
   const jobCounts = (jobs || []).reduce(
     (acc, job) => {
@@ -189,7 +159,6 @@ export default function ProjectPage() {
     : null;
 
   // Use local state if available (for optimistic updates), otherwise use project data
-  const currentIsSaved = localIsSaved !== null ? localIsSaved : projectData.isSaved;
   const currentProjectName = localProjectName !== null ? localProjectName : projectData.name;
   const currentProjectDescription = localProjectDescription !== null ? localProjectDescription : projectData.description || "";
 
@@ -268,61 +237,6 @@ export default function ProjectPage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Left Column - Project Info & Actions */}
           <div className="xl:col-span-2 space-y-6">
-            {/* Project Status Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="h-5 w-5" />
-                  Project Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-3 rounded-lg bg-muted/50">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div>
-                          <ShowForRegisteredUser fallback={<Badge variant={currentIsSaved ? "default" : "secondary"}>{currentIsSaved ? "Saved" : "Temporary"}</Badge>}>
-                            <Button variant="ghost" size="sm" onClick={handleSaveProject} disabled={isSavingProject} className="h-auto p-1">
-                              <Badge variant={currentIsSaved ? "default" : "secondary"} className="cursor-pointer hover:opacity-80">
-                                {isSavingProject ? "Updating..." : currentIsSaved ? "Saved" : "Temporary"}
-                              </Badge>
-                            </Button>
-                          </ShowForRegisteredUser>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{currentIsSaved ? "Project is permanently saved" : "Temporary projects are deleted automatically after 3 days"}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <p className="text-xs text-muted-foreground mt-1">Status</p>
-                  </div>
-                  <div className="text-center p-3 rounded-lg bg-muted/50">
-                    <p className="font-semibold">{projectData.dimensions?.frames || 0}</p>
-                    <p className="text-xs text-muted-foreground">Frames</p>
-                  </div>
-                  <div className="text-center p-3 rounded-lg bg-muted/50">
-                    <p className="font-semibold">{projectData.dimensions?.slices || 0}</p>
-                    <p className="text-xs text-muted-foreground">Slices</p>
-                  </div>
-                  <div className="text-center p-3 rounded-lg bg-muted/50">
-                    <p className="font-semibold">{(projectData.filesize / 1024 / 1024).toFixed(1)}MB</p>
-                    <p className="text-xs text-muted-foreground">Size</p>
-                  </div>
-                </div>
-
-                {projectData.createdAt && (
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      Created
-                    </span>
-                    <span>{new Date(projectData.createdAt).toLocaleDateString()}</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
             {/* Action Buttons Card */}
             <Card>
               <CardHeader>

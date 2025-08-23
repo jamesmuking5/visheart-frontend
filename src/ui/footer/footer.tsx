@@ -178,7 +178,7 @@ export default function Footer() {
               © {new Date().getFullYear()} VisHeart. All Rights Reserved. 
             </div>
             <div className="flex items-center space-x-6 text-base">
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200">
+              <Link href="/policy" className="text-muted-foreground hover:text-primary transition-colors duration-200">
                 Privacy Policy
               </Link>
               <Link href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200">
