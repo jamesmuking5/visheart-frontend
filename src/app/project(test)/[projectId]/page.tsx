@@ -52,6 +52,10 @@ export default function ProjectPage() {
   
   // Local project save status (for optimistic updates)
   const [localIsSaved, setLocalIsSaved] = useState<boolean | null>(null);
+  
+  // Local project data (for optimistic updates after editing)
+  const [localProjectName, setLocalProjectName] = useState<string | null>(null);
+  const [localProjectDescription, setLocalProjectDescription] = useState<string | null>(null);
 
   // Missing projectId handling
   if (!projectId) return <NoProjectFound message="Project ID is missing." />;
@@ -66,8 +70,8 @@ export default function ProjectPage() {
 
   // Initialize edit fields when starting to edit
   const handleStartEdit = () => {
-    setEditedName(projectData.name);
-    setEditedDescription(projectData.description || "");
+    setEditedName(currentProjectName);
+    setEditedDescription(currentProjectDescription);
     setIsEditing(true);
     setUpdateError(null);
   };
@@ -90,13 +94,29 @@ export default function ProjectPage() {
     setIsUpdating(true);
     setUpdateError(null);
 
-    try {
-      await projectApi.updateProject(projectId, editedName.trim(), editedDescription.trim());
+    // Store the new values for optimistic update
+    const newName = editedName.trim();
+    const newDescription = editedDescription.trim();
 
-      // Refresh page to get updated data
-      window.location.reload();
+    // Optimistic update
+    setLocalProjectName(newName);
+    setLocalProjectDescription(newDescription);
+
+    try {
+      await projectApi.updateProject(projectId, newName, newDescription);
+
+      // Success - exit editing mode
+      setIsEditing(false);
+      setEditedName("");
+      setEditedDescription("");
+      console.log("Project updated successfully");
     } catch (error: unknown) {
       console.error("Error updating project:", error);
+      
+      // Error - revert the optimistic update
+      setLocalProjectName(projectData.name);
+      setLocalProjectDescription(projectData.description || "");
+      
       setUpdateError((error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to update project");
     } finally {
       setIsUpdating(false);
@@ -167,6 +187,8 @@ export default function ProjectPage() {
 
   // Use local state if available (for optimistic updates), otherwise use project data
   const currentIsSaved = localIsSaved !== null ? localIsSaved : projectData.isSaved;
+  const currentProjectName = localProjectName !== null ? localProjectName : projectData.name;
+  const currentProjectDescription = localProjectDescription !== null ? localProjectDescription : (projectData.description || "");
 
   return (
     <div className="min-h-screen bg-background p-4 lg:p-8 ">
@@ -193,7 +215,7 @@ export default function ProjectPage() {
                     )}
                   </div>
                 ) : (
-                  <h1 className="text-3xl font-bold text-foreground">{projectData.name}</h1>
+                  <h1 className="text-3xl font-bold text-foreground">{currentProjectName}</h1>
                 )}
                 <p className="text-muted-foreground">Project ID: {projectId}</p>
               </div>
@@ -234,7 +256,7 @@ export default function ProjectPage() {
             {isEditing ? (
               <Textarea value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} placeholder="Project description (optional)" rows={3} className="resize-none" />
             ) : (
-              <p className="text-muted-foreground">{projectData.description || "No description provided."}</p>
+              <p className="text-muted-foreground">{currentProjectDescription || "No description provided."}</p>
             )}
           </CardContent>
         </Card>
