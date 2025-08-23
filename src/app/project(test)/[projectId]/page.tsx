@@ -134,7 +134,7 @@ export default function ProjectPage() {
     : null;
 
   return (
-    <div className="min-h-screen bg-muted/40 p-4 lg:p-8 ">
+    <div className="min-h-screen bg-background p-4 lg:p-8 ">
       <div className="container mx-auto space-y-8">
         {/* Header Section */}
         <div className="flex items-center justify-between">
@@ -258,14 +258,14 @@ export default function ProjectPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button onClick={() => router.push(`/project(test)/${projectId}/preview`)} className="h-12" variant="outline">
+                  <Button onClick={() => router.push(`/project(test)/${projectId}/preview`)} className="h-12 hover:cursor-pointer" variant="outline">
                     <Eye className="h-4 w-4 mr-2" />
                     Preview Images
                   </Button>
 
                   {hasMasks ? (
-                    <Button onClick={() => router.push(`/project(test)/${projectId}/segmentation`)} className="h-12">
-                      <Edit className="h-4 w-4 mr-2" />
+                    <Button onClick={() => router.push(`/project(test)/${projectId}/segmentation`)} className="h-12 hover:cursor-pointer">
+                      <Edit className="h-4 w-4 mr-2 " />
                       Edit Segmentation
                     </Button>
                   ) : (
