@@ -81,12 +81,12 @@ export function ProjectDashboardBar() {
 
           {/* Right side - Actions */}
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="h-8 text-xs">
+            <Button variant="outline" size="sm" className="h-8 text-xs" disabled>
               <Download className="h-3 w-3 mr-1" />
               Export
             </Button>
 
-            <Button variant="outline" size="sm" className="h-8 text-xs">
+            <Button variant="outline" size="sm" className="h-8 text-xs" disabled>
               <Settings className="h-3 w-3 mr-1" />
               Settings
             </Button>

@@ -55,6 +55,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Image as ImageIcon, AlertCircle, ArrowLeft, ArrowRight, ArrowUp, ArrowDown, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -83,6 +84,11 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
   const [preloadedImages, setPreloadedImages] = useState<Record<string, string>>({}); // Map of image keys to blob URLs
   const [isPreloading, setIsPreloading] = useState<boolean>(false); // Preloading operation status
   const [preloadProgress, setPreloadProgress] = useState<{ loaded: number; total: number }>({ loaded: 0, total: 0 }); // Progress tracking
+
+  // Thumbnail functionality - visual navigation aid
+  const [thumbnails, setThumbnails] = useState<Record<string, string>>({}); // Map of image keys to thumbnail data URLs
+  const [showThumbnails, setShowThumbnails] = useState<boolean>(true); // Toggle thumbnail visibility
+  const [isGeneratingThumbnails, setIsGeneratingThumbnails] = useState<boolean>(false); // Thumbnail generation status
 
   // Navigation behavior control
   const [resetFrameOnSliceChange, setResetFrameOnSliceChange] = useState<boolean>(false); // Reset frame to 0 when slice changes
@@ -207,6 +213,86 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     }
   }, [tarCacheReady, availableFrames, availableSlices, projectId, getMRIImage]);
 
+  // Generate thumbnails from preloaded images - visual navigation aid
+  const generateThumbnails = useCallback(async () => {
+    if (Object.keys(preloadedImages).length === 0 || Object.keys(thumbnails).length > 0) {
+      return; // Skip if no images preloaded or thumbnails already generated
+    }
+
+    setIsGeneratingThumbnails(true);
+
+    if (process.env.NEXT_PUBLIC_ENV === "development") {
+      console.log(`[DebugMRIViewer] Generating thumbnails for ${Object.keys(preloadedImages).length} images...`);
+    }
+
+    const thumbnailUrls: Record<string, string> = {};
+
+    try {
+      for (const [imageKey, imageUrl] of Object.entries(preloadedImages)) {
+        try {
+          const thumbnail = await createThumbnail(imageUrl);
+          thumbnailUrls[imageKey] = thumbnail;
+        } catch (err) {
+          console.warn(`[DebugMRIViewer] Failed to generate thumbnail for ${imageKey}:`, err);
+        }
+      }
+
+      setThumbnails(thumbnailUrls);
+
+      if (process.env.NEXT_PUBLIC_ENV === "development") {
+        console.log(`[DebugMRIViewer] Generated ${Object.keys(thumbnailUrls).length} thumbnails`);
+      }
+    } catch (err) {
+      console.error("[DebugMRIViewer] Thumbnail generation failed:", err);
+    } finally {
+      setIsGeneratingThumbnails(false);
+    }
+  }, [preloadedImages, thumbnails]);
+
+  // Create thumbnail from image URL - utility function
+  const createThumbnail = (imageUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const img = document.createElement("img");
+
+      if (!ctx) {
+        reject(new Error("Could not get canvas context"));
+        return;
+      }
+
+      img.onload = () => {
+        // Set thumbnail size (64x64 for good performance)
+        const size = 64;
+        canvas.width = size;
+        canvas.height = size;
+
+        // Calculate scaling to maintain aspect ratio
+        const scale = Math.min(size / img.width, size / img.height);
+        const scaledWidth = img.width * scale;
+        const scaledHeight = img.height * scale;
+        const offsetX = (size - scaledWidth) / 2;
+        const offsetY = (size - scaledHeight) / 2;
+
+        // Fill with background color
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, size, size);
+
+        // Draw scaled image
+        ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+
+        // Convert to data URL with good compression
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
+      };
+
+      img.onerror = () => {
+        reject(new Error("Failed to load image for thumbnail generation"));
+      };
+
+      img.src = imageUrl;
+    });
+  };
+
   // Trigger preloading when frames and slices are available - automatic optimization
   useEffect(() => {
     if (availableFrames.length > 0 && availableSlices.length > 0 && Object.keys(preloadedImages).length === 0) {
@@ -219,6 +305,19 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
       }, 100);
     }
   }, [availableFrames, availableSlices, preloadedImages, preloadAllImages]);
+
+  // Generate thumbnails after preloading is complete
+  useEffect(() => {
+    if (!isPreloading && Object.keys(preloadedImages).length > 0 && Object.keys(thumbnails).length === 0) {
+      if (process.env.NEXT_PUBLIC_ENV === "development") {
+        console.log("[DebugMRIViewer] Triggering thumbnail generation...");
+      }
+      // Small delay to ensure preloading is fully complete
+      setTimeout(() => {
+        generateThumbnails();
+      }, 200);
+    }
+  }, [isPreloading, preloadedImages, thumbnails, generateThumbnails]);
 
   // Load image whenever navigation changes
   useEffect(() => {
@@ -690,6 +789,75 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
                         </div>
                       )}
                     </div>
+
+                    {/* Thumbnail Strip */}
+                    {showThumbnails && availableFrames.length > 1 && (
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-sm font-medium">Frame Thumbnails (Slice {currentSlice + 1})</Label>
+                          <div className="flex items-center gap-2">
+                            {isGeneratingThumbnails && (
+                              <Badge variant="outline" className="text-xs">
+                                Generating...
+                              </Badge>
+                            )}
+                            <Button variant="outline" size="sm" onClick={() => setShowThumbnails(false)} className="h-6 px-2 text-xs">
+                              Hide
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="border rounded-lg p-2 bg-muted/10">
+                          <ScrollArea className="w-full pb-3">
+                            <div className="flex gap-1 pb-1">
+                              {availableFrames.map((frame) => {
+                                const thumbnailKey = `${projectId}_f${frame}_s${currentSlice}`;
+                                const thumbnailUrl = thumbnails[thumbnailKey];
+                                const isActive = frame === currentFrame;
+
+                                return (
+                                  <div
+                                    key={frame}
+                                    className={`flex-shrink-0 cursor-pointer rounded border-2 transition-all duration-200 ${
+                                      isActive ? "border-primary ring-2 ring-primary/20" : "border-muted-foreground/20 hover:border-primary/50"
+                                    }`}
+                                    onClick={() => setCurrentFrame(frame)}
+                                    title={`Frame ${frame + 1}`}
+                                  >
+                                    {thumbnailUrl ? (
+                                      <Image
+                                        src={thumbnailUrl}
+                                        alt={`Frame ${frame + 1} thumbnail`}
+                                        width={64}
+                                        height={64}
+                                        className="w-16 h-16 object-cover rounded"
+                                        style={{ imageRendering: "crisp-edges" }}
+                                        unoptimized
+                                      />
+                                    ) : (
+                                      <div className="w-16 h-16 bg-muted/30 rounded flex items-center justify-center">
+                                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                                      </div>
+                                    )}
+                                    <div className="text-xs text-center py-1 px-1 bg-muted/20">{frame + 1}</div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                            <ScrollBar orientation="horizontal" />
+                          </ScrollArea>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Toggle thumbnails button when hidden */}
+                    {!showThumbnails && availableFrames.length > 1 && (
+                      <div className="mt-4">
+                        <Button variant="outline" size="sm" onClick={() => setShowThumbnails(true)} className="w-full h-8">
+                          <ImageIcon className="h-3 w-3 mr-2" />
+                          Show Thumbnails
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
