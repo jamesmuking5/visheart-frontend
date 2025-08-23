@@ -21,7 +21,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Play, Eye, Edit, Save, X, RefreshCw, Calendar, FileText, Database, CheckCircle, XCircle, Clock, AlertCircle, Settings, Image as ImageIcon, Activity, Layers } from "lucide-react";
 
 // Custom components
-import { NoProjectFound } from "@/components/project(test)/noProjectFound";
+import { NoProjectFound } from "@/components/project(test)/NoProjectFound";
 import { ErrorProject } from "@/components/project(test)/ErrorProject";
 import { LoadingProject } from "@/components/project(test)/LoadingProject";
 import { ShowForUser, ShowForRegisteredUser } from "@/components/RoleGuard";
