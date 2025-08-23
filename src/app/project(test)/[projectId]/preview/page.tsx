@@ -7,7 +7,6 @@ import { useProject } from "@/context/ProjectContext";
 import { NoProjectFound } from "@/components/project(test)/NoProjectFound";
 import { ErrorProject } from "@/components/project(test)/ErrorProject";
 import { LoadingProject } from "@/components/project(test)/LoadingProject";
-import { DebugProjectPageInfo } from "@/components/project(test)/DebugProjectPageInfo";
 import { DebugMRIViewer } from "@/components/project(test)/DebugMRIViewer";
 
 export default function PreviewPage() {
@@ -25,9 +24,6 @@ export default function PreviewPage() {
 
   return projectData ? (
     <div className="p-6 space-y-6">
-      {/* Simple name and description viewer */}
-      {/* <DebugProjectPageInfo projectData={projectData} /> */}
-
       {/* Debug MRI Image Viewer */}
       <DebugMRIViewer projectId={projectId} />
     </div>
