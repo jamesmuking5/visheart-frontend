@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useProject } from "@/context/ProjectContext";
 
 // Custom components
-import { NoProjectFound } from "@/components/project(test)/NoProjectFound";
+import { NoProjectFound } from "@/components/project(test)/noProjectFound";
 import { ErrorProject } from "@/components/project(test)/ErrorProject";
 import { LoadingProject } from "@/components/project(test)/LoadingProject";
 import { DebugProjectPageInfo } from "@/components/project(test)/DebugProjectPageInfo";
