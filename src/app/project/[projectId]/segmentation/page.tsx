@@ -7,9 +7,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 // Backend integration
-import { projectApi, segmentationApi } from "@/lib/api";
-import { decodeSegmentationMasks, createFramesStructureFromEditableMasks } from "@/lib/decode-RLE";
-import type { ProjectData, BaseSegmentationMask, LoadingStage } from "@/types/project";
+import { segmentationApi } from "@/lib/api";
+import { createFramesStructureFromEditableMasks } from "@/lib/decode-RLE";
 import { LoadingProject } from "@/components/project/LoadingProject";
 import { ErrorProject } from "@/components/project/ErrorProject";
 import { SegmentationSidebar } from "@/components/segmentation/segmentation-sidebar";
@@ -34,14 +33,12 @@ export default function SegmentationResultsPage() {
     loading,
     error,
     projectData,
-    undecodedMasks,
     decodedMasks: contextDecodedMasks,
     hasMasks,
     segmentationError,
     // NEW: Tar cache from context
     tarCacheReady,
     tarCacheError,
-    getMRIImage,
     // Cache invalidation
     refreshMasks,
   } = useProject();
@@ -174,6 +171,31 @@ export default function SegmentationResultsPage() {
     [createHistoryEntry, getCurrentFrameSliceKey, frameSliceHistories],
   );
 
+  // Calculate Mask Changes for Statistics using editable key format
+  const calculateMaskChanges = useCallback(
+    (oldMasks: Record<string, Uint8Array>, newMasks: Record<string, Uint8Array>, label: string): HistoryEntry["maskChanges"] => {
+      const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
+      const oldMask = oldMasks[editableMaskKey];
+      const newMask = newMasks[editableMaskKey];
+
+      if (!oldMask || !newMask) return undefined;
+
+      let added = 0;
+      let removed = 0;
+
+      for (let i = 0; i < Math.max(oldMask.length, newMask.length); i++) {
+        const oldPixel = oldMask[i] || 0;
+        const newPixel = newMask[i] || 0;
+
+        if (oldPixel === 0 && newPixel > 0) added++;
+        if (oldPixel > 0 && newPixel === 0) removed++;
+      }
+
+      return { added, removed, label: label as AnatomicalLabel };
+    },
+    [currentFrame, currentSlice],
+  );
+
   // Update Masks with History Tracking - Frame/Slice Specific
   const updateMasksWithHistory = useCallback(
     (newMasks: Record<string, Uint8Array>, actionType: HistoryEntry["type"] = "brush", description?: string) => {
@@ -207,51 +229,7 @@ export default function SegmentationResultsPage() {
 
       console.log(`[Segmentation] Updated history for ${frameSliceKey}, step: ${trimmedHistory.length - 1}`);
     },
-    [decodedMasks, activeLabel, createHistoryEntry, getCurrentFrameSliceKey, frameSliceHistories, frameSliceHistorySteps],
-  );
-
-  // Calculate Mask Changes for Statistics using editable key format
-  const calculateMaskChanges = useCallback(
-    (oldMasks: Record<string, Uint8Array>, newMasks: Record<string, Uint8Array>, label: string): HistoryEntry["maskChanges"] => {
-      const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
-      const oldMask = oldMasks[editableMaskKey];
-      const newMask = newMasks[editableMaskKey];
-
-      if (!oldMask || !newMask) return undefined;
-
-      let added = 0;
-      let removed = 0;
-
-      for (let i = 0; i < Math.max(oldMask.length, newMask.length); i++) {
-        const oldPixel = oldMask[i] || 0;
-        const newPixel = newMask[i] || 0;
-
-        if (oldPixel === 0 && newPixel > 0) added++;
-        if (oldPixel > 0 && newPixel === 0) removed++;
-      }
-
-      return { added, removed, label: label as AnatomicalLabel };
-    },
-    [currentFrame, currentSlice],
-  );
-
-  // Navigation handlers that DON'T trigger undo/redo flag
-  const handleFrameChange = useCallback(
-    (frame: number) => {
-      console.log(`[Segmentation] Changing frame from ${currentFrame} to ${frame}`);
-      console.log(`[Segmentation] Current decodedMasks keys:`, decodedMasks ? Object.keys(decodedMasks) : "null");
-      setCurrentFrame(frame);
-    },
-    [currentFrame, decodedMasks],
-  );
-
-  const handleSliceChange = useCallback(
-    (slice: number) => {
-      console.log(`[Segmentation] Changing slice from ${currentSlice} to ${slice}`);
-      console.log(`[Segmentation] Current decodedMasks keys:`, decodedMasks ? Object.keys(decodedMasks) : "null");
-      setCurrentSlice(slice);
-    },
-    [currentSlice, decodedMasks],
+    [decodedMasks, activeLabel, createHistoryEntry, getCurrentFrameSliceKey, frameSliceHistories, frameSliceHistorySteps, calculateMaskChanges, setDecodedMasks],
   );
 
   // Undo Handler - Frame/Slice Specific
@@ -271,7 +249,7 @@ export default function SegmentationResultsPage() {
     setHasUnsavedChanges(true);
 
     console.log(`[Segmentation] Undo operation for ${frameSliceKey}: ${targetEntry.description}`);
-  }, [canUndo, currentHistory, currentHistoryStep, getCurrentFrameSliceKey]);
+  }, [canUndo, currentHistory, currentHistoryStep, getCurrentFrameSliceKey, setDecodedMasks]);
 
   // Redo Handler - Frame/Slice Specific
   const handleRedo = useCallback(() => {
@@ -290,7 +268,7 @@ export default function SegmentationResultsPage() {
     setHasUnsavedChanges(true);
 
     console.log(`[Segmentation] Redo operation for ${frameSliceKey}: ${targetEntry.description}`);
-  }, [canRedo, currentHistory, currentHistoryStep, getCurrentFrameSliceKey]);
+  }, [canRedo, currentHistory, currentHistoryStep, getCurrentFrameSliceKey, setDecodedMasks]);
 
   // Clear Handler
   const handleClear = useCallback(() => {
@@ -323,7 +301,7 @@ export default function SegmentationResultsPage() {
         console.log(`[Segmentation] History navigation for ${frameSliceKey} to step ${step}: ${targetEntry.description}`);
       }
     },
-    [currentHistory, getCurrentFrameSliceKey],
+    [currentHistory, getCurrentFrameSliceKey, setDecodedMasks],
   );
 
   // History Management Actions - Frame/Slice Specific

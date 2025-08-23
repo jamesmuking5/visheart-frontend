@@ -207,7 +207,7 @@ export default function DashboardPage() {
         <Alert className="border-orange-200 bg-orange-50">
           <AlertCircle className="h-4 w-4 text-orange-600" />
           <AlertDescription className="text-orange-800">
-            You're in guest mode. Your projects and work won't be permanently saved.
+            You&apos;re in guest mode. Your projects and work won&apos;t be permanently saved.
             <Button variant="link" className="ml-2 h-auto p-0 text-orange-800 underline">
               Upgrade to full account
             </Button>
@@ -595,7 +595,7 @@ export default function DashboardPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Project</AlertDialogTitle>
             <AlertDialogDescription className="space-y-3">
-              Are you sure you want to delete "{projectToDelete?.name}"?
+              Are you sure you want to delete &quot;{projectToDelete?.name}&quot;?
               <br />
               <span className="text-muted-foreground text-sm italic">This will permanently delete the project and all associated data including segmentation results.</span>
               <br />
