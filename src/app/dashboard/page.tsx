@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useGpuStatus, useUserProjects, useUserJobs, useUserStats } from "@/lib/dashboard-hooks";
+import { useProjectSegmentationStatus } from "@/hooks/useProjectSegmentationStatus";
 import { ShowForUser, ShowForGuest, ShowForRegisteredUser } from "@/components/RoleGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,10 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Brain, Download, FolderOpen, Heart, Upload, Edit, Clock, CheckCircle, XCircle, RefreshCw, FileText, Cpu, User, UserCheck, Settings, Shield, Trash2 } from "lucide-react";
+import { AlertCircle, Brain, Download, FolderOpen, Heart, Upload, Clock, CheckCircle, XCircle, RefreshCw, FileText, Cpu, User, UserCheck, Settings, Shield } from "lucide-react";
 import Link from "next/link";
 import { projectApi, segmentationApi } from "@/lib/api";
 import { FileUploadDialog } from "@/components/upload/FileUploadDialog";
+import { SegmentationIndicator } from "@/components/dashboard/SegmentationIndicator";
+import { EditableProjectCard } from "@/components/dashboard/EditableProjectCard";
 
 // Helper function to format file size
 const formatFileSize = (bytes: number) => {
@@ -66,6 +69,9 @@ export default function DashboardPage() {
   const { gpuStatus, isLoading: gpuLoading, refresh: refreshGpuStatus } = useGpuStatus();
   const userStats = useUserStats(projects, recentJobs);
 
+  // Add segmentation status tracking for projects
+  const { statuses: segmentationStatuses, refresh: refreshSegmentationStatuses } = useProjectSegmentationStatus(projects);
+
   // State for upload dialog
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
 
@@ -81,6 +87,8 @@ export default function DashboardPage() {
   const refreshDashboard = async () => {
     if (user) {
       await Promise.all([refreshProjects(), refreshJobs(), refreshGpuStatus()]);
+      // Refresh segmentation statuses after projects are refreshed
+      refreshSegmentationStatuses();
     }
   };
 
@@ -427,68 +435,21 @@ export default function DashboardPage() {
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
-              <Card key={project.projectId}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg">{project.name}</CardTitle>
-                    <ShowForRegisteredUser fallback={<Badge variant={project.isSaved ? "default" : "secondary"}>{project.isSaved ? "Saved" : "Temp"}</Badge>}>
-                      <Button variant="ghost" size="sm" onClick={() => handleSaveProject(project.projectId, !project.isSaved)} className="h-auto p-1">
-                        <Badge variant={project.isSaved ? "default" : "secondary"} className="cursor-pointer hover:opacity-80">
-                          {project.isSaved ? "Saved" : "Temp"}
-                        </Badge>
-                      </Button>
-                    </ShowForRegisteredUser>
-                  </div>
-                  <CardDescription className="line-clamp-2">{project.description || "No description"}</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Size:</span>
-                      <p className="font-medium">{formatFileSize(project.filesize)}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Type:</span>
-                      <p className="font-medium">{project.filetype}</p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground" title="In the representation of width * height * slices * frames">
-                        Dimensions:
-                      </span>
-                      <p className="font-medium">
-                        {(() => {
-                          let dimensionStringRepresentation = `${project.dimensions.width}x${project.dimensions.height}`;
-                          if (project.dimensions.slices) dimensionStringRepresentation += `x${project.dimensions.slices}`;
-                          if (project.dimensions.frames) dimensionStringRepresentation += `x${project.dimensions.frames}`;
-                          return dimensionStringRepresentation;
-                        })()}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Created:</span>
-                      <p className="font-medium">{new Date(project.createdAt).toLocaleString()}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Link href={`/project/${project.projectId}`} title={`Open project ${project.name}`} className="flex-1">
-                      <Button size="sm" className="w-full flex-1">
-                        <Edit className="mr-1 h-3 w-3" />
-                        Open
-                      </Button>
-                    </Link>
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => handleExportProject(project.projectId)}>
-                      <Download className="mr-1 h-3 w-3" />
-                      Export
-                    </Button>
-                  </div>
-                  <ShowForRegisteredUser fallback={null}>
-                    <Button size="sm" variant="destructive" className="mt-2 w-full" onClick={() => handleDeleteProject(project.projectId, project.name)}>
-                      <Trash2 className="mr-1 h-3 w-3" />
-                      Delete Project
-                    </Button>
-                  </ShowForRegisteredUser>
-                </CardContent>
-              </Card>
+              <div key={project.projectId} className="group">
+                <EditableProjectCard
+                  project={project}
+                  onUpdate={refreshProjects}
+                  onSave={handleSaveProject}
+                  onDelete={handleDeleteProject}
+                  onExport={handleExportProject}
+                  segmentationIndicator={
+                    <SegmentationIndicator 
+                      status={segmentationStatuses[project.projectId]} 
+                      variant="badge" 
+                    />
+                  }
+                />
+              </div>
             ))}
           </div>
         </TabsContent>

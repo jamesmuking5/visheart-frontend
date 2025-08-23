@@ -55,7 +55,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Download, RefreshCw, Image as ImageIcon, AlertCircle, ArrowLeft, ArrowRight, ArrowUp, ArrowDown, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { Image as ImageIcon, AlertCircle, ArrowLeft, ArrowRight, ArrowUp, ArrowDown, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -70,13 +70,9 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     tarCacheReady, 
     tarCacheError, 
     getMRIImage, 
-    getAvailableFramesAndSlices, 
-    fetchAndExtractProjectImages, 
-    clearProjectCache 
+    getAvailableFramesAndSlices
   } = useProject();
-  // Loading and error states - simplified since ProjectContext handles tar cache state
-  const [isLoading, setIsLoading] = useState<boolean>(false); // Overall loading state for tar extraction
-
+  
   // Image data and navigation - core image viewing functionality
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null); // URL for displaying current image
   const [currentFrame, setCurrentFrame] = useState<number>(0); // Currently selected frame index (0-based)
@@ -233,87 +229,6 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
   useEffect(() => {
     loadCurrentImage();
   }, [loadCurrentImage]); // Dependency ensures image updates when frame/slice changes
-
-  // Fetch and extract images from tar file - main data loading function
-  const fetchTarImages = async () => {
-    if (!tarCacheReady) {
-      console.warn("Tar cache not ready from ProjectContext");
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      console.log("[DebugMRIViewer] Starting tar fetch and extraction...");
-      // Use ProjectContext fetchAndExtractProjectImages method
-      const result = await fetchAndExtractProjectImages();
-
-      if (result.success) {
-        console.log(`[DebugMRIViewer] Successfully extracted ${result.extractedImages}/${result.totalImages} images`);
-
-        // Refresh available frames and slices after successful extraction
-        const { frames, slices } = await getAvailableFramesAndSlices();
-        setAvailableFrames(frames);
-        setAvailableSlices(slices);
-
-        // Set initial frame and slice to first available combination
-        if (frames.length > 0 && slices.length > 0) {
-          setCurrentFrame(frames[0]);
-          setCurrentSlice(slices[0]);
-        }
-
-        // Update UI state with extraction results
-        setTotalImages(result.extractedImages);
-        const size = await tarImageCache.getCacheSize();
-        setCacheSize(size);
-
-        if (result.errors.length > 0) {
-          console.warn("[DebugMRIViewer] Extraction completed with errors:", result.errors);
-        }
-      } else {
-        console.error(`Failed to extract images: ${result.errors.join(", ")}`);
-      }
-
-      // Log debug info for troubleshooting
-      const debugInfo = tarImageCache.getDebugInfo();
-      console.log("[DebugMRIViewer] Debug info:", debugInfo);
-    } catch (err) {
-      console.error("[DebugMRIViewer] Tar fetch failed:", err);
-    } finally {
-      setIsLoading(false); // Always clear loading state
-    }
-  };
-
-  // Clear cache for current project - cleanup function
-  const clearCache = async () => {
-    if (!tarCacheReady) {
-      console.warn("Tar cache not ready from ProjectContext");
-      return;
-    }
-
-    try {
-      // Use ProjectContext clearProjectCache method
-      await clearProjectCache();
-
-      // Reset all component state to initial values
-      setAvailableFrames([]);
-      setAvailableSlices([]);
-      setCurrentFrame(0);
-      setCurrentSlice(0);
-      setTotalImages(0);
-      setPreloadedImages({});
-      setCurrentImageUrl(null);
-      setPreloadProgress({ loaded: 0, total: 0 });
-
-      // Update cache size after cleanup
-      const size = await tarImageCache.getCacheSize();
-      setCacheSize(size);
-
-      console.log("[DebugMRIViewer] Cache cleared for project:", projectId);
-    } catch (err) {
-      console.error("[DebugMRIViewer] Failed to clear cache:", err);
-    }
-  };
 
   // Input handlers for direct frame/slice selection
   const handleFrameChange = (value: string) => {
@@ -522,33 +437,6 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
                 <span className="text-sm">{tarCacheError}</span>
               </AlertDescription>
             </Alert>
-          )}
-
-          {/* Compact Action Bar - Removed for production version */}
-          {process.env.NEXT_PUBLIC_ENV === "development" && (
-            <div className="flex items-center justify-between gap-2 p-3 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-2">
-                <Button onClick={fetchTarImages} disabled={!tarCacheReady || isLoading} size="sm" className="flex items-center gap-1">
-                  {isLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-                  {isLoading ? "Loading..." : "Load Images"}
-                </Button>
-
-                {totalImages > 0 && Object.keys(preloadedImages).length === 0 && (
-                  <Button onClick={preloadAllImages} disabled={!tarCacheReady || isPreloading} variant="outline" size="sm" className="flex items-center gap-1">
-                    {isPreloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-                    Preload
-                  </Button>
-                )}
-
-                <Button variant="outline" onClick={clearCache} disabled={!tarCacheReady || totalImages === 0} size="sm" className="flex items-center gap-1">
-                  <RefreshCw className="h-3 w-3" />
-                  Clear
-                </Button>
-              </div>
-
-              {/* Cache info */}
-              <div className="text-xs text-muted-foreground">Cache: {(cacheSize / (1024 * 1024)).toFixed(1)}MB</div>
-            </div>
           )}
 
           {/* Compact Navigation Controls */}
