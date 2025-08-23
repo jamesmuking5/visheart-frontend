@@ -282,12 +282,12 @@ export default function ProjectPage() {
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Button disabled className="h-12" variant="secondary">
-                                <RefreshCw className="h-4 w-4 mr-2" />
+                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                                 Segmentation in Progress
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Segmentation is already running. Check the Processing Jobs section below.</p>
+                              <p>Segmentation is currently processing. Please refresh the page to check for updates or monitor progress in the Processing Jobs section below.</p>
                             </TooltipContent>
                           </Tooltip>
                         ) : (
