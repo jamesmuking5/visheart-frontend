@@ -30,6 +30,7 @@ interface ProjectContextType {
   tarCacheReady: boolean;
   tarCacheError: string | null;
   getMRIImage: (frame: number, slice: number) => Promise<string | null>;
+  getMRIImageFilename: (frame: number, slice: number) => Promise<string | null>;
   preloadMRIImages: () => Promise<void>;
   getAvailableFramesAndSlices: () => Promise<{ frames: number[]; slices: number[] }>;
   fetchAndExtractProjectImages: () => Promise<{ success: boolean; extractedImages: number; totalImages: number; errors: string[] }>;
@@ -109,6 +110,19 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
         return await tarImageCache.getImageURL(projectId, frame, slice);
       } catch (error) {
         console.error("[ProjectContext] Failed to get MRI image:", error);
+        return null;
+      }
+    },
+    [projectId],
+  );
+
+  const getMRIImageFilename = useCallback(
+    async (frame: number, slice: number): Promise<string | null> => {
+      if (!projectId) return null;
+      try {
+        return await tarImageCache.getImageFilename(projectId, frame, slice);
+      } catch (error) {
+        console.error("[ProjectContext] Failed to get MRI image filename:", error);
         return null;
       }
     },
@@ -459,6 +473,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       tarCacheReady,
       tarCacheError,
       getMRIImage,
+      getMRIImageFilename,
       preloadMRIImages,
       getAvailableFramesAndSlices,
       fetchAndExtractProjectImages,
@@ -478,6 +493,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       tarCacheReady,
       tarCacheError,
       getMRIImage,
+      getMRIImageFilename,
       preloadMRIImages,
       getAvailableFramesAndSlices,
       fetchAndExtractProjectImages,

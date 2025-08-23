@@ -50,7 +50,8 @@ const TOOL_CONFIG: Record<DrawingTool, { icon: React.ComponentType<any>; label: 
 // Memoized tool grid layout
 const TOOL_GRID_LAYOUT: DrawingTool[][] = [
   ['select', 'brush', 'eraser'],
-  ['label', 'rectangle', 'circle'],
+  ['label', 'circle'],
+  ['rectangle'],
   ['measure', 'zoom', 'pan']
 ];
 
@@ -247,6 +248,34 @@ export function DrawingPanel({
         </div>
       )}
 
+      {/* Rectangle/Bounding Box Settings - Only show for rectangle tool */}
+      {tool === 'rectangle' && (
+        <div>
+          <h3 className="text-sm font-medium text-foreground mb-3">Bounding Box Settings</h3>
+          <div className="bg-muted rounded-lg border p-4 space-y-4">
+            <div className="text-sm text-muted-foreground">
+              Draw a rectangle to define the region of interest for manual segmentation.
+            </div>
+            
+            <div className="space-y-2">
+              <div className="text-xs text-muted-foreground">
+                <strong>Instructions:</strong>
+                <ol className="list-decimal list-inside mt-1 space-y-1">
+                  <li>Click and drag to draw a bounding box around the area you want to segment</li>
+                  <li>The box will appear as a red dashed outline while drawing</li>
+                  <li>When finished, it will turn green and show coordinates</li>
+                  <li>Click "Start Manual Segmentation" to process the region</li>
+                </ol>
+              </div>
+              
+              <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-2 rounded border-l-2 border-blue-400">
+                <strong>Note:</strong> The bounding box coordinates will be sent to the AI segmentation model to process only the selected region.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="pt-4 border-t border-border">
         <h3 className="text-sm font-medium text-foreground mb-3">Actions</h3>
@@ -298,6 +327,7 @@ export function DrawingPanel({
           <div>• <strong>Select:</strong> Move and select objects</div>
           <div>• <strong>Brush:</strong> Paint segmentation masks</div>
           <div>• <strong>Eraser:</strong> Remove mask pixels</div>
+          <div>• <strong>Rectangle:</strong> Draw bounding box for AI-powered manual segmentation</div>
           <div>• <strong>Shapes:</strong> Draw geometric annotations</div>
           <div>• <strong>Measure:</strong> Calculate distances</div>
           <div>• <strong>Zoom/Pan:</strong> Navigate the canvas</div>
