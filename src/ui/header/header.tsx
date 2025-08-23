@@ -208,6 +208,7 @@ const ListItem = React.memo(function ListItem({
   icon: Icon,
   badge,
   isComingSoon = false,
+  as = "li",
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"a"> & {
@@ -216,6 +217,7 @@ const ListItem = React.memo(function ListItem({
   icon?: React.ComponentType<{ className?: string }>;
   badge?: string;
   isComingSoon?: boolean;
+  as?: "li" | "div";
   className?: string;
 }) {
   const handleClick = (e: React.MouseEvent) => {
@@ -224,8 +226,10 @@ const ListItem = React.memo(function ListItem({
     }
   };
 
+  const Component = as;
+
   return (
-    <li className={cn("flex", className)}>
+    <Component className={cn("flex", className)}>
       <NavigationMenuLink asChild>
         <Link
           href={isComingSoon ? "#" : href}
@@ -268,7 +272,7 @@ const ListItem = React.memo(function ListItem({
           </p>
         </Link>
       </NavigationMenuLink>
-    </li>
+    </Component>
   );
 });
 
@@ -314,7 +318,7 @@ const HomeDropDown = React.memo(function HomeDropDown() {
               badge="Updated"
               className="flex-1"
             >
-              Complete guide on using VisHeart's features, tools, and best
+              Complete guide on using VisHeart&apos;s features, tools, and best
               practices for cardiac imaging.
             </ListItem>
             <ListItem
@@ -398,6 +402,7 @@ const ToolsDropDown = React.memo(function ToolsDropDown() {
               title="2D Cardiac Segmentation"
               icon={Heart}
               badge="Active"
+              as="div"
               className="min-h-36"
             >
               Advanced <span className="text-green-500">2D</span> cardiac
@@ -409,6 +414,7 @@ const ToolsDropDown = React.memo(function ToolsDropDown() {
               title="3D Cardiac Segmentation"
               icon={Settings}
               isComingSoon={true}
+              as="div"
               className="min-h-36"
             >
               Upcoming <span className="text-red-500">3D</span> cardiac imaging
@@ -454,13 +460,13 @@ const MobileMenu = React.memo(function MobileMenu({
         </div>
 
         {/* Menu Sections */}
-        {MOBILE_MENU_ITEMS.map((section, sectionIndex) => (
+        {MOBILE_MENU_ITEMS.map((section) => (
           <div key={section.title} className="space-y-3">
             <h3 className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
               {section.title}
             </h3>
             <div className="space-y-2">
-              {section.items.map((item, itemIndex) => (
+              {section.items.map((item) => (
                 <div key={item.title}>
                   <Link
                     href={item.isComingSoon ? "#" : item.href}

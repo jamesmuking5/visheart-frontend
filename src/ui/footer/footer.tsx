@@ -14,7 +14,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className="relative z-10 w-full bg-gradient-to-br from-blue-50 via-white to-pink-50 dark:from-gray-900 dark:via-card dark:to-gray-800 mt-auto">
+    <footer className="relative z-10 w-full bg-background border-t border-border mt-auto">
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           
@@ -27,8 +27,8 @@ export default function Footer() {
             className="space-y-4"
           >
             <div className="flex items-center space-x-2">
-              <Heart className="h-8 w-8 text-red-500" />
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
+              <Heart className="h-8 w-8 text-primary" />
+              <h2 className="text-2xl font-bold text-foreground">
                 VisHeart
               </h2>
             </div>
@@ -38,31 +38,31 @@ export default function Footer() {
             <div className="flex space-x-3">
               <Link 
                 href="#" 
-                className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors duration-200"
+                className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center hover:bg-primary/80 transition-colors duration-200"
                 aria-label="Facebook"
               >
-                <FaFacebook size={16} className="text-white" />
+                <FaFacebook size={16} />
               </Link>
               <Link 
                 href="#" 
-                className="w-8 h-8 bg-blue-400 rounded-full flex items-center justify-center hover:bg-blue-500 transition-colors duration-200"
+                className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center hover:bg-primary/80 transition-colors duration-200"
                 aria-label="Twitter"
               >
-                <FaTwitter size={16} className="text-white" />
+                <FaTwitter size={16} />
               </Link>
               <Link 
                 href="#" 
-                className="w-8 h-8 bg-blue-700 rounded-full flex items-center justify-center hover:bg-blue-800 transition-colors duration-200"
+                className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center hover:bg-primary/80 transition-colors duration-200"
                 aria-label="LinkedIn"
               >
-                <FaLinkedin size={16} className="text-white" />
+                <FaLinkedin size={16} />
               </Link>
               <Link 
                 href="#" 
-                className="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-900 transition-colors duration-200"
+                className="w-8 h-8 bg-muted text-muted-foreground rounded-full flex items-center justify-center hover:bg-muted/80 transition-colors duration-200"
                 aria-label="GitHub"
               >
-                <FaGithub size={16} className="text-white" />
+                <FaGithub size={16} />
               </Link>
             </div>
           </motion.div>
@@ -74,7 +74,7 @@ export default function Footer() {
             transition={{ duration: 0.6, delay: 0.1 }}
             viewport={{ once: true }}
           >
-            <h3 className="text-xl font-semibold mb-4 flex items-center">
+            <h3 className="text-xl font-semibold mb-4 flex items-center text-foreground">
               <FileText className="h-5 w-5 mr-2 text-primary" />
               Platform
             </h3>
@@ -112,7 +112,7 @@ export default function Footer() {
             transition={{ duration: 0.6, delay: 0.2 }}
             viewport={{ once: true }}
           >
-            <h3 className="text-xl font-semibold mb-4 flex items-center">
+            <h3 className="text-xl font-semibold mb-4 flex items-center text-foreground">
               <Brain className="h-5 w-5 mr-2 text-primary" />
               AI Tools
             </h3>
@@ -125,7 +125,7 @@ export default function Footer() {
               <li>
                 <span className="text-muted-foreground/60 flex items-center">
                   3D Cardiac Segmentation
-                  <span className="ml-2 text-sm bg-orange-100 text-orange-600 px-2 py-1 rounded dark:bg-orange-900/20 dark:text-orange-400">
+                  <span className="ml-2 text-sm bg-secondary text-secondary-foreground px-2 py-1 rounded">
                     Coming Soon
                   </span>
                 </span>
@@ -140,7 +140,7 @@ export default function Footer() {
             transition={{ duration: 0.6, delay: 0.3 }}
             viewport={{ once: true }}
           >
-            <h3 className="text-xl font-semibold mb-4 flex items-center">
+            <h3 className="text-xl font-semibold mb-4 flex items-center text-foreground">
               <HelpCircle className="h-5 w-5 mr-2 text-primary" />
               Support
             </h3>
@@ -172,7 +172,7 @@ export default function Footer() {
         </div>
         
         {/* Divider */}
-        <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
+        <div className="mt-12 pt-8 border-t border-border">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <div className="text-base text-muted-foreground text-center md:text-left">
               © {new Date().getFullYear()} VisHeart. All Rights Reserved. 
