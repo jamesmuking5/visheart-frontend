@@ -49,10 +49,10 @@ export default function ProjectPage() {
 
   // Save project state
   const [isSavingProject, setIsSavingProject] = useState(false);
-  
+
   // Local project save status (for optimistic updates)
   const [localIsSaved, setLocalIsSaved] = useState<boolean | null>(null);
-  
+
   // Local project data (for optimistic updates after editing)
   const [localProjectName, setLocalProjectName] = useState<string | null>(null);
   const [localProjectDescription, setLocalProjectDescription] = useState<string | null>(null);
@@ -112,11 +112,11 @@ export default function ProjectPage() {
       console.log("Project updated successfully");
     } catch (error: unknown) {
       console.error("Error updating project:", error);
-      
+
       // Error - revert the optimistic update
       setLocalProjectName(projectData.name);
       setLocalProjectDescription(projectData.description || "");
-      
+
       setUpdateError((error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to update project");
     } finally {
       setIsUpdating(false);
@@ -149,14 +149,14 @@ export default function ProjectPage() {
     const currentStatus = localIsSaved !== null ? localIsSaved : projectData.isSaved;
     const newSaveStatus = !currentStatus;
     setIsSavingProject(true);
-    
+
     // Optimistic update
     setLocalIsSaved(newSaveStatus);
-    
+
     try {
       await projectApi.saveProject(projectId, newSaveStatus);
       // Success - the optimistic update was correct
-      console.log(`Project ${newSaveStatus ? 'saved' : 'marked as temporary'} successfully`);
+      console.log(`Project ${newSaveStatus ? "saved" : "marked as temporary"} successfully`);
     } catch (error: unknown) {
       // Error - revert the optimistic update
       setLocalIsSaved(currentStatus);
@@ -176,10 +176,7 @@ export default function ProjectPage() {
   );
 
   // Check if there are any active jobs (pending or in progress)
-  const hasActiveJobs = (jobs || []).some(job => 
-    job.status === ProjectTypes.JobStatus.PENDING || 
-    job.status === ProjectTypes.JobStatus.IN_PROGRESS
-  );
+  const hasActiveJobs = (jobs || []).some((job) => job.status === ProjectTypes.JobStatus.PENDING || job.status === ProjectTypes.JobStatus.IN_PROGRESS);
 
   // Get mask statistics
   const maskStats = undecodedMasks
@@ -194,7 +191,7 @@ export default function ProjectPage() {
   // Use local state if available (for optimistic updates), otherwise use project data
   const currentIsSaved = localIsSaved !== null ? localIsSaved : projectData.isSaved;
   const currentProjectName = localProjectName !== null ? localProjectName : projectData.name;
-  const currentProjectDescription = localProjectDescription !== null ? localProjectDescription : (projectData.description || "");
+  const currentProjectDescription = localProjectDescription !== null ? localProjectDescription : projectData.description || "";
 
   return (
     <div className="min-h-screen bg-background p-4 lg:p-8 ">
