@@ -1,6 +1,7 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useProject } from "@/context/ProjectContext";
 import { useState } from "react";
 
@@ -16,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Icons
 import { Play, Eye, Edit, Save, X, RefreshCw, Calendar, FileText, Database, CheckCircle, XCircle, Clock, AlertCircle, Settings, Image as ImageIcon, Activity, Layers } from "lucide-react";
@@ -44,6 +46,12 @@ export default function ProjectPage() {
   // Segmentation state
   const [isStartingSegmentation, setIsStartingSegmentation] = useState(false);
   const [segmentationError, setSegmentationError] = useState<string | null>(null);
+
+  // Save project state
+  const [isSavingProject, setIsSavingProject] = useState(false);
+  
+  // Local project save status (for optimistic updates)
+  const [localIsSaved, setLocalIsSaved] = useState<boolean | null>(null);
 
   // Missing projectId handling
   if (!projectId) return <NoProjectFound message="Project ID is missing." />;
@@ -114,6 +122,30 @@ export default function ProjectPage() {
     }
   };
 
+  // Handle save/unsave project
+  const handleSaveProject = async () => {
+    if (!projectData) return;
+
+    const currentStatus = localIsSaved !== null ? localIsSaved : projectData.isSaved;
+    const newSaveStatus = !currentStatus;
+    setIsSavingProject(true);
+    
+    // Optimistic update
+    setLocalIsSaved(newSaveStatus);
+    
+    try {
+      await projectApi.saveProject(projectId, newSaveStatus);
+      // Success - the optimistic update was correct
+      console.log(`Project ${newSaveStatus ? 'saved' : 'marked as temporary'} successfully`);
+    } catch (error: unknown) {
+      // Error - revert the optimistic update
+      setLocalIsSaved(currentStatus);
+      console.error("Error updating project save status:", error);
+    } finally {
+      setIsSavingProject(false);
+    }
+  };
+
   // Get job statistics
   const jobCounts = (jobs || []).reduce(
     (acc, job) => {
@@ -132,6 +164,9 @@ export default function ProjectPage() {
         saved: undecodedMasks.filter((mask) => mask.isSaved).length,
       }
     : null;
+
+  // Use local state if available (for optimistic updates), otherwise use project data
+  const currentIsSaved = localIsSaved !== null ? localIsSaved : projectData.isSaved;
 
   return (
     <div className="min-h-screen bg-background p-4 lg:p-8 ">
@@ -219,7 +254,22 @@ export default function ProjectPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center p-3 rounded-lg bg-muted/50">
-                    <Badge variant={projectData.isSaved ? "default" : "secondary"}>{projectData.isSaved ? "Saved" : "Temporary"}</Badge>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div>
+                          <ShowForRegisteredUser fallback={<Badge variant={currentIsSaved ? "default" : "secondary"}>{currentIsSaved ? "Saved" : "Temporary"}</Badge>}>
+                            <Button variant="ghost" size="sm" onClick={handleSaveProject} disabled={isSavingProject} className="h-auto p-1">
+                              <Badge variant={currentIsSaved ? "default" : "secondary"} className="cursor-pointer hover:opacity-80">
+                                {isSavingProject ? "Updating..." : currentIsSaved ? "Saved" : "Temporary"}
+                              </Badge>
+                            </Button>
+                          </ShowForRegisteredUser>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{currentIsSaved ? "Project is permanently saved" : "Temporary projects are deleted automatically after 3 days"}</p>
+                      </TooltipContent>
+                    </Tooltip>
                     <p className="text-xs text-muted-foreground mt-1">Status</p>
                   </div>
                   <div className="text-center p-3 rounded-lg bg-muted/50">
@@ -257,35 +307,55 @@ export default function ProjectPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Button onClick={() => router.push(`/project(test)/${projectId}/preview`)} className="h-12 hover:cursor-pointer" variant="outline">
-                    <Eye className="h-4 w-4 mr-2" />
-                    Preview Images
-                  </Button>
+                <TooltipProvider>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button asChild className="h-12" variant="outline">
+                          <Link href={`/project(test)/${projectId}/preview`}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            Preview Images
+                          </Link>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>View MRI images without segmentation masks</p>
+                      </TooltipContent>
+                    </Tooltip>
 
-                  {hasMasks ? (
-                    <Button onClick={() => router.push(`/project(test)/${projectId}/segmentation`)} className="h-12 hover:cursor-pointer">
-                      <Edit className="h-4 w-4 mr-2 " />
-                      Edit Segmentation
-                    </Button>
-                  ) : (
-                    <ShowForUser fallback={null}>
-                      <Button onClick={handleStartSegmentation} disabled={isStartingSegmentation} className="h-12">
-                        {isStartingSegmentation ? (
-                          <>
-                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                            Starting...
-                          </>
-                        ) : (
-                          <>
-                            <Play className="h-4 w-4 mr-2" />
-                            Start Segmentation
-                          </>
-                        )}
-                      </Button>
-                    </ShowForUser>
-                  )}
-                </div>
+                    {hasMasks ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button asChild className="h-12">
+                            <Link href={`/project(test)/${projectId}/segmentation`}>
+                              <Edit className="h-4 w-4 mr-2 " />
+                              Edit Segmentation
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Edit and refine segmentation masks using brush tools</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <ShowForUser fallback={null}>
+                        <Button onClick={handleStartSegmentation} disabled={isStartingSegmentation} className="h-12">
+                          {isStartingSegmentation ? (
+                            <>
+                              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                              Starting...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-4 w-4 mr-2" />
+                              Start Segmentation
+                            </>
+                          )}
+                        </Button>
+                      </ShowForUser>
+                    )}
+                  </div>
+                </TooltipProvider>
 
                 {segmentationError && (
                   <Alert variant="destructive">
@@ -417,11 +487,6 @@ export default function ProjectPage() {
                         <Badge variant="default">{maskStats.saved}</Badge>
                       </div>
                     </div>
-
-                    <Button onClick={() => router.push(`/project(test)/${projectId}/segmentation`)} className="w-full" size="sm">
-                      <Edit className="h-4 w-4 mr-2" />
-                      Open Segmentation Editor
-                    </Button>
                   </div>
                 ) : (
                   <div className="text-center py-8 space-y-3">
