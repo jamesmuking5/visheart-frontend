@@ -120,6 +120,7 @@ export interface SegmentationSidebarProps {
   canRedo: boolean;
   canClear: boolean;
   hasUnsavedChanges: boolean;
+  isSaving?: boolean;
   onSave: () => void;
   currentFrame: number;
   currentSlice: number;

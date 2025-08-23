@@ -73,6 +73,7 @@ export default function SegmentationResultsPage() {
   const [opacity, setOpacity] = useState<number>(1);
   const [hardness, setHardness] = useState<"soft" | "medium" | "hard">("hard");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [currentSlice, setCurrentSlice] = useState(0);
 
@@ -357,8 +358,9 @@ export default function SegmentationResultsPage() {
 
   // Save Handler - only save editable masks with proper RLE encoding
   const handleSave = useCallback(async () => {
-    if (!decodedMasks || !projectId) return;
+    if (!decodedMasks || !projectId || isSaving) return;
 
+    setIsSaving(true);
     try {
       // Filter only editable masks for saving
       const editableMasks = Object.entries(decodedMasks)
@@ -402,8 +404,10 @@ export default function SegmentationResultsPage() {
       updateMasksWithHistory(decodedMasks, "checkpoint", `Checkpoint #${checkpointNum} - Editable masks saved to server`);
     } catch (err) {
       console.error("Failed to save editable masks:", err);
+    } finally {
+      setIsSaving(false);
     }
-  }, [decodedMasks, projectId, updateMasksWithHistory, currentHistory]);
+  }, [decodedMasks, projectId, isSaving, updateMasksWithHistory, currentHistory]);
 
   // To do: Export history timeline
   const handleHistoryExport = useCallback(() => {
@@ -493,6 +497,7 @@ export default function SegmentationResultsPage() {
             canRedo={canRedo}
             canClear={canClear}
             hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
             onSave={handleSave}
             currentFrame={currentFrame}
             currentSlice={currentSlice}

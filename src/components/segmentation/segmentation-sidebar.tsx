@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Layers, Brush, BarChart2, History, LayoutGrid, Settings, Save, Undo2, Redo2, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Layers, Brush, BarChart2, History, LayoutGrid, Settings, Save, Undo2, Redo2, Trash2, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Import shared types and constants
@@ -418,6 +418,7 @@ export function SegmentationSidebar({
   canRedo,
   canClear,
   hasUnsavedChanges,
+  isSaving = false,
   onSave,
   currentFrame,
   currentSlice,
@@ -441,9 +442,10 @@ export function SegmentationSidebar({
 
   // Memoized save button state
   const saveButtonConfig = useMemo(() => ({
-    variant: hasUnsavedChanges ? "default" as const : "secondary" as const,
-    text: hasUnsavedChanges ? "Save Changes" : "No Changes"
-  }), [hasUnsavedChanges]);
+    variant: (hasUnsavedChanges && !isSaving) ? "default" as const : "secondary" as const,
+    text: isSaving ? "Saving..." : hasUnsavedChanges ? "Save Changes" : "No Changes",
+    disabled: !hasUnsavedChanges || isSaving
+  }), [hasUnsavedChanges, isSaving]);
 
   // Memoized default handlers for optional props
   const defaultHistoryHandlers = useMemo(() => ({
@@ -549,12 +551,16 @@ export function SegmentationSidebar({
       <div className="p-4 border-t border-[var(--sidebar-border)]">
         <Button 
           onClick={onSave}
-          disabled={!hasUnsavedChanges}
+          disabled={saveButtonConfig.disabled}
           className="w-full transition-colors"
           variant={saveButtonConfig.variant}
           aria-label={`${saveButtonConfig.text} - ${hasUnsavedChanges ? 'Click to save your changes' : 'All changes are saved'}`}
         >
-          <Save className="h-4 w-4 mr-2" />
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4 mr-2" />
+          )}
           {saveButtonConfig.text}
         </Button>
       </div>
