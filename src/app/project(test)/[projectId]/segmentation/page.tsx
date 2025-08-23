@@ -432,7 +432,7 @@ export default function SegmentationResultsPage() {
       <div className="container mx-auto h-full p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6">
       <main className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
         <div className="flex-none">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-2">
             <button onClick={() => router.push(`/project(test)/${projectId}`)} className="text-sm text-muted-foreground hover:text-foreground">
               ← Back to Project
             </button>
