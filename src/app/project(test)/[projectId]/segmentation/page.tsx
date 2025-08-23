@@ -441,7 +441,16 @@ export default function SegmentationResultsPage() {
   if (loading !== "done") return <LoadingProject loadingStage={loading} />;
   if (error) return <ErrorProject error={error} />;
   if (segmentationError && !hasMasks) return <ErrorProject error={segmentationError} />;
-  if (!projectData || !contextDecodedMasks) return <ErrorProject error="No data available" />;
+  
+  // Don't show error if we're currently saving (refreshing masks) - show loading instead
+  if (!projectData || (!contextDecodedMasks && !isSaving)) {
+    return <ErrorProject error="No data available" />;
+  }
+  
+  // Show loading state while saving/refreshing masks
+  if (isSaving && !contextDecodedMasks) {
+    return <LoadingProject loadingStage="mask" />;
+  }
 
   return (
     <div className="h-full w-full bg-muted/40">
