@@ -8,7 +8,7 @@ import { useEffect } from "react";
 
 // Backend integration
 import { projectApi, segmentationApi } from "@/lib/api";
-import { decodeSegmentationMasks } from "@/lib/decode-RLE(test)";
+import { decodeSegmentationMasks, createFramesStructureFromEditableMasks } from "@/lib/decode-RLE(test)";
 import type { ProjectData, BaseSegmentationMask, LoadingStage } from "@/types/project(test)";
 import { LoadingProject } from "@/components/project(test)/LoadingProject";
 import { ErrorProject } from "@/components/project(test)/ErrorProject";
@@ -355,7 +355,7 @@ export default function SegmentationResultsPage() {
     updateMasksWithHistory(decodedMasks, "checkpoint", `Manual checkpoint #${nextCheckpointNum} created`);
   }, [decodedMasks, currentHistory, updateMasksWithHistory]);
 
-  // Save Handler - only save editable masks
+  // Save Handler - only save editable masks with proper RLE encoding
   const handleSave = useCallback(async () => {
     if (!decodedMasks || !projectId) return;
 
@@ -373,16 +373,23 @@ export default function SegmentationResultsPage() {
 
       console.log("[Segmentation] Saving editable masks:", Object.keys(editableMasks));
 
-      // Convert masks to the format expected by the API
-      const frames = Object.entries(editableMasks).map(([key, data]) => ({
-        key,
-        data: Array.from(data), // Convert Uint8Array to regular array for JSON
-        isMedSAMOutput: false, // Mark as manually edited
-      }));
+      // Convert masks to the proper backend format with RLE encoding
+      const frames = createFramesStructureFromEditableMasks(editableMasks);
+      
+      console.log("[Segmentation] Converted to backend frames format:", frames);
+
+      // Temporary: Test RLE encoding to verify it works
+      if (frames.length > 0 && frames[0].slices && frames[0].slices.length > 0) {
+        const firstMask = frames[0].slices[0].segmentationmasks?.[0];
+        if (firstMask) {
+          console.log("[RLE Test] First mask RLE string:", firstMask.segmentationmaskcontents);
+          console.log("[RLE Test] RLE string length:", firstMask.segmentationmaskcontents.length);
+        }
+      }
 
       await segmentationApi.saveManualSegmentation(projectId, {
         name: `Manual Segmentation - ${new Date().toISOString()}`,
-        description: "Manually edited segmentation masks",
+        description: "Manually edited segmentation masks with RLE encoding",
         frames: frames,
       });
 

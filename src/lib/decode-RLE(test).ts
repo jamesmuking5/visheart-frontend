@@ -3,6 +3,7 @@
  * Compatible with the format used by the VisHeart GPU inference server
  * Based on the Python script: app/scripts/_decode_rle.py
  */
+import * as ProjectTypes from "@/types/project(test)";
 
 /**
  * Decodes a Run-Length Encoded string into a binary mask array
@@ -57,6 +58,42 @@ export function rleDecodeToArray(
 }
 
 /**
+ * Encodes a binary mask array into RLE (Run-Length Encoding) string format
+ * Compatible with the backend's expected RLE format
+ * 
+ * @param mask - Uint8Array representing the binary mask (0s and 1s)
+ * @returns RLE-encoded string (space-separated start positions and lengths)
+ */
+export function rleEncodeFromArray(mask: Uint8Array): string {
+  if (!mask || mask.length === 0) {
+    return "";
+  }
+
+  const runs: number[] = [];
+  let isInRun = false;
+  let runStart = 0;
+
+  for (let i = 0; i < mask.length; i++) {
+    if (mask[i] === 1 && !isInRun) {
+      // Start of a new run of 1s
+      runStart = i;
+      isInRun = true;
+    } else if (mask[i] === 0 && isInRun) {
+      // End of current run, record start position and length
+      runs.push(runStart, i - runStart);
+      isInRun = false;
+    }
+  }
+
+  // Handle case where mask ends with a run of 1s
+  if (isInRun) {
+    runs.push(runStart, mask.length - runStart);
+  }
+
+  return runs.join(' ');
+}
+
+/**
  * Interface for decoded masks result
  */
 export interface DecodedMasks {
@@ -70,8 +107,6 @@ export interface DecodedMasks {
  * @param projectDimensions - Project dimensions (width and height)
  * @returns DecodedMasks object containing all decoded masks
  */
-import * as ProjectTypes from "@/types/project(test)";
-
 export function decodeSegmentationMasks(
   masks: ProjectTypes.BaseSegmentationMask[],
   width: number,
@@ -159,4 +194,103 @@ export function maskToImageData(
   }
 
   return imageData;
+}
+
+/**
+ * Parse an editable mask key to extract frame, slice, and class information
+ * 
+ * @param key - Key in format "editable_frame_0_slice_1_class1"
+ * @returns Parsed information or null if invalid format
+ */
+export function parseEditableKey(key: string): { frameIndex: number; sliceIndex: number; className: string } | null {
+  if (!key.startsWith('editable_')) {
+    return null;
+  }
+
+  const parts = key.split('_');
+  // Expected format: ["editable", "frame", "0", "slice", "1", "class1"]
+  if (parts.length !== 6 || parts[1] !== 'frame' || parts[3] !== 'slice') {
+    return null;
+  }
+
+  const frameIndex = parseInt(parts[2], 10);
+  const sliceIndex = parseInt(parts[4], 10);
+  const className = parts[5];
+
+  if (isNaN(frameIndex) || isNaN(sliceIndex) || !className) {
+    return null;
+  }
+
+  return { frameIndex, sliceIndex, className };
+}
+
+/**
+ * Convert editable masks to backend-compatible frame structure
+ * 
+ * @param editableMasks - Object containing editable mask data
+ * @returns Array of frames in backend-expected format
+ */
+export function createFramesStructureFromEditableMasks(
+  editableMasks: Record<string, Uint8Array>
+): ProjectTypes.FrameData[] {
+  const frameMap = new Map<string, Map<string, Array<{ class: ProjectTypes.ComponentBoundingBoxesClass; segmentationmaskcontents: string }>>>();
+
+  // Helper function to convert string class names to enum values
+  const mapClassNameToEnum = (className: string): ProjectTypes.ComponentBoundingBoxesClass => {
+    switch (className.toLowerCase()) {
+      case 'rv':
+        return ProjectTypes.ComponentBoundingBoxesClass.RV;
+      case 'myo':
+        return ProjectTypes.ComponentBoundingBoxesClass.MYO;
+      case 'lvc':
+        return ProjectTypes.ComponentBoundingBoxesClass.LVC;
+      case 'manual':
+        return ProjectTypes.ComponentBoundingBoxesClass.MANUAL;
+      default:
+        console.warn(`Unknown class name: ${className}, defaulting to MANUAL`);
+        return ProjectTypes.ComponentBoundingBoxesClass.MANUAL;
+    }
+  };
+
+  Object.entries(editableMasks).forEach(([key, maskData]) => {
+    const parsed = parseEditableKey(key);
+    if (!parsed) {
+      console.warn(`Invalid editable key format: ${key}`);
+      return;
+    }
+
+    const { frameIndex, sliceIndex, className } = parsed;
+    const frameKey = `frame_${frameIndex}`;
+    const sliceKey = `slice_${sliceIndex}`;
+
+    // Initialize frame if not exists
+    if (!frameMap.has(frameKey)) {
+      frameMap.set(frameKey, new Map());
+    }
+
+    // Initialize slice if not exists
+    const frameSliceMap = frameMap.get(frameKey)!;
+    if (!frameSliceMap.has(sliceKey)) {
+      frameSliceMap.set(sliceKey, []);
+    }
+
+    // Convert mask to RLE and add to segmentationmasks
+    const rleString = rleEncodeFromArray(maskData);
+    const enumClass = mapClassNameToEnum(className);
+
+    frameSliceMap.get(sliceKey)!.push({
+      class: enumClass,
+      segmentationmaskcontents: rleString
+    });
+  });
+
+  // Convert Maps to the array structure expected by backend
+  return Array.from(frameMap.entries()).map(([frameKey, sliceMap]) => ({
+    frameindex: parseInt(frameKey.split('_')[1], 10),
+    frameinferred: true,
+    slices: Array.from(sliceMap.entries()).map(([sliceKey, masks]) => ({
+      sliceindex: parseInt(sliceKey.split('_')[1], 10),
+      segmentationmasks: masks
+    }))
+  }));
 }
