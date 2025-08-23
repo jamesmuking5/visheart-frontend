@@ -25,12 +25,8 @@ export const NoProjectFound = ({ message }: NoProjectFoundProps) => {
           <Heart className="h-8 w-8 text-red-600 dark:text-red-400" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-foreground text-2xl font-bold">
-            Project Not Found
-          </h1>
-          <p className="text-muted-foreground">
-            {message ? message : "The requested project could not be found."}
-          </p>
+          <h1 className="text-foreground text-2xl font-bold">Project Not Found</h1>
+          <p className="text-muted-foreground">{message ? message : "The requested project could not be found."}</p>
         </div>
         <Button onClick={() => router.push("/dashboard")}>
           <ArrowLeft className="mr-2 h-4 w-4" />

@@ -20,6 +20,7 @@ export function TechnicalSpecsSection() {
 // Supported formats data
   const supportedFormats = [
     {
+      id: "dicom",
       abbr: (
         <a
           href="https://en.wikipedia.org/wiki/DICOM"
@@ -34,6 +35,7 @@ export function TechnicalSpecsSection() {
       desc: "Standard medical imaging format (.dcm)"
     },
     {
+      id: "nifti",
       abbr: (
         <a
           href="https://en.wikipedia.org/wiki/Neuroimaging_Informatics_Technology_Initiative"
@@ -157,7 +159,7 @@ export function TechnicalSpecsSection() {
           )}
         </h2>
         <p className="text-lg lg:text-xl text-muted-foreground text-center">
-          Explore <span className="font-bold text-primary">VisHeart</span>'s medical capabilities at a glance.
+          Explore <span className="font-bold text-primary">VisHeart</span>&apos;s medical capabilities at a glance.
         </p>
       </motion.div>
 
@@ -294,7 +296,7 @@ export function TechnicalSpecsSection() {
               >
                 <div className="flex flex-row items-start justify-center gap-8">
                   {supportedFormats.map((format) => (
-                    <div key={format.abbr} className="flex flex-col items-center group">
+                    <div key={format.id} className="flex flex-col items-center group">
                       {/* {format.icon} */}
                       <span className="font-bold text-lg text-primary">{format.abbr}</span>
                       <span className="text-base text-gray-400 mt-1 group-hover:text-primary transition">{format.desc}</span>
