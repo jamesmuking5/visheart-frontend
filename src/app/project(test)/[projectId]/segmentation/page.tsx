@@ -41,7 +41,9 @@ export default function SegmentationResultsPage() {
     // NEW: Tar cache from context
     tarCacheReady,
     tarCacheError,
-    getMRIImage
+    getMRIImage,
+    // Cache invalidation
+    refreshMasks
   } = useProject();
 
   // Segmentation-specific state (not duplicated in context)
@@ -395,19 +397,22 @@ export default function SegmentationResultsPage() {
         frames: frames,
       });
 
+      console.log("[Segmentation] Successfully saved masks to backend");
+
+      // Refresh masks from backend to ensure we have the latest data
+      await refreshMasks();
+
+      // After refreshing, clear local changes state
       setHasUnsavedChanges(false);
+      setLocalDecodedMasks(null); // Clear local edits since they're now saved in backend
 
-      // Create a save checkpoint with proper numbering for current frame/slice
-      const existingCheckpoints = currentHistory.filter((entry) => entry.type === "checkpoint").length;
-      const checkpointNum = existingCheckpoints + 1;
-
-      updateMasksWithHistory(decodedMasks, "checkpoint", `Checkpoint #${checkpointNum} - Editable masks saved to server`);
+      console.log("[Segmentation] Successfully saved and refreshed masks from backend");
     } catch (err) {
       console.error("Failed to save editable masks:", err);
     } finally {
       setIsSaving(false);
     }
-  }, [decodedMasks, projectId, isSaving, updateMasksWithHistory, currentHistory]);
+  }, [decodedMasks, projectId, isSaving, refreshMasks]);
 
   // To do: Export history timeline
   const handleHistoryExport = useCallback(() => {

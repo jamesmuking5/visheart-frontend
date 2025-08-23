@@ -34,6 +34,9 @@ interface ProjectContextType {
   getAvailableFramesAndSlices: () => Promise<{ frames: number[]; slices: number[] }>;
   fetchAndExtractProjectImages: () => Promise<{ success: boolean; extractedImages: number; totalImages: number; errors: string[] }>;
   clearProjectCache: () => Promise<void>;
+  
+  // Cache invalidation
+  refreshMasks: () => Promise<void>;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -442,6 +445,56 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     }
   }, [error, projectData, maskFetchDone, tarCacheReady, tarCacheError, loading]);
 
+  // Cache invalidation function to refresh masks from backend
+  const refreshMasks = useCallback(async () => {
+    if (!projectId || !projectData?.dimensions) {
+      console.warn("[ProjectContext] Cannot refresh masks - missing projectId or dimensions");
+      return;
+    }
+
+    console.log("[ProjectContext] Refreshing masks from backend...");
+    
+    try {
+      // Clear current mask cache
+      setUndecodedMasks(null);
+      setDecodedMasks(null);
+      setSegmentationError(null);
+      setHasMasks(false);
+
+      // Fetch fresh masks from backend
+      const response = await segmentationApi.getSegmentationResults(projectId);
+      
+      console.log("[ProjectContext] Fresh masks response:", response);
+
+      if (!response.success) {
+        setHasMasks(false);
+        setSegmentationError(response.message);
+        console.warn("[ProjectContext] No masks found after refresh:", response.message);
+        return;
+      }
+
+      // Set fresh undecoded masks
+      setUndecodedMasks(response.segmentations);
+      const hasAnyMasks = Array.isArray(response.segmentations) && response.segmentations.length > 0;
+      setHasMasks(hasAnyMasks);
+      
+      // Decode the fresh masks
+      if (projectData.dimensions.width && projectData.dimensions.height) {
+        console.log("[ProjectContext] Decoding fresh masks with dimensions:", projectData.dimensions);
+        const decodedResult = decodeSegmentationMasks(
+          response.segmentations, 
+          projectData.dimensions.width, 
+          projectData.dimensions.height
+        );
+        setDecodedMasks(decodedResult.masks);
+        console.log("[ProjectContext] Successfully refreshed and decoded masks:", Object.keys(decodedResult.masks));
+      }
+    } catch (error) {
+      console.error("[ProjectContext] Error refreshing masks:", error);
+      setSegmentationError("Failed to refresh segmentation masks");
+    }
+  }, [projectId, projectData?.dimensions]);
+
   // Memoized context value to prevent unnecessary re-renders
   const contextValue: ProjectContextType = useMemo(
     () => ({
@@ -463,6 +516,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       getAvailableFramesAndSlices,
       fetchAndExtractProjectImages,
       clearProjectCache,
+      refreshMasks,
     }),
     [
       loading,
@@ -482,6 +536,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       getAvailableFramesAndSlices,
       fetchAndExtractProjectImages,
       clearProjectCache,
+      refreshMasks,
     ],
   );
 
