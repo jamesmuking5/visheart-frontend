@@ -23,7 +23,7 @@ export default function PreviewPage() {
   if (error) return <ErrorProject error={error} />;
 
   return projectData ? (
-    <div className="p-6 space-y-6">
+    <div>
       {/* Debug MRI Image Viewer */}
       <DebugMRIViewer projectId={projectId} />
     </div>

@@ -1,14 +1,13 @@
 "use client";
 
 import { useProject } from "@/context/ProjectContext";
-import { ShowProjectData } from "@/components/project/ShowProjectData";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Heart, Clock, CheckCircle2, XCircle, AlertCircle, Database, Activity, Download, Settings } from "lucide-react";
 
 export function ProjectDashboardBar() {
-  const { projectData, loading, hasMasks, undecodedMasks, decodedMasks, jobs, error, jobsError } = useProject();
+  const { projectData, loading, hasMasks, undecodedMasks, jobs, error } = useProject();
 
   if (!projectData) return null;
 

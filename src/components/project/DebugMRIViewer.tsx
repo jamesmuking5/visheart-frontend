@@ -150,7 +150,7 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
       setCurrentImageUrl(imageUrl);
 
       if (!imageUrl) {
-        console.warn(`[DebugMRIViewer] No image found for frame ${currentFrame}, slice ${currentSlice}`);
+        console.warn(`[DebugMRIViewer] No image found for frame ${currentFrame + 1}, slice ${currentSlice + 1} (internal: ${currentFrame}, ${currentSlice})`);
       }
     } catch (err) {
       console.error("[DebugMRIViewer] Failed to load image:", err);
@@ -225,16 +225,18 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
     loadCurrentImage();
   }, [loadCurrentImage]); // Dependency ensures image updates when frame/slice changes
 
-  // Input handlers for direct frame/slice selection
+  // Input handlers for direct frame/slice selection (convert from 1-based UI to 0-based internal)
   const handleFrameChange = (value: string) => {
-    const frame = parseInt(value, 10);
+    const frameInput = parseInt(value, 10); // User enters 1-based
+    const frame = frameInput - 1; // Convert to 0-based for internal use
     if (!isNaN(frame) && availableFrames.includes(frame)) {
       setCurrentFrame(frame);
     }
   };
 
   const handleSliceChange = (value: string) => {
-    const slice = parseInt(value, 10);
+    const sliceInput = parseInt(value, 10); // User enters 1-based
+    const slice = sliceInput - 1; // Convert to 0-based for internal use
     if (!isNaN(slice) && availableSlices.includes(slice)) {
       setCurrentSlice(slice);
 
@@ -392,269 +394,316 @@ export function DebugMRIViewer({ projectId }: DebugMRIViewerProps) {
   }, [totalImages, availableFrames, availableSlices, currentFrame, currentSlice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <TooltipProvider>
-      <Card className="w-full">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ImageIcon className="h-5 w-5 text-primary" />
-              <div>
-                <CardTitle className="text-lg">MRI Viewer</CardTitle>
-                <CardDescription className="text-sm">Project {projectId}</CardDescription>
-              </div>
-            </div>
-
-            {/* Compact status badges */}
-            <div className="flex items-center gap-2">
-              <Badge variant={tarCacheReady ? "default" : "destructive"} className="text-xs">
-                {tarCacheReady ? "Ready" : "Not Ready"}
-              </Badge>
-              {totalImages > 0 && (
-                <Badge variant="secondary" className="text-xs">
-                  {totalImages} images
-                </Badge>
-              )}
-              {isPreloading && (
-                <Badge variant="outline" className="text-xs">
-                  Loading {preloadProgress.loaded}/{preloadProgress.total}
-                </Badge>
-              )}
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-4">
-          {/* Error Display */}
-          {tarCacheError && (
-            <Alert variant="destructive" className="py-2">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="flex items-center justify-between">
-                <span className="text-sm">{tarCacheError}</span>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Compact Navigation Controls */}
-          {totalImages > 0 && (
-            <div className="space-y-3">
-              {/* Frame and Slice Controls */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Frame</Label>
-                    <span className="text-xs text-muted-foreground">{availableFrames.length} total</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="outline" size="sm" onClick={() => navigateFrame("prev")} disabled={availableFrames.indexOf(currentFrame) <= 0} className="h-8 w-8 p-0">
-                      <ArrowLeft className="h-3 w-3" />
-                    </Button>
-                    <Input
-                      type="number"
-                      value={currentFrame}
-                      onChange={(e) => handleFrameChange(e.target.value)}
-                      min={Math.min(...availableFrames)}
-                      max={Math.max(...availableFrames)}
-                      className="flex-1 h-8 text-center"
-                    />
-                    <Button variant="outline" size="sm" onClick={() => navigateFrame("next")} disabled={availableFrames.indexOf(currentFrame) >= availableFrames.length - 1} className="h-8 w-8 p-0">
-                      <ArrowRight className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">Slice</Label>
-                    <span className="text-xs text-muted-foreground">{availableSlices.length} total</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="outline" size="sm" onClick={() => navigateSlice("prev")} disabled={availableSlices.indexOf(currentSlice) <= 0} className="h-8 w-8 p-0">
-                      <ArrowUp className="h-3 w-3" />
-                    </Button>
-                    <Input
-                      type="number"
-                      value={currentSlice}
-                      onChange={(e) => handleSliceChange(e.target.value)}
-                      min={Math.min(...availableSlices)}
-                      max={Math.max(...availableSlices)}
-                      className="flex-1 h-8 text-center"
-                    />
-                    <Button variant="outline" size="sm" onClick={() => navigateSlice("next")} disabled={availableSlices.indexOf(currentSlice) >= availableSlices.length - 1} className="h-8 w-8 p-0">
-                      <ArrowDown className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Zoom Controls */}
-              <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+    <div className="min-h-screen bg-background p-4 lg:p-8">
+      <div className="container mx-auto space-y-8">
+        <TooltipProvider>
+          <Card className="w-full">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 0.1} className="h-8 w-8 p-0">
-                    <ZoomOut className="h-3 w-3" />
-                  </Button>
-                  <span className="text-sm font-medium min-w-[50px] text-center">{Math.round(zoom * 100)}%</span>
-                  <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={zoom >= 5} className="h-8 w-8 p-0">
-                    <ZoomIn className="h-3 w-3" />
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={handleZoomReset} className="h-8 w-8 p-0">
-                    <RotateCcw className="h-3 w-3" />
-                  </Button>
+                  <ImageIcon className="h-5 w-5 text-primary" />
+                  <div>
+                    <CardTitle className="text-lg">MRI Viewer</CardTitle>
+                    <CardDescription className="text-sm">Project {projectId}</CardDescription>
+                  </div>
                 </div>
 
-                {/* Settings */}
-                <div className="flex items-center gap-4 text-xs">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1">
-                        <Checkbox id="reset-frame" checked={resetFrameOnSliceChange} onCheckedChange={(checked) => setResetFrameOnSliceChange(!!checked)} className="h-3 w-3" />
-                        <Label htmlFor="reset-frame" className="cursor-pointer">
-                          Reset frame
-                        </Label>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        When enabled, automatically jumps to frame 0 whenever you change slices.
-                        <br />
-                        Useful for systematic viewing of each slice from the beginning.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1">
-                        <Checkbox id="preserve-zoom" checked={preserveZoomPan} onCheckedChange={(checked) => setPreserveZoomPan(!!checked)} className="h-3 w-3" />
-                        <Label htmlFor="preserve-zoom" className="cursor-pointer">
-                          Keep zoom
-                        </Label>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        When enabled, maintains your current zoom level and pan position
-                        <br />
-                        when navigating between different frames and slices.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
+                {/* Compact status badges */}
+                <div className="flex items-center gap-2">
+                  <Badge variant={tarCacheReady ? "default" : "destructive"} className="text-xs">
+                    {tarCacheReady ? "Ready" : "Not Ready"}
+                  </Badge>
+                  {totalImages > 0 && (
+                    <Badge variant="secondary" className="text-xs">
+                      {totalImages} images
+                    </Badge>
+                  )}
+                  {isPreloading && (
+                    <Badge variant="outline" className="text-xs">
+                      Loading {preloadProgress.loaded}/{preloadProgress.total}
+                    </Badge>
+                  )}
                 </div>
               </div>
+            </CardHeader>
 
-              {/* Keyboard shortcuts hint */}
-              <div className="text-xs text-muted-foreground text-center py-1 bg-muted/20 rounded">← → frames • ↑ ↓ slices • + - 0 zoom • drag to pan</div>
-            </div>
-          )}
+            <CardContent className="p-4">
+              {/* Error Display */}
+              {tarCacheError && (
+                <Alert variant="destructive" className="py-2 mb-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription className="flex items-center justify-between">
+                    <span className="text-sm">{tarCacheError}</span>
+                  </AlertDescription>
+                </Alert>
+              )}
 
-          {/* Image Display */}
-          <div className="border rounded-lg bg-muted/20">
-            {currentImageUrl ? (
-              <div className="space-y-0">
-                {/* Image header */}
-                <div className="flex justify-between items-center p-2 text-xs text-muted-foreground border-b bg-muted/30">
-                  <div className="flex items-center gap-3">
-                    <span>
-                      Frame {currentFrame} • Slice {currentSlice}
-                    </span>
-                    {preloadedImages[`${projectId}_f${currentFrame}_s${currentSlice}`] && (
-                      <Badge variant="outline" className="text-xs px-1 py-0 h-4">
-                        ⚡
-                      </Badge>
+              {/* Main Content - Row Layout */}
+              {totalImages > 0 ? (
+                <div className="flex gap-6">
+                  {/* Left Sidebar - Controls */}
+                  <div className="flex-shrink-0 w-64 space-y-4">
+                    {/* Frame and Slice Controls */}
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">Frame</Label>
+                          <span className="text-xs text-muted-foreground">{availableFrames.length} total</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button variant="outline" size="sm" onClick={() => navigateFrame("prev")} disabled={availableFrames.indexOf(currentFrame) <= 0} className="h-8 w-8 p-0">
+                            <ArrowLeft className="h-3 w-3" />
+                          </Button>
+                          <Input
+                            type="number"
+                            value={currentFrame + 1} // Display 1-based to user
+                            onChange={(e) => handleFrameChange(e.target.value)}
+                            min={Math.min(...availableFrames) + 1} // Display 1-based min
+                            max={Math.max(...availableFrames) + 1} // Display 1-based max
+                            className="flex-1 h-8 text-center"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigateFrame("next")}
+                            disabled={availableFrames.indexOf(currentFrame) >= availableFrames.length - 1}
+                            className="h-8 w-8 p-0"
+                          >
+                            <ArrowRight className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm font-medium">Slice</Label>
+                          <span className="text-xs text-muted-foreground">{availableSlices.length} total</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button variant="outline" size="sm" onClick={() => navigateSlice("prev")} disabled={availableSlices.indexOf(currentSlice) <= 0} className="h-8 w-8 p-0">
+                            <ArrowUp className="h-3 w-3" />
+                          </Button>
+                          <Input
+                            type="number"
+                            value={currentSlice + 1} // Display 1-based to user
+                            onChange={(e) => handleSliceChange(e.target.value)}
+                            min={Math.min(...availableSlices) + 1} // Display 1-based min
+                            max={Math.max(...availableSlices) + 1} // Display 1-based max
+                            className="flex-1 h-8 text-center"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigateSlice("next")}
+                            disabled={availableSlices.indexOf(currentSlice) >= availableSlices.length - 1}
+                            className="h-8 w-8 p-0"
+                          >
+                            <ArrowDown className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Zoom Controls */}
+                    <div className="space-y-3 p-3 bg-muted/20 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">Zoom</Label>
+                        <span className="text-xs text-muted-foreground">{Math.round(zoom * 100)}%</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm" onClick={handleZoomOut} disabled={zoom <= 0.1} className="h-8 w-8 p-0">
+                          <ZoomOut className="h-3 w-3" />
+                        </Button>
+                        <div className="flex-1 text-center">
+                          <span className="text-sm font-medium">{Math.round(zoom * 100)}%</span>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={handleZoomIn} disabled={zoom >= 5} className="h-8 w-8 p-0">
+                          <ZoomIn className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={handleZoomReset} className="w-full h-8">
+                        <RotateCcw className="h-3 w-3 mr-2" />
+                        Reset
+                      </Button>
+                    </div>
+
+                    {/* Settings */}
+                    <div className="space-y-3 p-3 bg-muted/20 rounded-lg">
+                      <Label className="text-sm font-medium">Options</Label>
+                      <div className="space-y-2">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-2">
+                              <Checkbox id="reset-frame" checked={resetFrameOnSliceChange} onCheckedChange={(checked) => setResetFrameOnSliceChange(!!checked)} className="h-4 w-4" />
+                              <Label htmlFor="reset-frame" className="cursor-pointer text-sm">
+                                Reset frame on slice change
+                              </Label>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              When enabled, automatically jumps to the first frame whenever you change slices.
+                              <br />
+                              Useful for systematic viewing of each slice from the beginning.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex items-center gap-2">
+                              <Checkbox id="preserve-zoom" checked={preserveZoomPan} onCheckedChange={(checked) => setPreserveZoomPan(!!checked)} className="h-4 w-4" />
+                              <Label htmlFor="preserve-zoom" className="cursor-pointer text-sm">
+                                Preserve zoom & pan
+                              </Label>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              When enabled, maintains your current zoom level and pan position
+                              <br />
+                              when navigating between different frames and slices.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
+
+                    {/* Keyboard shortcuts hint */}
+                    <div className="text-xs text-muted-foreground text-center py-2 px-3 bg-muted/20 rounded-lg">
+                      <div className="font-medium mb-1">Keyboard Shortcuts</div>
+                      <div className="space-y-0.5">
+                        <div>← → frames</div>
+                        <div>↑ ↓ slices</div>
+                        <div>+ - 0 zoom</div>
+                        <div>drag to pan</div>
+                      </div>
+                    </div>
+
+                    {/* Debug Info - Collapsible */}
+                    {process.env.NEXT_PUBLIC_ENV === "development" && (
+                      <details className="text-xs">
+                        <summary className="cursor-pointer text-muted-foreground hover:text-foreground mb-2">🔧 Debug Info</summary>
+                        <div className="p-3 bg-muted/20 rounded-lg text-xs space-y-1">
+                          <div>Project ID: {projectId}</div>
+                          <div>Status: {tarCacheReady ? "✅ Ready" : "❌ Not Ready"}</div>
+                          <div>
+                            Images: {totalImages} | Frames: {availableFrames.length} | Slices: {availableSlices.length}
+                          </div>
+                          <div>
+                            Current: F{currentFrame + 1} S{currentSlice + 1}
+                          </div>
+                          <div>Cache: {(cacheSize / (1024 * 1024)).toFixed(2)}MB</div>
+                          <div>Preloaded: {Object.keys(preloadedImages).length}</div>
+                        </div>
+                      </details>
                     )}
                   </div>
-                  <span>{Math.round(zoom * 100)}% zoom</span>
-                </div>
 
-                {/* Image Container */}
-                <div
-                  ref={imageContainerRef}
-                  className="relative w-full h-[500px] overflow-hidden cursor-grab active:cursor-grabbing"
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseEnter={handleMouseEnter}
-                  onMouseLeave={() => {
-                    handleMouseUp();
-                    handleMouseLeave();
-                  }}
-                  style={{
-                    userSelect: "none",
-                    WebkitUserSelect: "none",
-                    touchAction: "none",
-                    overscrollBehavior: "none",
-                    scrollBehavior: "auto",
-                    overflowX: "hidden",
-                    overflowY: "hidden",
-                  }}
-                >
-                  <div
-                    className="absolute inset-0 flex items-center justify-center"
-                    style={{
-                      transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
-                      transformOrigin: "center",
-                      transition: isPanning ? "none" : "transform 0.1s ease-out",
-                    }}
-                  >
-                    <Image
-                      src={currentImageUrl}
-                      alt={`MRI Frame ${currentFrame}, Slice ${currentSlice}`}
-                      width={0}
-                      height={0}
-                      sizes="100vw"
-                      className="max-w-full max-h-full object-contain w-auto h-auto"
-                      style={{
-                        imageRendering: "crisp-edges",
-                        pointerEvents: "none",
-                      }}
-                      unoptimized
-                      draggable={false}
-                    />
+                  {/* Right Side - Image Display */}
+                  {/* Right Side - Image Display */}
+                  <div className="flex-1 min-w-0">
+                    <div className="border rounded-lg bg-background">
+                      {currentImageUrl ? (
+                        <div className="space-y-0">
+                          {/* Image header */}
+                          <div className="flex justify-between items-center p-2 text-xs text-muted-foreground border-b bg-muted/30">
+                            <div className="flex items-center gap-3">
+                              <span>
+                                Frame {currentFrame + 1} • Slice {currentSlice + 1}
+                              </span>
+                              {preloadedImages[`${projectId}_f${currentFrame}_s${currentSlice}`] && (
+                                <Badge variant="outline" className="text-xs px-1 py-0 h-4">
+                                  ⚡
+                                </Badge>
+                              )}
+                            </div>
+                            <span>{Math.round(zoom * 100)}% zoom</span>
+                          </div>
+
+                          {/* Image Container */}
+                          <div
+                            ref={imageContainerRef}
+                            className="relative w-full h-[500px] overflow-hidden cursor-grab active:cursor-grabbing"
+                            onMouseDown={handleMouseDown}
+                            onMouseMove={handleMouseMove}
+                            onMouseUp={handleMouseUp}
+                            onMouseEnter={handleMouseEnter}
+                            onMouseLeave={() => {
+                              handleMouseUp();
+                              handleMouseLeave();
+                            }}
+                            style={{
+                              userSelect: "none",
+                              WebkitUserSelect: "none",
+                              touchAction: "none",
+                              overscrollBehavior: "none",
+                              scrollBehavior: "auto",
+                              overflowX: "hidden",
+                              overflowY: "hidden",
+                            }}
+                          >
+                            <div
+                              className="absolute inset-0 flex items-center justify-center"
+                              style={{
+                                transform: `translate(${panX}px, ${panY}px) scale(${zoom})`,
+                                transformOrigin: "center",
+                                transition: isPanning ? "none" : "transform 0.1s ease-out",
+                              }}
+                            >
+                              <Image
+                                src={currentImageUrl}
+                                alt={`MRI Frame ${currentFrame + 1}, Slice ${currentSlice + 1}`}
+                                width={0}
+                                height={0}
+                                sizes="100vw"
+                                className="max-w-full max-h-full object-contain w-auto h-auto"
+                                style={{
+                                  imageRendering: "crisp-edges",
+                                  pointerEvents: "none",
+                                }}
+                                unoptimized
+                                draggable={false}
+                              />
+                            </div>
+
+                            {/* Zoom indicator */}
+                            {zoom !== 1 && <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">{Math.round(zoom * 100)}%</div>}
+                          </div>
+                        </div>
+                      ) : totalImages > 0 ? (
+                        <div className="h-[500px] flex items-center justify-center text-muted-foreground">
+                          <div className="text-center">
+                            <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No image found</p>
+                            <p className="text-xs">
+                              Frame {currentFrame + 1}, Slice {currentSlice + 1}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-[500px] flex items-center justify-center text-muted-foreground">
+                          <div className="text-center">
+                            <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">Click &quot;Load Images&quot; to start</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-
-                  {/* Zoom indicator */}
-                  {zoom !== 1 && <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs">{Math.round(zoom * 100)}%</div>}
                 </div>
-              </div>
-            ) : totalImages > 0 ? (
-              <div className="h-[500px] flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No image found</p>
-                  <p className="text-xs">
-                    Frame {currentFrame}, Slice {currentSlice}
-                  </p>
+              ) : (
+                <div className="h-[500px] flex items-center justify-center text-muted-foreground">
+                  <div className="text-center">
+                    <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Click &quot;Load Images&quot; to start</p>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="h-[500px] flex items-center justify-center text-muted-foreground">
-                <div className="text-center">
-                  <ImageIcon className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">Click &quot;Load Images&quot; to start</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Debug Info - Collapsible */}
-          {process.env.NEXT_PUBLIC_ENV === "development" && (
-            <details className="text-xs">
-              <summary className="cursor-pointer text-muted-foreground hover:text-foreground">🔧 Debug Info</summary>
-              <div className="mt-2 p-3 bg-muted/20 rounded text-xs space-y-1">
-                <div>Project ID: {projectId}</div>
-                <div>Status: {tarCacheReady ? "✅ Ready" : "❌ Not Ready"}</div>
-                <div>
-                  Images: {totalImages} | Frames: {availableFrames.length} | Slices: {availableSlices.length}
-                </div>
-                <div>
-                  Current: F{currentFrame} S{currentSlice}
-                </div>
-                <div>Cache: {(cacheSize / (1024 * 1024)).toFixed(2)}MB</div>
-                <div>Preloaded: {Object.keys(preloadedImages).length}</div>
-              </div>
-            </details>
-          )}
-        </CardContent>
-      </Card>
-    </TooltipProvider>
+              )}
+            </CardContent>
+          </Card>
+        </TooltipProvider>
+      </div>
+    </div>
   );
 }

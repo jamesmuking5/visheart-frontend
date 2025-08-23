@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useInView } from "react-intersection-observer";
 import { motion } from "framer-motion";
 import { Typewriter } from "react-simple-typewriter";
@@ -150,7 +149,7 @@ export function HeroSection() {
                       {feature.title}
                     </h3>
                     <p
-                      className={`text-muted-foreground leading-relaxed text-center text-lg lg:text-xl text-justify`}
+                      className={`text-muted-foreground leading-relaxed text-lg lg:text-xl text-justify`}
                     >
                       {feature.description}
                     </p>
