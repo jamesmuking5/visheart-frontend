@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react"; 
+import React, { useEffect } from "react"; 
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { 
@@ -94,6 +94,26 @@ export function DrawingPanel({
       setHardness(value as BrushHardness);
     }
   }, [setHardness]);
+
+  // Keyboard shortcut handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+        if (canUndo) {
+          e.preventDefault();
+          handleUndo();
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
+        if (canRedo) {
+          e.preventDefault();
+          handleRedo();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [canUndo, canRedo, handleUndo, handleRedo]);
 
   return (
     <div className="space-y-6">
