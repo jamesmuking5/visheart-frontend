@@ -590,6 +590,20 @@ export class TarImageCache {
   }
 
   /**
+   * Get the original filename for a specific frame and slice
+   * @param projectId - Project identifier
+   * @param frame - Frame index (0-based)
+   * @param slice - Slice index (0-based)
+   * @returns Original filename from tar archive or null if not found
+   */
+  async getImageFilename(projectId: string, frame: number, slice: number): Promise<string | null> {
+    this.checkInitialization();
+    const imageId = `${projectId}_f${frame}_s${slice}`;
+    const entry = await this.db.getImage(imageId);
+    return entry?.filename || null;
+  }
+
+  /**
    * Get a blob URL for displaying an image with URL caching optimization
    * This is the primary method for retrieving images for display in the UI
    * 

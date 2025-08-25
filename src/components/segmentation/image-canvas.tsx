@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
-import { Stage, Layer, Line, Image as KonvaImage } from "react-konva";
+import { Stage, Layer, Line, Image as KonvaImage, Rect } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 // Import shared types and constants
 import type { ImageCanvasProps, AnatomicalLabel } from "@/types/segmentation";
 import { 
   LABEL_COLORS, 
+  LABEL_NAMES,
   HARDNESS_TO_BLUR, 
   PERFORMANCE_CONSTANTS 
 } from "@/types/segmentation";
@@ -17,6 +20,7 @@ import {
 // Import tar cache for background images
 import { tarImageCache } from "@/lib/tar-image-cache";
 import { useProject } from "@/context/ProjectContext";
+import { segmentationApi } from "@/lib/api";
 
 // Memoized Navigation Controls Component
 const NavigationControls = memo(({ 
@@ -86,7 +90,7 @@ export function ImageCanvas({
   hardness,
 }: ImageCanvasProps) {
   // Get image loading method from ProjectContext
-  const { getMRIImage, tarCacheReady, tarCacheError } = useProject();
+  const { getMRIImage, getMRIImageFilename, tarCacheReady, tarCacheError } = useProject();
 
   // Browser state management for manual segmentation
   const [image, setImage] = useState<HTMLImageElement | null>(null);
@@ -94,6 +98,13 @@ export function ImageCanvas({
   const [drawingPoints, setDrawingPoints] = useState<number[] | null>(null);
   const [imageLoadMethod, setImageLoadMethod] = useState<"tar" | "api" | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true); // Track if this is the first image load
+  
+  // Bounding box state for manual segmentation
+  const [isDrawingRect, setIsDrawingRect] = useState(false);
+  const [rectStart, setRectStart] = useState<{ x: number; y: number } | null>(null);
+  const [currentRect, setCurrentRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [finalBoundingBox, setFinalBoundingBox] = useState<number[] | null>(null);
+  const [selectedSegmentationLabel, setSelectedSegmentationLabel] = useState<AnatomicalLabel>(activeLabel);
   
   // Refs for performance
   const stageRef = useRef<any>(null);
@@ -104,6 +115,13 @@ export function ImageCanvas({
     totalFrames: projectData.dimensions?.frames || 1,
     totalSlices: projectData.dimensions?.slices || 1,
   }), [projectData.dimensions]);
+
+  // Sync selected segmentation label with active label when tool changes or active label changes
+  useEffect(() => {
+    if (tool !== "rectangle") {
+      setSelectedSegmentationLabel(activeLabel);
+    }
+  }, [activeLabel, tool]);
 
   // Enhanced image loading with tar cache + API fallback
   useEffect(() => {
@@ -219,23 +237,46 @@ export function ImageCanvas({
   }, []);
 
   const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
-    if (tool === "select" || e.evt.button !== 0) return;
+    if (e.evt.button !== 0) return;
     
-    isDrawing.current = true;
     const pos = getRelativePointerPosition();
     if (!pos) return;
     
-    setDrawingPoints([pos.x, pos.y]);
+    if (tool === "rectangle") {
+      // Start drawing rectangle
+      setIsDrawingRect(true);
+      setRectStart({ x: pos.x, y: pos.y });
+      setCurrentRect({ x: pos.x, y: pos.y, width: 0, height: 0 });
+      setFinalBoundingBox(null);
+    } else if (tool !== "select") {
+      // Existing brush/eraser logic
+      isDrawing.current = true;
+      setDrawingPoints([pos.x, pos.y]);
+    }
   }, [tool, getRelativePointerPosition]);
 
   const handleMouseMove = useCallback((e: KonvaEventObject<MouseEvent>) => {
-    if (!isDrawing.current || tool === "select") return;
     
     const point = getRelativePointerPosition();
     if (!point) return;
     
-    setDrawingPoints(prev => prev ? [...prev, point.x, point.y] : [point.x, point.y]);
-  }, [tool, getRelativePointerPosition]);
+    if (tool === "rectangle" && isDrawingRect && rectStart) {
+      // Update rectangle dimensions
+      const width = point.x - rectStart.x;
+      const height = point.y - rectStart.y;
+      setCurrentRect({
+        x: width >= 0 ? rectStart.x : point.x,
+        y: height >= 0 ? rectStart.y : point.y,
+        width: Math.abs(width),
+        height: Math.abs(height)
+      });
+    } else if (!isDrawing.current || tool === "select" || tool === "rectangle") {
+      return;
+    } else {
+      // Existing brush/eraser logic
+      setDrawingPoints(prev => prev ? [...prev, point.x, point.y] : [point.x, point.y]);
+    }
+  }, [tool, getRelativePointerPosition, isDrawingRect, rectStart]);
 
   // Optimized Bresenham drawing algorithm
   const drawBrushStroke = useCallback((
@@ -291,6 +332,21 @@ export function ImageCanvas({
 
   // Manual segmentation with editable masks - apply edits directly to decodedMasks
   const handleMouseUp = useCallback(() => {
+    if (tool === "rectangle" && isDrawingRect && currentRect) {
+      // Finalize rectangle - convert to bounding box format [x_min, y_min, x_max, y_max]
+      const bbox = [
+        Math.round(currentRect.x),
+        Math.round(currentRect.y),
+        Math.round(currentRect.x + currentRect.width),
+        Math.round(currentRect.y + currentRect.height)
+      ];
+      setFinalBoundingBox(bbox);
+      setIsDrawingRect(false);
+      console.log('Bounding box created:', bbox);
+      return;
+    }
+    
+    // Existing brush/eraser logic
     if (!isDrawing.current || !drawingPoints) return;
     
     isDrawing.current = false;
@@ -316,10 +372,94 @@ export function ImageCanvas({
       setDrawingPoints(null);
     }
   }, [
+    tool, isDrawingRect, currentRect,
     drawingPoints, currentFrame, currentSlice, activeLabel, 
-    width, height, tool, brushSize, drawBrushStroke, 
+    width, height, brushSize, drawBrushStroke, 
     onMaskUpdate, decodedMasks
   ]);
+
+  // Manual segmentation function
+  const startManualSegmentation = useCallback(async (selectedLabel: AnatomicalLabel) => {
+    if (!finalBoundingBox || !projectData.projectId) {
+      console.error('No bounding box or project ID available');
+      alert('No bounding box or project ID available');
+      return;
+    }
+
+    // Validate bounding box coordinates
+    if (finalBoundingBox.length !== 4) {
+      console.error('Invalid bounding box format:', finalBoundingBox);
+      alert('Invalid bounding box format');
+      return;
+    }
+
+    // Ensure coordinates are positive and within bounds
+    const [x_min, y_min, x_max, y_max] = finalBoundingBox;
+    if (x_min < 0 || y_min < 0 || x_max <= x_min || y_max <= y_min) {
+      console.error('Invalid bounding box coordinates:', finalBoundingBox);
+      alert('Invalid bounding box coordinates');
+      return;
+    }
+
+    try {
+      console.log('Starting manual segmentation with:');
+      console.log('- Project ID:', projectData.projectId);
+      console.log('- Bounding box:', finalBoundingBox);
+      console.log('- Current frame:', currentFrame);
+      console.log('- Current slice:', currentSlice);
+      console.log('- Selected label:', selectedLabel);
+      
+      // Get the actual filename from the tar cache
+      let imageName: string;
+      
+      if (tarCacheReady) {
+        const actualFilename = await getMRIImageFilename(currentFrame, currentSlice);
+        if (actualFilename) {
+          imageName = actualFilename;
+          console.log('- Using actual filename from tar cache:', imageName);
+        } else {
+          // Fallback to constructed filename
+          imageName = `image_frame${currentFrame}_slice${currentSlice}.jpg`;
+          console.log('- Tar cache filename not found, using fallback:', imageName);
+        }
+      } else {
+        // Fallback to constructed filename when tar cache isn't ready
+        imageName = `image_frame${currentFrame}_slice${currentSlice}.jpg`;
+        console.log('- Tar cache not ready, using fallback filename:', imageName);
+      }
+      
+      const requestData = {
+        image_name: imageName,
+        bbox: finalBoundingBox,
+        segmentationName: `Manual ${LABEL_NAMES[selectedLabel]} - Frame ${currentFrame + 1}, Slice ${currentSlice + 1}`,
+        segmentationDescription: `User-drawn bounding box segmentation for ${LABEL_NAMES[selectedLabel]}`
+      };
+      
+      console.log('Request data:', requestData);
+      
+      const response = await segmentationApi.startManualSegmentation(
+        projectData.projectId,
+        requestData
+      );
+      
+      console.log('Manual segmentation started:', response);
+      
+      // Clear the bounding box after successful submission
+      setFinalBoundingBox(null);
+      setCurrentRect(null);
+      
+      alert('Manual segmentation started successfully!');
+      
+    } catch (error: any) {
+      console.error('Error starting manual segmentation:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      console.error('Error headers:', error.response?.headers);
+      
+      const errorMessage = error.response?.data?.message || error.response?.data?.detail?.detail || error.message || 'Unknown error occurred';
+      alert(`Error starting manual segmentation: ${errorMessage}\n\nCheck console for more details.`);
+    }
+  }, [finalBoundingBox, projectData.projectId, currentFrame, currentSlice, tarCacheReady, getMRIImageFilename]);
 
   // Direct mask rendering - create ImageData directly from decodedMasks for each label
   // Render active mask last so it appears on top
@@ -413,7 +553,7 @@ export function ImageCanvas({
       />
 
       {/* Canvas */}
-      <div className="border-4 border-muted-foreground rounded-lg overflow-hidden relative">
+      <div className="border-4 border-muted-foreground overflow-hidden relative">
         {/* Only show loading spinner on initial load or when there's no current image */}
         {imageStatus === "loading" && isInitialLoad && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
@@ -450,7 +590,7 @@ export function ImageCanvas({
             ))}
             
             {/* Current Drawing Preview - highlight active label */}
-            {isDrawing.current && drawingPoints && (
+            {isDrawing.current && drawingPoints && tool !== "rectangle" && (
               <Line
                 points={drawingPoints}
                 stroke={tool === "eraser" ? "#000" : LABEL_COLORS[activeLabel]}
@@ -460,6 +600,33 @@ export function ImageCanvas({
                 tension={0.5}
                 lineCap="round"
                 lineJoin="round"
+              />
+            )}
+
+            {/* Rectangle Drawing Preview */}
+            {tool === "rectangle" && currentRect && (
+              <Rect
+                x={currentRect.x}
+                y={currentRect.y}
+                width={currentRect.width}
+                height={currentRect.height}
+                stroke="#ff0000"
+                strokeWidth={2}
+                fill="rgba(255, 0, 0, 0.1)"
+                dash={[5, 5]}
+              />
+            )}
+            
+            {/* Final Bounding Box */}
+            {finalBoundingBox && (
+              <Rect
+                x={finalBoundingBox[0]}
+                y={finalBoundingBox[1]}
+                width={finalBoundingBox[2] - finalBoundingBox[0]}
+                height={finalBoundingBox[3] - finalBoundingBox[1]}
+                stroke="#00ff00"
+                strokeWidth={3}
+                fill="rgba(0, 255, 0, 0.1)"
               />
             )}
           </Layer>
@@ -487,6 +654,103 @@ export function ImageCanvas({
           </div>
         )}
       </div>
+
+      {/* Bounding Box Controls */}
+      {tool === "rectangle" && (
+        <div className="mt-4 p-4 bg-muted rounded-lg border max-w-md mx-auto">
+          <h3 className="text-sm font-medium mb-3">Bounding Box Segmentation</h3>
+          {finalBoundingBox ? (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Bounding Box: [{finalBoundingBox.join(', ')}]
+              </p>
+              
+              {/* Anatomical Label Selection */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-foreground">
+                  Select Anatomical Label for Segmentation:
+                </label>
+                <Select
+                  value={selectedSegmentationLabel}
+                  onValueChange={(value) => setSelectedSegmentationLabel(value as AnatomicalLabel)}
+                >
+                  <SelectTrigger className="w-full h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(LABEL_COLORS).map(([key, color]) => (
+                      <SelectItem key={key} value={key} className="text-xs">
+                        <div className="flex items-center gap-2">
+                          <span 
+                            className="w-3 h-3 rounded-full flex-shrink-0" 
+                            style={{ backgroundColor: color }} 
+                          />
+                          {LABEL_NAMES[key as AnatomicalLabel]}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => startManualSegmentation(selectedSegmentationLabel)}
+                  className="flex-1 text-sm"
+                  size="sm"
+                >
+                  Start Manual Segmentation
+                </Button>
+                <Button
+                  onClick={() => {
+                    setFinalBoundingBox(null);
+                    setCurrentRect(null);
+                  }}
+                  variant="outline"
+                  className="flex-1 text-sm"
+                  size="sm"
+                >
+                  Clear Box
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Click and drag to draw a bounding box around the region of interest.
+              </p>
+              
+              {/* Pre-select label before drawing */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-foreground">
+                  Pre-select Anatomical Label:
+                </label>
+                <Select
+                  value={selectedSegmentationLabel}
+                  onValueChange={(value) => setSelectedSegmentationLabel(value as AnatomicalLabel)}
+                >
+                  <SelectTrigger className="w-full h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(LABEL_COLORS).map(([key, color]) => (
+                      <SelectItem key={key} value={key} className="text-xs">
+                        <div className="flex items-center gap-2">
+                          <span 
+                            className="w-3 h-3 rounded-full flex-shrink-0" 
+                            style={{ backgroundColor: color }} 
+                          />
+                          {LABEL_NAMES[key as AnatomicalLabel]}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
