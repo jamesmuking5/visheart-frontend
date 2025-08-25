@@ -431,20 +431,20 @@ export default function SegmentationResultsPage() {
   }
 
   return (
-    <div className="h-full w-full bg-muted/40">
+    <div className="h-full w-full bg-background ">
       <div className="container mx-auto h-full p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6">
         <main className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
           <div className="flex-none">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2">
               <button onClick={() => router.push(`/project/${projectId}`)} className="text-sm text-muted-foreground hover:text-foreground">
                 ← Back to Project
               </button>
             </div>
-            <h1 className="text-2xl font-bold text-center">Cardiac Segmentation Editor</h1>
-            <p className="text-center text-gray-500 mb-4">Project: {projectData.name} • Edit AI-generated masks or create manual annotations</p>
+            <h1 className="text-2xl font-bold text-center mb-1">Cardiac Segmentation Editor</h1>
+            <p className="text-center text-gray-500 mb-2">Project: {projectData.name} • Edit AI-generated masks or create manual annotations</p>
           </div>
 
-          <div className="flex-1 relative bg-background rounded-xl border shadow-sm p-4 flex items-center justify-center">
+          <div className="flex-1 relative bg-muted/40 rounded-xl border shadow-sm p-4 flex items-center justify-center">
             <ImageCanvas
               projectData={projectData}
               decodedMasks={safeDecodedMasks}
