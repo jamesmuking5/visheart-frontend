@@ -40,7 +40,7 @@ const TOOL_CONFIG: Record<DrawingTool, { icon: React.ComponentType<any>; label: 
   brush: { icon: Brush, label: 'Brush', shortcut: 'Brush' },
   eraser: { icon: Eraser, label: 'Eraser', shortcut: 'Eraser' },
   label: { icon: Type, label: 'Label' },
-  rectangle: { icon: Square, label: 'Rectangle' },
+  rectangle: { icon: Square, label: 'Bounding Box' },
   circle: { icon: Circle, label: 'Circle' },
   measure: { icon: Ruler, label: 'Measure' },
   zoom: { icon: Search, label: 'Zoom' },

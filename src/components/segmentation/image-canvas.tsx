@@ -105,8 +105,9 @@ export function ImageCanvas({
   const [rectStart, setRectStart] = useState<{ x: number; y: number } | null>(null);
   const [currentRect, setCurrentRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [finalBoundingBox, setFinalBoundingBox] = useState<number[] | null>(null);
-  const [selectedSegmentationLabel, setSelectedSegmentationLabel] = useState<AnatomicalLabel>(activeLabel);
-  
+  const [selectedLabel, setSelectedLabel] = useState<AnatomicalLabel>(activeLabel);
+  const [visibleLabelSet, setVisibleLabelSet] = useState<Set<AnatomicalLabel>>(new Set([activeLabel]));
+
   // Refs for performance
   const stageRef = useRef<any>(null);
   const isDrawing = useRef(false);
@@ -117,10 +118,11 @@ export function ImageCanvas({
     totalSlices: projectData.dimensions?.slices || 1,
   }), [projectData.dimensions]);
 
-  // Sync selected segmentation label with active label when tool changes or active label changes
+  // Sync selected label and visibleLabelSet when tool changes or active label changes
   useEffect(() => {
-    if (tool !== "rectangle") {
-      setSelectedSegmentationLabel(activeLabel);
+   if (tool === "rectangle") {
+      setSelectedLabel(activeLabel);
+      setVisibleLabelSet(new Set([activeLabel]));
     }
   }, [activeLabel, tool]);
 
@@ -506,6 +508,9 @@ export function ImageCanvas({
     const createMaskElement = (label: string, color: string) => {
       if (!visibleMasks.has(label as AnatomicalLabel)) return null; // Only show visible masks
       
+      if (tool === "rectangle" && !visibleLabelSet.has(label as AnatomicalLabel)) return null;
+      if (tool !== "rectangle" && !visibleMasks.has(label as AnatomicalLabel)) return null;
+
       const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
       const maskData = decodedMasks[editableMaskKey];
       
@@ -555,26 +560,38 @@ export function ImageCanvas({
     };
     
     // Render all mask layers for the current frame/slice.
-    Object.entries(LABEL_COLORS).forEach(([label, color]) => {
-      if (label !== activeLabel) {
-        const maskElement = createMaskElement(label, color);
-        if (maskElement) {
-          maskElements.push(maskElement);
+    // If tool is 'rectangle', only show the mask for the selected label
+    if (tool === "rectangle") {
+      Object.entries(LABEL_COLORS).forEach(([label, color]) => {
+        if (visibleLabelSet.has(label as AnatomicalLabel)) {
+          const maskElement = createMaskElement(label, color);
+          if (maskElement) {
+            maskElements.push(maskElement);
+          }
+        }
+      });
+    } else {
+      // Otherwise, show all masks as before
+      Object.entries(LABEL_COLORS).forEach(([label, color]) => {
+        if (label !== activeLabel) {
+          const maskElement = createMaskElement(label, color);
+          if (maskElement) {
+            maskElements.push(maskElement);
+          }
+        }
+      });
+      // Render the active mask last so it appears on top of other masks
+      if (LABEL_COLORS[activeLabel]) {
+        const activeMaskElement = createMaskElement(activeLabel, LABEL_COLORS[activeLabel]);
+        if (activeMaskElement) {
+          maskElements.push(activeMaskElement);
         }
       }
-    });
-    
-    // Render the active mask last so it appears on top of other masks
-    if (LABEL_COLORS[activeLabel]) {
-      const activeMaskElement = createMaskElement(activeLabel, LABEL_COLORS[activeLabel]);
-      if (activeMaskElement) {
-        maskElements.push(activeMaskElement);
-      }
     }
-    
+
     console.log(`[ImageCanvas] Total mask elements found: ${maskElements.length}, active mask "${activeLabel}" rendered last`);
     return maskElements;
-  }, [decodedMasks, currentFrame, currentSlice, width, height, opacity, visibleMasks, activeLabel]);
+  }, [decodedMasks, currentFrame, currentSlice, width, height, opacity, visibleMasks, activeLabel, tool, visibleLabelSet]);
 
   return (
     <div className="flex flex-col items-center w-full h-full">
@@ -707,8 +724,11 @@ export function ImageCanvas({
                   Select Anatomical Label for Segmentation:
                 </label>
                 <Select
-                  value={selectedSegmentationLabel}
-                  onValueChange={(value) => setSelectedSegmentationLabel(value as AnatomicalLabel)}
+                  value={selectedLabel}
+                  onValueChange={(value) => {
+                    setSelectedLabel(value as AnatomicalLabel);
+                    setVisibleLabelSet(new Set([value as AnatomicalLabel]));
+                  }}
                 >
                   <SelectTrigger className="w-full h-8 text-xs">
                     <SelectValue />
@@ -731,7 +751,7 @@ export function ImageCanvas({
               
               <div className="flex gap-2">
                 <Button
-                  onClick={() => startManualSegmentation(selectedSegmentationLabel)}
+                  onClick={() => startManualSegmentation(selectedLabel)}
                   className="flex-1 text-sm"
                   size="sm"
                 >
@@ -762,8 +782,11 @@ export function ImageCanvas({
                   Pre-select Anatomical Label:
                 </label>
                 <Select
-                  value={selectedSegmentationLabel}
-                  onValueChange={(value) => setSelectedSegmentationLabel(value as AnatomicalLabel)}
+                   value={selectedLabel}
+                  onValueChange={(value) => {
+                    setSelectedLabel(value as AnatomicalLabel);
+                    setVisibleLabelSet(new Set([value as AnatomicalLabel]));
+                  }}
                 >
                   <SelectTrigger className="w-full h-8 text-xs">
                     <SelectValue />
