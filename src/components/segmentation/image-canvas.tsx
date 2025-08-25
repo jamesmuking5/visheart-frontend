@@ -3,8 +3,10 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { Stage, Layer, Line, Image as KonvaImage, Rect } from "react-konva";
 import { Play } from "lucide-react";
+import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { decodeSegmentationMasks } from "@/lib/decode-RLE";
@@ -40,35 +42,121 @@ const NavigationControls = memo(({
   onFrameChange: (frame: number) => void;
   onSliceChange: (slice: number) => void;
 }) => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-3xl mb-4 p-4 bg-muted rounded-lg shadow-md">
-    <div className="flex flex-col space-y-2">
-      <label className="text-sm font-medium text-foreground">
-        Frame: {currentFrame + 1} / {totalFrames}
-      </label>
-      <Slider
-        value={[currentFrame]}
-        onValueChange={(v: number[]) => onFrameChange(v[0])}
-        min={0}
-        max={Math.max(0, totalFrames - 1)}
-        step={1}
-        disabled={totalFrames <= 1}
-        className="[&>span:first-child]:border [&>span:first-child]:border-border"
-      />
+  <div className="w-full max-w-3xl mb-4 p-4 bg-muted rounded-lg shadow-md">
+    <div className="grid grid-cols-2 gap-4">
+      {/* Frame Controls */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Frame</span>
+          <span className="text-xs text-muted-foreground">{totalFrames} total</span>
+        </div>
+        <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              onClick={() => onFrameChange(Math.max(0, currentFrame - 1))}
+              disabled={currentFrame <= 0}
+              className="h-8 w-8 p-0"
+              aria-label="Previous Frame"
+            >
+              <span className="sr-only">Previous Frame</span>
+              <ArrowLeft className="h-3 w-3" />
+            </Button>
+            <Input
+              type="number"
+              value={currentFrame + 1}
+              min={1}
+              max={totalFrames}
+              onChange={e => {
+                let val = Number(e.target.value);
+                if (!isNaN(val) && val >= 1 && val <= totalFrames) {
+                  onFrameChange(val - 1);
+                }
+              }}
+              className="flex-1 h-8 text-center"
+            />
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            onClick={() => onFrameChange(Math.min(totalFrames - 1, currentFrame + 1))}
+            disabled={currentFrame >= totalFrames - 1}
+            className="h-8 w-8 p-0"
+            aria-label="Next Frame"
+          >
+            <span className="sr-only">Next Frame</span>
+            <ArrowRight className="h-3 w-3" />
+          </Button>
+        </div>
+        <Slider
+          value={[currentFrame]}
+          onValueChange={(v: number[]) => onFrameChange(v[0])}
+          min={0}
+          max={Math.max(0, totalFrames - 1)}
+          step={1}
+          disabled={totalFrames <= 1}
+          className="mt-2 [&>span:first-child]:border [&>span:first-child]:border-border"
+        />
+      </div>
+      {/* Slice Controls */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Slice</span>
+          <span className="text-xs text-muted-foreground">{totalSlices} total</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            onClick={() => onSliceChange(Math.max(0, currentSlice - 1))}
+            disabled={currentSlice <= 0}
+            className="h-8 w-8 p-0"
+            aria-label="Previous Slice"
+          >
+            <span className="sr-only">Previous Slice</span>
+            <ArrowUp className="h-3 w-3" />
+          </Button>
+            <Input
+              type="number"
+              value={currentSlice + 1}
+              min={1}
+              max={totalSlices}
+              onChange={e => {
+                let val = Number(e.target.value);
+                if (!isNaN(val) && val >= 1 && val <= totalSlices) {
+                  onSliceChange(val - 1);
+                }
+              }}
+              className="flex-1 h-8 text-center"
+            />
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            onClick={() => onSliceChange(Math.min(totalSlices - 1, currentSlice + 1))}
+            disabled={currentSlice >= totalSlices - 1}
+            className="h-8 w-8 p-0"
+            aria-label="Next Slice"
+          >
+            <span className="sr-only">Next Slice</span>
+            <ArrowDown className="h-3 w-3" />
+          </Button>
+        </div>
+        <Slider
+          value={[currentSlice]}
+          onValueChange={(v: number[]) => onSliceChange(v[0])}
+          min={0}
+          max={Math.max(0, totalSlices - 1)}
+          step={1}
+          disabled={totalSlices <= 1}
+          className="mt-2 [&>span:first-child]:border [&>span:first-child]:border-border"
+        />
+      </div>
     </div>
-    <div className="flex flex-col space-y-2">
-      <label className="text-sm font-medium text-foreground">
-        Slice: {currentSlice + 1} / {totalSlices}
-      </label>
-      <Slider
-        value={[currentSlice]}
-        onValueChange={(v: number[]) => onSliceChange(v[0])}
-        min={0}
-        max={Math.max(0, totalSlices - 1)}
-        step={1}
-        disabled={totalSlices <= 1}
-        className="[&>span:first-child]:border [&>span:first-child]:border-border"
-      />
-    </div>
+    {/* Keyboard shortcut hint */}
+    <div className="mt-3 text-xs text-muted-foreground text-center py-1 bg-muted/20 rounded">← → frames • ↑ ↓ slices</div>
   </div>
 ));
 
@@ -118,6 +206,31 @@ export function ImageCanvas({
     totalFrames: projectData.dimensions?.frames || 1,
     totalSlices: projectData.dimensions?.slices || 1,
   }), [projectData.dimensions]);
+
+  // Keyboard shortcut handling for frame/slice navigation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only trigger if not focused on input/textarea/select
+      const tag = (event.target as HTMLElement)?.tagName?.toLowerCase();
+      if (["input", "textarea", "select"].includes(tag)) return;
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        if (currentFrame > 0) onFrameChange(currentFrame - 1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        if (currentFrame < totalFrames - 1) onFrameChange(currentFrame + 1);
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        if (currentSlice > 0) onSliceChange(currentSlice - 1);
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        if (currentSlice < totalSlices - 1) onSliceChange(currentSlice + 1);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentFrame, currentSlice, totalFrames, totalSlices, onFrameChange, onSliceChange]);
 
   // Sync selected label and visibleLabelSet when tool changes or active label changes
   useEffect(() => {
