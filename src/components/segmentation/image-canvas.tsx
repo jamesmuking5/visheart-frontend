@@ -6,6 +6,7 @@ import type { KonvaEventObject } from "konva/lib/Node";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { decodeSegmentationMasks } from "@/lib/decode-RLE";
 import { cn } from "@/lib/utils";
 
 // Import shared types and constants
@@ -442,14 +443,49 @@ export function ImageCanvas({
         requestData
       );
       
-      console.log('Manual segmentation started:', response);
-      
-      // Clear the bounding box after successful submission
-      setFinalBoundingBox(null);
-      setCurrentRect(null);
-      
-      alert('Manual segmentation started successfully!');
-      
+      console.log('Manual segmentation response:', response);
+
+      // Defensive check for response and segmentations
+      if (!response || !Array.isArray(response.segmentations) || response.segmentations.length === 0) {
+        console.error("Manual segmentation API returned undefined or missing segmentations:", response);
+        alert('No segmentation results returned from server');
+        return;
+      } 
+
+      // Decode the new mask(s)
+      const newMasks = response.segmentations;
+
+      if (projectData?.dimensions) {
+        const decodedResult = decodeSegmentationMasks(
+          newMasks,
+          projectData.dimensions.width,
+          projectData.dimensions.height
+        );
+
+        console.log('Decoded new masks:', Object.keys(decodedResult.masks));
+
+          // Remap manual mask key to selected anatomical label if needed
+          const frame = currentFrame;
+          const slice = currentSlice;
+          const manualKey = `editable_frame_${frame}_slice_${slice}_manual`;
+          const labelKey = `editable_frame_${frame}_slice_${slice}_${selectedLabel}`;
+          let masksToUpdate = { ...decodedResult.masks };
+          if (manualKey in masksToUpdate) {
+            masksToUpdate[labelKey] = masksToUpdate[manualKey];
+            delete masksToUpdate[manualKey];
+          }
+          // Merge with existing masks
+          onMaskUpdate({ ...decodedMasks, ...masksToUpdate }, undefined);
+
+        // Clear the bounding box after successful submission
+        setFinalBoundingBox(null);
+        setCurrentRect(null);
+
+        alert('Manual segmentation completed successfully!');
+      } else {
+        console.error('Project dimensions not available for decoding');
+        alert('Project dimensions not available for decoding masks');
+      }
     } catch (error: any) {
       console.error('Error starting manual segmentation:', error);
       console.error('Error response:', error.response?.data);
