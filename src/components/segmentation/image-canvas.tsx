@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { Stage, Layer, Line, Image as KonvaImage, Rect } from "react-konva";
+import { Play } from "lucide-react";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
@@ -720,7 +721,7 @@ export function ImageCanvas({
               
               {/* Anatomical Label Selection */}
               <div className="space-y-2">
-                <label className="text-xs font-medium text-foreground">
+                <label className="text-xs font-medium text-foreground mb-2 block">
                   Select Anatomical Label for Segmentation:
                 </label>
                 <Select
@@ -752,9 +753,10 @@ export function ImageCanvas({
               <div className="flex gap-2">
                 <Button
                   onClick={() => startManualSegmentation(selectedLabel)}
-                  className="flex-1 text-sm"
+                  className="flex-1 text-sm flex items-center"
                   size="sm"
                 >
+                  <Play className="h-4 w-4 mr-2" />
                   Start Manual Segmentation
                 </Button>
                 <Button
@@ -778,7 +780,7 @@ export function ImageCanvas({
               
               {/* Pre-select label before drawing */}
               <div className="space-y-2">
-                <label className="text-xs font-medium text-foreground">
+                <label className="text-xs font-medium text-foreground mb-2 block">
                   Pre-select Anatomical Label:
                 </label>
                 <Select
