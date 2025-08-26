@@ -88,6 +88,7 @@ export interface ImageCanvasProps {
   hardness: BrushHardness;
   // Zoom level (1.0 = 100%)
   zoomLevel?: number;
+  setZoomLevel?: (level: number) => void;
 }
 
 export interface HistoryPanelProps {
