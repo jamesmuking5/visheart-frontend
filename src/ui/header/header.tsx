@@ -3,14 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import React, { useState, useEffect } from "react";
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
+import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import ThemeToggle from "../theme-toggle";
@@ -18,16 +11,7 @@ import visheartLogo from "@/../public/visheart_logo.svg";
 import { useAuth } from "@/context/auth-context";
 import { AuthenticatedUserView } from "@/components/AuthenticatedUserView";
 import { cn } from "@/lib/utils";
-import {
-  Menu,
-  X,
-  Heart,
-  User,
-  Settings,
-  FileText,
-  Info,
-  Zap,
-} from "lucide-react";
+import { Menu, X, Heart, User, Settings, FileText, Info, Zap } from "lucide-react";
 
 // Constants for menu items to avoid recreation on each render
 const MOBILE_MENU_ITEMS = [
@@ -105,9 +89,7 @@ export default function Header() {
           "fixed top-0 right-0 left-0 z-[60]",
           "supports-[backdrop-filter]:bg-background/60 border-b backdrop-blur-md",
           "flex items-center",
-          isScrolled
-            ? "bg-background/95 border-border/80 h-10 shadow-sm"
-            : "bg-background/50 border-border/40 h-16",
+          isScrolled ? "bg-background/95 border-border/80 h-10 shadow-sm" : "bg-background/50 border-border/40 h-16",
         )}
       >
         <div className="container mx-auto h-full px-4">
@@ -121,16 +103,11 @@ export default function Header() {
                     width={32}
                     height={32}
                     alt="VisHeart Logo"
-                    className={cn(
-                      "transition-transform duration-200 ease-in-out",
-                      isScrolled ? "scale-90" : "scale-100",
-                    )}
+                    className={cn("transition-transform duration-200 ease-in-out", isScrolled ? "scale-90" : "scale-100")}
                     priority // Since it's above fold
                   />
                 </div>
-                <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-xl font-bold whitespace-nowrap text-transparent">
-                  VisHeart
-                </span>
+                <span className="bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-xl font-bold whitespace-nowrap text-transparent">VisHeart</span>
               </Link>
             </div>
 
@@ -150,17 +127,8 @@ export default function Header() {
               <ThemeToggle iconSize={1.5} />
 
               {/* Mobile menu button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="md:hidden"
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              >
-                {isMobileMenuOpen ? (
-                  <X className="h-5 w-5" />
-                ) : (
-                  <Menu className="h-5 w-5" />
-                )}
+              <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
             </div>
           </div>
@@ -170,18 +138,11 @@ export default function Header() {
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setIsMobileMenuOpen(false)}
-          />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
           <div className="bg-background fixed top-0 right-0 h-full w-80 border-l shadow-lg">
             <div className="flex items-center justify-between border-b p-4">
               <span className="text-lg font-semibold">Menu</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
+              <Button variant="ghost" size="sm" onClick={() => setIsMobileMenuOpen(false)}>
                 <X className="h-5 w-5" />
               </Button>
             </div>
@@ -251,9 +212,7 @@ const ListItem = React.memo(function ListItem({
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-center space-x-2">
-                <span className="group-hover:text-primary truncate text-base font-semibold">
-                  {title}
-                </span>
+                <span className="group-hover:text-primary truncate text-base font-semibold">{title}</span>
                 {badge && (
                   <Badge variant="secondary" className="text-xs">
                     {badge}
@@ -267,9 +226,7 @@ const ListItem = React.memo(function ListItem({
               </div>
             </div>
           </div>
-          <p className="text-muted-foreground mt-1 flex-1 text-sm leading-snug">
-            {children}
-          </p>
+          <p className="text-muted-foreground mt-1 flex-1 text-sm leading-snug">{children}</p>
         </Link>
       </NavigationMenuLink>
     </Component>
@@ -300,35 +257,17 @@ const HomeDropDown = React.memo(function HomeDropDown() {
                   </div>
                   <div className="text-xl font-bold text-red-500">VisHeart</div>
                 </div>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  Advanced Cardiac Component Segmentation using AI-powered tools
-                  for medical imaging analysis.
-                </p>
-                <div className="mt-4 flex items-center text-sm font-medium text-red-500 group-hover:text-red-600">
-                  Learn more →
-                </div>
+                <p className="text-muted-foreground text-sm leading-relaxed">Advanced Cardiac Component Segmentation using AI-powered tools for medical imaging analysis.</p>
+                <div className="mt-4 flex items-center text-sm font-medium text-red-500 group-hover:text-red-600">Learn more →</div>
               </Link>
             </NavigationMenuLink>
           </div>
           <ul className="flex h-full list-none flex-col">
-            <ListItem
-              href="/doc"
-              title="Documentation"
-              icon={FileText}
-              badge="Updated"
-              className="flex-1"
-            >
-              Complete guide on using VisHeart&apos;s features, tools, and best
-              practices for cardiac imaging.
+            <ListItem href="/doc" title="Documentation" icon={FileText} badge="Updated" className="flex-1">
+              Complete guide on using VisHeart&apos;s features, tools, and best practices for cardiac imaging.
             </ListItem>
-            <ListItem
-              href="/about"
-              title="About Us"
-              icon={Info}
-              className="min-h-36 flex-1"
-            >
-              Meet the VisHeart team and learn about our mission to advance
-              cardiac imaging technology.
+            <ListItem href="/about" title="About Us" icon={Info} className="min-h-36 flex-1">
+              Meet the VisHeart team and learn about our mission to advance cardiac imaging technology.
             </ListItem>
           </ul>
         </div>
@@ -362,10 +301,7 @@ const ProfileDropDown = React.memo(function ProfileDropDown() {
     // Show login button that redirects to /login page
     return (
       <NavigationMenuItem>
-        <Link
-          href="/login"
-          className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 flex h-10 items-center rounded-md bg-transparent px-4 py-2"
-        >
+        <Link href="/login" className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 flex h-10 items-center rounded-md bg-transparent px-4 py-2">
           <div className="flex items-center space-x-2">
             <User className="h-4 w-4" />
             <span>Sign In</span>
@@ -389,37 +325,15 @@ const ToolsDropDown = React.memo(function ToolsDropDown() {
       <NavigationMenuContent className="bg-background/95 min-h-72 border shadow-lg backdrop-blur-md">
         <div className="grid w-[500px] gap-3 p-6 md:w-[600px] md:grid-cols-1 lg:w-[700px]">
           <div className="mb-4">
-            <h3 className="text-primary mb-2 text-lg font-semibold">
-              AI-Powered Segmentation Tools
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              Advanced tools for cardiac imaging analysis and segmentation
-            </p>
+            <h3 className="text-primary mb-2 text-lg font-semibold">AI-Powered Segmentation Tools</h3>
+            <p className="text-muted-foreground text-sm">Advanced tools for cardiac imaging analysis and segmentation</p>
           </div>
           <div className="grid list-none grid-cols-1 gap-3 md:grid-cols-2">
-            <ListItem
-              href="/cardiac-segmentation"
-              title="2D Cardiac Segmentation"
-              icon={Heart}
-              badge="Active"
-              as="div"
-              className="min-h-36"
-            >
-              Advanced <span className="text-green-500">2D</span> cardiac
-              component segmentation using YOLO and MedSAM for precise medical
-              imaging analysis.
+            <ListItem href="/cardiac-segmentation" title="2D Cardiac Segmentation" icon={Heart} badge="Active" as="div" className="min-h-36">
+              Advanced <span className="text-green-500">2D</span> cardiac component segmentation using YOLO and MedSAM for precise medical imaging analysis.
             </ListItem>
-            <ListItem
-              href="#"
-              title="3D Cardiac Segmentation"
-              icon={Settings}
-              isComingSoon={true}
-              as="div"
-              className="min-h-36"
-            >
-              Upcoming <span className="text-red-500">3D</span> cardiac imaging
-              capabilities with enhanced depth analysis and volumetric
-              segmentation.
+            <ListItem href="#" title="3D Cardiac Segmentation" icon={Settings} isComingSoon={true} as="div" className="min-h-36">
+              Upcoming <span className="text-red-500">3D</span> cardiac imaging capabilities with enhanced depth analysis and volumetric segmentation.
             </ListItem>
           </div>
         </div>
@@ -429,11 +343,7 @@ const ToolsDropDown = React.memo(function ToolsDropDown() {
 });
 
 // Mobile Menu Component
-const MobileMenu = React.memo(function MobileMenu({
-  onClose,
-}: {
-  onClose: () => void;
-}) {
+const MobileMenu = React.memo(function MobileMenu({ onClose }: { onClose: () => void }) {
   const { user } = useAuth();
 
   return (
@@ -447,11 +357,7 @@ const MobileMenu = React.memo(function MobileMenu({
             </div>
           ) : (
             <div className="space-y-3">
-              <Link
-                href="/login"
-                onClick={onClose}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center space-x-3 rounded-lg p-3"
-              >
+              <Link href="/login" onClick={onClose} className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center space-x-3 rounded-lg p-3">
                 <User className="h-4 w-4" />
                 <span className="font-medium">Sign In</span>
               </Link>
@@ -462,31 +368,21 @@ const MobileMenu = React.memo(function MobileMenu({
         {/* Menu Sections */}
         {MOBILE_MENU_ITEMS.map((section) => (
           <div key={section.title} className="space-y-3">
-            <h3 className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
-              {section.title}
-            </h3>
+            <h3 className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">{section.title}</h3>
             <div className="space-y-2">
               {section.items.map((item) => (
                 <div key={item.title}>
                   <Link
                     href={item.isComingSoon ? "#" : item.href}
-                    onClick={
-                      item.isComingSoon ? (e) => e.preventDefault() : onClose
-                    }
-                    className={cn(
-                      "flex items-center space-x-3 rounded-lg p-3",
-                      "hover:bg-accent hover:text-accent-foreground",
-                      item.isComingSoon && "cursor-not-allowed opacity-60",
-                    )}
+                    onClick={item.isComingSoon ? (e) => e.preventDefault() : onClose}
+                    className={cn("flex items-center space-x-3 rounded-lg p-3", "hover:bg-accent hover:text-accent-foreground", item.isComingSoon && "cursor-not-allowed opacity-60")}
                   >
                     <div className="bg-primary/10 flex-shrink-0 rounded-md p-2">
                       <item.icon className="text-primary h-4 w-4" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center space-x-2">
-                        <span className="truncate font-medium">
-                          {item.title}
-                        </span>
+                        <span className="truncate font-medium">{item.title}</span>
                         {item.badge && (
                           <Badge variant="secondary" className="text-xs">
                             {item.badge}
