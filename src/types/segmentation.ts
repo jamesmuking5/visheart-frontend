@@ -62,6 +62,8 @@ export interface DrawingPanelProps {
   canUndo: boolean;
   canRedo: boolean;
   canClear: boolean;
+  zoomLevel?: number;
+  setZoomLevel?: (level: number) => void;
 }
 
 export interface ImageCanvasProps {
@@ -84,7 +86,8 @@ export interface ImageCanvasProps {
   brushSize: number;
   opacity: number;
   hardness: BrushHardness;
-  // Note: Tar cache is now managed by ProjectContext
+  // Zoom level (1.0 = 100%)
+  zoomLevel?: number;
 }
 
 export interface HistoryPanelProps {
@@ -134,6 +137,9 @@ export interface SegmentationSidebarProps {
   onHistoryClear?: () => void;
   onHistoryExport?: () => void;
   onHistoryCheckpoint?: () => void;
+  // Zoom controls shared with drawing panel / image canvas
+  zoomLevel?: number;
+  setZoomLevel?: (level: number) => void;
 }
 
 // Utility constants

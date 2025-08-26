@@ -75,6 +75,7 @@ export default function SegmentationResultsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [currentSlice, setCurrentSlice] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState<number>(1);
 
   // Frame/Slice-Specific History Management, each frame/slice combination has its own history stack
   const [frameSliceHistories, setFrameSliceHistories] = useState<Record<string, HistoryEntry[]>>({});
@@ -434,15 +435,6 @@ export default function SegmentationResultsPage() {
     <div className="h-full w-full bg-background ">
       <div className="container mx-auto h-full p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6">
         <main className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
-          <div className="flex-none">
-            <div className="flex items-center gap-2">
-              <button onClick={() => router.push(`/project/${projectId}`)} className="text-sm text-muted-foreground hover:text-foreground">
-                ← Back to Project
-              </button>
-            </div>
-            <h1 className="text-2xl font-bold text-center mb-1">Cardiac Segmentation Editor</h1>
-            <p className="text-center text-gray-500 mb-2">Project: {projectData.name} • Edit AI-generated masks or create manual annotations</p>
-          </div>
 
           <div className="flex-1 relative bg-muted/40 rounded-xl border shadow-sm p-4 flex items-center justify-center">
             <ImageCanvas
@@ -461,6 +453,7 @@ export default function SegmentationResultsPage() {
               brushSize={brushSize}
               opacity={opacity}
               hardness={hardness}
+              zoomLevel={zoomLevel}
             />
           </div>
         </main>
@@ -501,6 +494,8 @@ export default function SegmentationResultsPage() {
               onHistoryClear={handleHistoryClear}
               onHistoryExport={handleHistoryExport}
               onHistoryCheckpoint={handleHistoryCheckpoint}
+              zoomLevel={zoomLevel}
+              setZoomLevel={setZoomLevel}
             />
           </div>
         </aside>

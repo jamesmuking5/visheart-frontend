@@ -178,6 +178,8 @@ export function ImageCanvas({
   brushSize,
   opacity,
   hardness,
+  zoomLevel = 1,
+  setZoomLevel,
 }: ImageCanvasProps) {
   // Get image loading method from ProjectContext
   const { getMRIImage, getMRIImageFilename, tarCacheReady, tarCacheError } = useProject();
@@ -200,6 +202,8 @@ export function ImageCanvas({
   // Refs for performance
   const stageRef = useRef<any>(null);
   const isDrawing = useRef(false);
+  const [stageScale, setStageScale] = useState<number>(Math.min(Math.max(zoomLevel || 1, 0.1), 5));
+  const [stagePosition, setStagePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Memoized values from project data
   const { totalFrames, totalSlices } = useMemo(() => ({
@@ -238,7 +242,19 @@ export function ImageCanvas({
       setSelectedLabel(activeLabel);
       setVisibleLabelSet(new Set([activeLabel]));
     }
-  }, [activeLabel, tool]);
+    // Update stage scale if zoomLevel prop changes
+    if (typeof zoomLevel === 'number') {
+      const clamped = Math.min(Math.max(zoomLevel, 0.1), 5);
+      setStageScale(clamped);
+      const stage = stageRef.current;
+      if (stage && stage.getStage) {
+        const konvaStage = stage.getStage();
+        // Apply scale but preserve current position (don't reset to origin)
+        konvaStage.scale({ x: clamped, y: clamped });
+        konvaStage.batchDraw();
+      }
+    }
+  }, [activeLabel, tool, zoomLevel]);
 
   // Enhanced image loading with tar cache + API fallback
   useEffect(() => {
@@ -349,8 +365,60 @@ export function ImageCanvas({
   // Optimized drawing handlers with useCallback
   const getRelativePointerPosition = useCallback(() => {
     const stage = stageRef.current;
-    if (!stage) return null;
-    return stage.getPointerPosition();
+    if (!stage || !stage.getStage) return null;
+    const konvaStage = stage.getStage();
+    const pos = konvaStage.getPointerPosition();
+    if (!pos) return null;
+    // Use absolute transform to convert screen coords to stage (untransformed) coords
+    const transform = konvaStage.getAbsoluteTransform().copy();
+    transform.invert();
+    const transformed = transform.point({ x: pos.x, y: pos.y });
+    return transformed;
+  }, []);
+
+  // Wheel zoom handler (cursor-centered) and pan (draggable stage) helpers
+  const handleWheel = useCallback((e: any) => {
+    // e is a Konva event wrapper
+    const stage = stageRef.current?.getStage?.();
+    if (!stage) return;
+    e.evt.preventDefault();
+
+    const oldScale = stage.scaleX() || 1;
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+
+    const mousePointTo = {
+      x: (pointer.x - stage.x()) / oldScale,
+      y: (pointer.y - stage.y()) / oldScale,
+    };
+
+    const scaleBy = e.evt.deltaY > 0 ? 0.9 : 1.1;
+    const newScale = Math.max(0.1, Math.min(5, oldScale * scaleBy));
+
+    setStageScale(newScale);
+    stage.scale({ x: newScale, y: newScale });
+
+    // adjust position so the point under the mouse stays in the same place
+    const newPos = {
+      x: pointer.x - mousePointTo.x * newScale,
+      y: pointer.y - mousePointTo.y * newScale,
+    };
+    stage.position(newPos);
+    setStagePosition(newPos);
+    stage.batchDraw();
+
+    if (typeof setZoomLevel === 'function') {
+      try {
+        setZoomLevel(newScale);
+      } catch (err) {
+        // ignore if parent doesn't accept updates
+      }
+    }
+  }, [setZoomLevel]);
+
+  const handleDragMove = useCallback((e: any) => {
+    const pos = e.target.position();
+    setStagePosition({ x: pos.x, y: pos.y });
   }, []);
 
   const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
@@ -720,7 +788,13 @@ export function ImageCanvas({
       />
 
       {/* Canvas */}
-      <div className="border-4 border-muted-foreground overflow-hidden relative">
+      <div className="bg-background rounded-lg overflow-hidden relative">
+        {/* Top info bar (frame/slice + zoom) */}
+        <div className="absolute left-0 right-0 top-0 z-20 px-4 py-2 bg-background/60 backdrop-blur-sm border-b border-muted/20 flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">Frame {currentFrame + 1} • Slice {currentSlice + 1}</div>
+          <div className="text-sm text-muted-foreground">{Math.round((stageScale || 1) * 100)}% zoom</div>
+        </div>
+
         {/* Only show loading spinner on initial load or when there's no current image */}
         {imageStatus === "loading" && isInitialLoad && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
@@ -731,14 +805,22 @@ export function ImageCanvas({
           </div>
         )}
 
-        <Stage
-          ref={stageRef}
-          width={width}
-          height={height}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-        >
+        <div className="flex items-center justify-center" style={{ width: '100%', height: height }}>
+          <Stage
+            ref={stageRef}
+            width={width}
+            height={height}
+            scaleX={stageScale}
+            scaleY={stageScale}
+            x={stagePosition.x}
+            y={stagePosition.y}
+            draggable={tool === 'pan'}
+            onDragMove={handleDragMove}
+            onWheel={handleWheel}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+          >
           <Layer>
             {/* Background Image */}
             {imageStatus === "loaded" && image && (
@@ -798,6 +880,7 @@ export function ImageCanvas({
             )}
           </Layer>
         </Stage>
+        </div>
       </div>
 
       {/* Image Status Indicators */}

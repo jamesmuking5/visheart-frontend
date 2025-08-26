@@ -72,6 +72,8 @@ export function DrawingPanel({
   canUndo,
   canRedo,
   canClear,
+  zoomLevel = 1,
+  setZoomLevel = () => {},
 }: DrawingPanelProps) {
 
   // Memoized label selection handler
@@ -263,6 +265,29 @@ export function DrawingPanel({
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Zoom Settings - Only show for zoom tool */}
+      {tool === 'zoom' && (
+        <div>
+          <h3 className="text-sm font-medium text-foreground mb-3">Zoom Settings</h3>
+          <div className="bg-muted rounded-lg border p-4 space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-foreground">Zoom</label>
+                <span className="text-xs text-muted-foreground">{Math.round((zoomLevel || 1) * 100)}%</span>
+              </div>
+              <Slider
+                value={[(zoomLevel || 1) * 100]}
+                onValueChange={(v: number[]) => setZoomLevel(v[0] / 100)}
+                min={10}
+                max={500}
+                step={1}
+                className="[&>span:first-child]:border [&>span:first-child]:border-border"
+              />
             </div>
           </div>
         </div>

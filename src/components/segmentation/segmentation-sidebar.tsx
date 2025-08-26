@@ -431,7 +431,9 @@ export function SegmentationSidebar({
   onHistoryStepChange,
   onHistoryClear,
   onHistoryExport,
-  onHistoryCheckpoint
+  onHistoryCheckpoint,
+  zoomLevel,
+  setZoomLevel,
 }: SegmentationSidebarProps) {
   const [activeTab, setActiveTab] = useState('brush');
 
@@ -511,6 +513,8 @@ export function SegmentationSidebar({
             canUndo={canUndo}
             canRedo={canRedo}
             canClear={canClear}
+            zoomLevel={zoomLevel}
+            setZoomLevel={setZoomLevel}
           />
         )}
 
