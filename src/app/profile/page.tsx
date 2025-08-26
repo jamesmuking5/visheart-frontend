@@ -113,8 +113,8 @@ export default function ProfilePage() {
     setIsSubmitting(true);
     try {
       const result = await authApi.updatePassword({
-        old_password: values.old_password,
-        password: values.password,
+        currentPassword: values.old_password,
+        newPassword: values.password,
       });
       if (result.update) {
         toast.success("Password updated successfully!");

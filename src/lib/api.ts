@@ -131,7 +131,12 @@ export const authApi = {
     newPassword?: string;
   }) => {
     try {
-      const response = await api.post("/auth/update-password", data);
+      // Map frontend field names to backend field names
+      const requestData = {
+        old_password: data.currentPassword,
+        password: data.newPassword,
+      };
+      const response = await api.post("/auth/update-password", requestData);
       return response.data;
     } catch (error) {
       throw error;
