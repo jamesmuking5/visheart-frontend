@@ -15,7 +15,8 @@ import {
   Circle, 
   Ruler, 
   Search, 
-  Move 
+  Move,
+  RotateCcw
 } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from "@/lib/utils";
@@ -289,6 +290,16 @@ export function DrawingPanel({
                 className="[&>span:first-child]:border [&>span:first-child]:border-border"
               />
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full mt-4 flex items-center justify-center text-sm font-medium"
+              onClick={() => setZoomLevel(1)}
+              aria-label="Reset zoom"
+            >
+              <RotateCcw className="w-5 h-5 mr-2" />
+              Reset
+            </Button>
           </div>
         </div>
       )}

@@ -454,6 +454,7 @@ export default function SegmentationResultsPage() {
               opacity={opacity}
               hardness={hardness}
               zoomLevel={zoomLevel}
+              setZoomLevel={setZoomLevel}
             />
           </div>
         </main>

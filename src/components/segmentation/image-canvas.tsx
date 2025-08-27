@@ -527,15 +527,20 @@ export function ImageCanvas({
       stage.position(newPos);
       setStagePosition(newPos);
       stage.batchDraw();
+      // Always update zoomLevel state so DrawingPanel and header stay in sync
+      if (typeof setZoomLevel === 'function') {
+        try {
+          setZoomLevel(nextScale);
+        } catch (err) {}
+      }
       if (step < steps) {
         animationFrame = window.requestAnimationFrame(() => animateZoom(from, to, steps, step + 1));
       } else {
+        // Final frame: ensure zoomLevel is exactly the target value
         if (typeof setZoomLevel === 'function') {
           try {
             setZoomLevel(to);
-          } catch (err) {
-            // ignore if parent doesn't accept updates
-          }
+          } catch (err) {}
         }
       }
     };
