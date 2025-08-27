@@ -80,6 +80,10 @@ export interface ImageCanvasProps {
   onSliceChange: (slice: number) => void;
   width: number;
   height: number;
+  // Optional visual canvas size: when provided the Stage will be displayed at
+  // this size while the internal coordinate system remains based on `width`/`height`.
+  canvasWidth?: number;
+  canvasHeight?: number;
   activeLabel: AnatomicalLabel;
   visibleMasks: Set<AnatomicalLabel>;
   tool: DrawingTool;

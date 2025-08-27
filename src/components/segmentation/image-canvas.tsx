@@ -172,6 +172,8 @@ export function ImageCanvas({
   onSliceChange,
   width,
   height,
+  canvasWidth,
+  canvasHeight,
   activeLabel,
   visibleMasks,
   tool,
@@ -204,6 +206,102 @@ export function ImageCanvas({
   const isDrawing = useRef(false);
   const [stageScale, setStageScale] = useState<number>(Math.min(Math.max(zoomLevel || 1, 0.1), 5));
   const [stagePosition, setStagePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  // Container pan (move whole stage by dragging the wrapper) — preferred for
+  // Debug-like behavior: panning moves the viewer instead of moving image coordinates inside the canvas.
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const isContainerPanning = useRef(false);
+  const lastContainerPoint = useRef<{ x: number; y: number } | null>(null);
+  const [isCtrlPressed, setIsCtrlPressed] = useState(false);
+  // Local state mirror for panning to trigger rerenders for cursor updates
+  const [isPanningState, setIsPanningState] = useState(false);
+
+  const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    // Allow panning either when tool is explicitly 'pan' OR when user holds Ctrl
+    if (tool !== 'pan' && !isCtrlPressed) return;
+    isContainerPanning.current = true;
+    setIsPanningState(true);
+    // Set cursor on the container element immediately for instant feedback
+    if (containerRef.current) containerRef.current.style.cursor = 'grabbing';
+    lastContainerPoint.current = { x: e.clientX, y: e.clientY };
+    e.preventDefault();
+    e.stopPropagation();
+  }, [tool, isCtrlPressed]);
+
+  const handleContainerMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isContainerPanning.current || !lastContainerPoint.current) return;
+    const dx = e.clientX - lastContainerPoint.current.x;
+    const dy = e.clientY - lastContainerPoint.current.y;
+    setStagePosition(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+    lastContainerPoint.current = { x: e.clientX, y: e.clientY };
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleContainerMouseUp = useCallback(() => {
+    isContainerPanning.current = false;
+    setIsPanningState(false);
+    lastContainerPoint.current = null;
+    // Restore cursor depending on whether ctrl is pressed or tool is pan
+    if (containerRef.current) {
+      containerRef.current.style.cursor = (isCtrlPressed || tool === 'pan') ? 'grab' : 'default';
+    }
+  }, [isCtrlPressed, tool]);
+
+  // Track Ctrl key state so user can hold Ctrl to pan
+  useEffect(() => {
+    const onKeyDown = (ev: KeyboardEvent) => {
+      if (ev.key === 'Control' || ev.ctrlKey) {
+        if (!isCtrlPressed) setIsCtrlPressed(true);
+      }
+    };
+    const onKeyUp = (ev: KeyboardEvent) => {
+      if (ev.key === 'Control' || !ev.ctrlKey) {
+        if (isCtrlPressed) setIsCtrlPressed(false);
+      }
+    };
+    const onWindowBlur = () => {
+      if (isCtrlPressed) setIsCtrlPressed(false);
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    window.addEventListener('blur', onWindowBlur);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+      window.removeEventListener('blur', onWindowBlur);
+    };
+  }, [isCtrlPressed]);
+
+  // Keep the container cursor in sync whenever ctrl/tool/panning state changes
+  useEffect(() => {
+    if (!containerRef.current) return;
+    if (isPanningState) {
+      containerRef.current.style.cursor = 'grabbing';
+    } else if (isCtrlPressed || tool === 'pan') {
+      containerRef.current.style.cursor = 'grab';
+    } else {
+      containerRef.current.style.cursor = 'default';
+    }
+  }, [isCtrlPressed, tool, isPanningState]);
+
+  // Visual display size (keeps internal image/mask size unchanged).
+  // Default to a larger viewer (like DebugMRIViewer) unless parent overrides.
+  const DEFAULT_DISPLAY_WIDTH = 900;
+  const DEFAULT_DISPLAY_HEIGHT = 520;
+  // If you want the smaller preview card look, pass smaller canvasWidth/canvasHeight from parent.
+  const displayWidth = canvasWidth ?? DEFAULT_DISPLAY_WIDTH;
+  const displayHeight = canvasHeight ?? DEFAULT_DISPLAY_HEIGHT;
+
+  // Compute a fit scale (kept for possible future use). By default we will
+  // render the image at its original logical size and only change stageScale
+  // according to `zoomLevel` so annotations remain 1:1 with image pixels.
+  const baseFitScale = useMemo(() => {
+    if (!width || !height || !displayWidth || !displayHeight) return 1;
+    return Math.min(displayWidth / width, displayHeight / height);
+  }, [width, height, displayWidth, displayHeight]);
 
   // Memoized values from project data
   const { totalFrames, totalSlices } = useMemo(() => ({
@@ -242,19 +340,40 @@ export function ImageCanvas({
       setSelectedLabel(activeLabel);
       setVisibleLabelSet(new Set([activeLabel]));
     }
-    // Update stage scale if zoomLevel prop changes
+    // Update stage scale if zoomLevel prop changes (use zoomLevel directly so
+    // image renders at original pixel size when zoomLevel === 1)
     if (typeof zoomLevel === 'number') {
       const clamped = Math.min(Math.max(zoomLevel, 0.1), 5);
-      setStageScale(clamped);
+      const applied = clamped; // do not multiply by baseFitScale
+      setStageScale(applied);
       const stage = stageRef.current;
       if (stage && stage.getStage) {
         const konvaStage = stage.getStage();
-        // Apply scale but preserve current position (don't reset to origin)
-        konvaStage.scale({ x: clamped, y: clamped });
+        konvaStage.scale({ x: applied, y: applied });
         konvaStage.batchDraw();
       }
     }
   }, [activeLabel, tool, zoomLevel]);
+
+  // Initialize stage scale and center content inside the visual display area
+  useEffect(() => {
+    const stage = stageRef.current?.getStage?.();
+    if (!stage) return;
+
+  const zoom = typeof zoomLevel === 'number' ? Math.min(Math.max(zoomLevel, 0.1), 5) : 1;
+  const newScale = zoom; // keep image at original size when zoom === 1
+  stage.scale({ x: newScale, y: newScale });
+  setStageScale(newScale);
+
+  const logicalW = width || displayWidth;
+  const logicalH = height || displayHeight;
+  // Center the logical image inside the larger display canvas
+  const offsetX = Math.max(0, (displayWidth - logicalW * newScale) / 2);
+  const offsetY = Math.max(0, (displayHeight - logicalH * newScale) / 2);
+    stage.position({ x: offsetX, y: offsetY });
+    setStagePosition({ x: offsetX, y: offsetY });
+    stage.batchDraw();
+  }, [baseFitScale, displayWidth, displayHeight, width, height, zoomLevel]);
 
   // Enhanced image loading with tar cache + API fallback
   useEffect(() => {
@@ -416,17 +535,23 @@ export function ImageCanvas({
     }
   }, [setZoomLevel]);
 
-  const handleDragMove = useCallback((e: any) => {
-    const pos = e.target.position();
-    setStagePosition({ x: pos.x, y: pos.y });
-  }, []);
+  // Previously used when Stage was draggable; container-based panning
+  // replaces Stage dragging so this handler is no longer needed.
 
   const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
     if (e.evt.button !== 0) return;
-    
+
+    // If the container is handling panning (either via pan tool or Ctrl),
+    // prevent starting any drawing gesture on the Konva stage.
+    if (isContainerPanning.current || tool === 'pan' || isCtrlPressed) {
+      isDrawing.current = false;
+      setDrawingPoints(null);
+      return;
+    }
+
     const pos = getRelativePointerPosition();
     if (!pos) return;
-    
+
     if (tool === "rectangle") {
       // Start drawing rectangle
       setIsDrawingRect(true);
@@ -441,11 +566,13 @@ export function ImageCanvas({
   }, [tool, getRelativePointerPosition]);
 
   const handleMouseMove = useCallback((e: KonvaEventObject<MouseEvent>) => {
-    
-    const point = getRelativePointerPosition();
-    if (!point) return;
-    
-    if (tool === "rectangle" && isDrawingRect && rectStart) {
+  const point = getRelativePointerPosition();
+  if (!point) return;
+
+  // Skip drawing updates when container panning is active or when Ctrl-to-pan
+  if (isContainerPanning.current || isCtrlPressed || tool === 'pan') return;
+
+  if (tool === "rectangle" && isDrawingRect && rectStart) {
       // Update rectangle dimensions
       const width = point.x - rectStart.x;
       const height = point.y - rectStart.y;
@@ -455,7 +582,7 @@ export function ImageCanvas({
         width: Math.abs(width),
         height: Math.abs(height)
       });
-    } else if (!isDrawing.current || tool === "select" || tool === "rectangle") {
+  } else if (!isDrawing.current || tool === "select" || tool === "rectangle") {
       return;
     } else {
       // Existing brush/eraser logic
@@ -517,6 +644,13 @@ export function ImageCanvas({
 
   // Manual segmentation with editable masks - apply edits directly to decodedMasks
   const handleMouseUp = useCallback(() => {
+    // If panning was active, don't finalize any drawing stroke
+    if (isContainerPanning.current || isCtrlPressed || tool === 'pan') {
+      isDrawing.current = false;
+      setDrawingPoints(null);
+      return;
+    }
+
     if (tool === "rectangle" && isDrawingRect && currentRect) {
       // Finalize rectangle - convert to bounding box format [x_min, y_min, x_max, y_max]
       const bbox = [
@@ -533,7 +667,7 @@ export function ImageCanvas({
     
     // Existing brush/eraser logic
     if (!isDrawing.current || !drawingPoints) return;
-    
+
     isDrawing.current = false;
 
     try {
@@ -787,8 +921,24 @@ export function ImageCanvas({
         onSliceChange={onSliceChange}
       />
 
-      {/* Canvas */}
-      <div className="bg-background rounded-lg overflow-hidden relative">
+  {/* Canvas */}
+  <div
+    ref={containerRef}
+    onMouseDown={handleContainerMouseDown}
+    onMouseMove={handleContainerMouseMove}
+    onMouseUp={handleContainerMouseUp}
+    className="bg-background rounded-lg overflow-hidden relative mx-auto"
+    style={{ width: displayWidth }}
+  >
+        {/* Ctrl / Pan hint badge */}
+        <div className="absolute left-4 bottom-4 z-40">
+          <div className={cn(
+            "px-2 py-1 rounded-md text-xs font-medium shadow",
+            isPanningState ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+          )}>
+            {isPanningState ? 'Panning — release mouse' : (tool === 'pan' ? 'Pan mode' : (isCtrlPressed ? 'Hold Ctrl to pan (click+drag)' : 'Hold Ctrl to pan'))}
+          </div>
+        </div>
         {/* Top info bar (frame/slice + zoom) */}
         <div className="absolute left-0 right-0 top-0 z-20 px-4 py-2 bg-background/60 backdrop-blur-sm border-b border-muted/20 flex items-center justify-between">
           <div className="text-sm text-muted-foreground">Frame {currentFrame + 1} • Slice {currentSlice + 1}</div>
@@ -805,17 +955,15 @@ export function ImageCanvas({
           </div>
         )}
 
-        <div className="flex items-center justify-center" style={{ width: '100%', height: height }}>
+        <div className="flex items-center justify-center" style={{ width: '100%', height: displayHeight }}>
           <Stage
             ref={stageRef}
-            width={width}
-            height={height}
+            width={displayWidth}
+            height={displayHeight}
             scaleX={stageScale}
             scaleY={stageScale}
             x={stagePosition.x}
             y={stagePosition.y}
-            draggable={tool === 'pan'}
-            onDragMove={handleDragMove}
             onWheel={handleWheel}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
