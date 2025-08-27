@@ -513,29 +513,34 @@ export function ImageCanvas({
     const scaleBy = e.evt.deltaY > 0 ? 0.9 : 1.1;
     const newScale = Math.max(0.1, Math.min(5, oldScale * scaleBy));
 
-    setStageScale(newScale);
-    stage.scale({ x: newScale, y: newScale });
-
-    // adjust position so the point under the mouse stays in the same place
-    const newPos = {
-      x: pointer.x - mousePointTo.x * newScale,
-      y: pointer.y - mousePointTo.y * newScale,
-    };
-    stage.position(newPos);
-    setStagePosition(newPos);
-    stage.batchDraw();
-
-    if (typeof setZoomLevel === 'function') {
-      try {
-        setZoomLevel(newScale);
-      } catch (err) {
-        // ignore if parent doesn't accept updates
+    // Smooth zoom animation using requestAnimationFrame
+    let animationFrame: number;
+    const animateZoom = (from: number, to: number, steps = 8, step = 1) => {
+      const nextScale = from + (to - from) * (step / steps);
+      stage.scale({ x: nextScale, y: nextScale });
+      setStageScale(nextScale);
+      // adjust position so the point under the mouse stays in the same place
+      const newPos = {
+        x: pointer.x - mousePointTo.x * nextScale,
+        y: pointer.y - mousePointTo.y * nextScale,
+      };
+      stage.position(newPos);
+      setStagePosition(newPos);
+      stage.batchDraw();
+      if (step < steps) {
+        animationFrame = window.requestAnimationFrame(() => animateZoom(from, to, steps, step + 1));
+      } else {
+        if (typeof setZoomLevel === 'function') {
+          try {
+            setZoomLevel(to);
+          } catch (err) {
+            // ignore if parent doesn't accept updates
+          }
+        }
       }
-    }
+    };
+    animateZoom(oldScale, newScale);
   }, [setZoomLevel]);
-
-  // Previously used when Stage was draggable; container-based panning
-  // replaces Stage dragging so this handler is no longer needed.
 
   const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
     if (e.evt.button !== 0) return;
