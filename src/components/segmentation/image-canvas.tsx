@@ -289,9 +289,8 @@ export function ImageCanvas({
 
   // Visual display size (keeps internal image/mask size unchanged).
   // Default to a larger viewer (like DebugMRIViewer) unless parent overrides.
-  const DEFAULT_DISPLAY_WIDTH = 900;
-  const DEFAULT_DISPLAY_HEIGHT = 520;
-  // If you want the smaller preview card look, pass smaller canvasWidth/canvasHeight from parent.
+  const DEFAULT_DISPLAY_WIDTH = 1000;
+  const DEFAULT_DISPLAY_HEIGHT = 600;
   const displayWidth = canvasWidth ?? DEFAULT_DISPLAY_WIDTH;
   const displayHeight = canvasHeight ?? DEFAULT_DISPLAY_HEIGHT;
 
@@ -927,9 +926,15 @@ export function ImageCanvas({
     onMouseDown={handleContainerMouseDown}
     onMouseMove={handleContainerMouseMove}
     onMouseUp={handleContainerMouseUp}
-    className="bg-background rounded-lg overflow-hidden relative mx-auto"
+    className="bg-background rounded-lg overflow-hidden relative mx-auto border rounded-lg bg-background"
     style={{ width: displayWidth }}
   >
+        {/* Top info bar (frame/slice + zoom) */}
+        <div className="flex justify-between items-center p-2 text-xs text-muted-foreground border-b bg-muted/30">
+          <div className="text-sm text-muted-foreground">Frame {currentFrame + 1} • Slice {currentSlice + 1}</div>
+          <div className="text-sm text-muted-foreground">{Math.round((stageScale || 1) * 100)}% zoom</div>
+        </div>
+
         {/* Ctrl / Pan hint badge */}
         <div className="absolute left-4 bottom-4 z-40">
           <div className={cn(
@@ -939,12 +944,7 @@ export function ImageCanvas({
             {isPanningState ? 'Panning — release mouse' : (tool === 'pan' ? 'Pan mode' : (isCtrlPressed ? 'Hold Ctrl to pan (click+drag)' : 'Hold Ctrl to pan'))}
           </div>
         </div>
-        {/* Top info bar (frame/slice + zoom) */}
-        <div className="absolute left-0 right-0 top-0 z-20 px-4 py-2 bg-background/60 backdrop-blur-sm border-b border-muted/20 flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">Frame {currentFrame + 1} • Slice {currentSlice + 1}</div>
-          <div className="text-sm text-muted-foreground">{Math.round((stageScale || 1) * 100)}% zoom</div>
-        </div>
-
+        
         {/* Only show loading spinner on initial load or when there's no current image */}
         {imageStatus === "loading" && isInitialLoad && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
