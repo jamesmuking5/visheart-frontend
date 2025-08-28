@@ -320,8 +320,8 @@ export function DrawingPanel({
                 <ol className="list-decimal list-inside mt-1 space-y-1">
                   <li>Click and drag to draw a bounding box around the area you want to segment</li>
                   <li>The box will appear as a red dashed outline while drawing</li>
-                  <li>When finished, it will turn green and show coordinates</li>
-                  <li>Click "Start Manual Segmentation" to process the region</li>
+                  <li>When finished, it will turn green and segmentation will start automatically</li>
+                  <li>Wait for the AI to process the region and return the segmentation mask</li>
                 </ol>
               </div>
               

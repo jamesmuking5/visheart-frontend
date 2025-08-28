@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { Stage, Layer, Line, Image as KonvaImage, Rect } from "react-konva";
-import { Play } from "lucide-react";
+import { Play, Loader2 } from "lucide-react";
 import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { Slider } from "@/components/ui/slider";
@@ -201,6 +201,7 @@ export function ImageCanvas({
   const [finalBoundingBox, setFinalBoundingBox] = useState<number[] | null>(null);
   const [selectedLabel, setSelectedLabel] = useState<AnatomicalLabel>(activeLabel);
   const [visibleLabelSet, setVisibleLabelSet] = useState<Set<AnatomicalLabel>>(new Set([activeLabel]));
+  const [isSegmentationLoading, setIsSegmentationLoading] = useState(false);
 
   // Refs for performance
   const stageRef = useRef<any>(null);
@@ -710,6 +711,9 @@ export function ImageCanvas({
       setFinalBoundingBox(bbox);
       setIsDrawingRect(false);
       console.log('Bounding box created:', bbox);
+      
+      // Automatically start segmentation
+      startManualSegmentation(selectedLabel, bbox);
       return;
     }
     
@@ -746,32 +750,34 @@ export function ImageCanvas({
   ]);
 
   // Manual segmentation function
-  const startManualSegmentation = useCallback(async (selectedLabel: AnatomicalLabel) => {
-    if (!finalBoundingBox || !projectData.projectId) {
+  const startManualSegmentation = useCallback(async (selectedLabel: AnatomicalLabel, bbox?: number[]) => {
+    const boundingBox = bbox || finalBoundingBox;
+    if (!boundingBox || !projectData.projectId) {
       console.error('No bounding box or project ID available');
       alert('No bounding box or project ID available');
       return;
     }
 
     // Validate bounding box coordinates
-    if (finalBoundingBox.length !== 4) {
-      console.error('Invalid bounding box format:', finalBoundingBox);
+    if (boundingBox.length !== 4) {
+      console.error('Invalid bounding box format:', boundingBox);
       alert('Invalid bounding box format');
       return;
     }
 
     // Ensure coordinates are positive and within bounds
-    const [x_min, y_min, x_max, y_max] = finalBoundingBox;
+    const [x_min, y_min, x_max, y_max] = boundingBox;
     if (x_min < 0 || y_min < 0 || x_max <= x_min || y_max <= y_min) {
-      console.error('Invalid bounding box coordinates:', finalBoundingBox);
+      console.error('Invalid bounding box coordinates:', boundingBox);
       alert('Invalid bounding box coordinates');
       return;
     }
 
     try {
+      setIsSegmentationLoading(true);
       console.log('Starting manual segmentation with:');
       console.log('- Project ID:', projectData.projectId);
-      console.log('- Bounding box:', finalBoundingBox);
+      console.log('- Bounding box:', boundingBox);
       console.log('- Current frame:', currentFrame);
       console.log('- Current slice:', currentSlice);
       console.log('- Selected label:', selectedLabel);
@@ -797,7 +803,7 @@ export function ImageCanvas({
       
       const requestData = {
         image_name: imageName,
-        bbox: finalBoundingBox,
+        bbox: boundingBox,
         segmentationName: `Manual ${LABEL_NAMES[selectedLabel]} - Frame ${currentFrame + 1}, Slice ${currentSlice + 1}`,
         segmentationDescription: `User-drawn bounding box segmentation for ${LABEL_NAMES[selectedLabel]}`
       };
@@ -847,7 +853,6 @@ export function ImageCanvas({
         setFinalBoundingBox(null);
         setCurrentRect(null);
 
-        alert('Manual segmentation completed successfully!');
       } else {
         console.error('Project dimensions not available for decoding');
         alert('Project dimensions not available for decoding masks');
@@ -860,8 +865,10 @@ export function ImageCanvas({
       
       const errorMessage = error.response?.data?.message || error.response?.data?.detail?.detail || error.message || 'Unknown error occurred';
       alert(`Error starting manual segmentation: ${errorMessage}\n\nCheck console for more details.`);
+    } finally {
+      setIsSegmentationLoading(false);
     }
-  }, [finalBoundingBox, projectData.projectId, currentFrame, currentSlice, tarCacheReady, getMRIImageFilename]);
+  }, [projectData.projectId, currentFrame, currentSlice, tarCacheReady, getMRIImageFilename]);
 
   // Direct mask rendering - create ImageData directly from decodedMasks for each label
   // Render active mask last so it appears on top
@@ -1000,6 +1007,17 @@ export function ImageCanvas({
             <div className="text-sm text-muted-foreground flex items-center gap-2">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
               Loading image...
+            </div>
+          </div>
+        )}
+
+        {/* Segmentation loading overlay */}
+        {isSegmentationLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">
+            <div className="bg-background/80 backdrop-blur-md rounded-xl px-10 py-8 shadow-2xl border flex flex-col items-center gap-6">
+              <Loader2 className="h-10 w-10 text-primary animate-spin" />
+              <div className="text-base font-semibold text-primary">Processing segmentation...</div>
+              <div className="text-xs text-muted-foreground">AI is analyzing the selected region</div>
             </div>
           </div>
         )}
@@ -1144,14 +1162,26 @@ export function ImageCanvas({
               </div>
               
               <div className="flex gap-2">
-                <Button
-                  onClick={() => startManualSegmentation(selectedLabel)}
-                  className="flex-1 text-sm flex items-center"
-                  size="sm"
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  Start Manual Segmentation
-                </Button>
+                {isSegmentationLoading ? (
+                  <Button
+                    disabled
+                    className="flex-1 text-sm flex items-center"
+                    size="sm"
+                  >
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Processing...
+                  </Button>
+                ) : finalBoundingBox ? (
+                  <Button
+                    onClick={() => startManualSegmentation(selectedLabel)}
+                    className="flex-1 text-sm flex items-center"
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    Retry Segmentation
+                  </Button>
+                ) : null}
                 <Button
                   onClick={() => {
                     setFinalBoundingBox(null);
@@ -1168,7 +1198,7 @@ export function ImageCanvas({
           ) : (
             <div className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                Click and drag to draw a bounding box around the region of interest.
+                Click and drag to draw a bounding box around the region of interest. Segmentation will start automatically.
               </p>
               
               {/* Pre-select label before drawing */}
