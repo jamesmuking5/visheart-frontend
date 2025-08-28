@@ -11,10 +11,18 @@
   border: 0.5px solid red;
 } */
 
-/* Make buttons show pointer cursor on hover - currently disabled */
-/* button {
-  @apply hover:cursor-pointer;
-} */
+/* Make buttons show pointer cursor on hover */
+button:hover {
+  cursor: pointer !important;
+}
+
+/* Also apply to button-like elements */
+[role="button"]:hover, 
+.cursor-pointer:hover,
+button[type="button"]:hover,
+button[type="submit"]:hover {
+  cursor: pointer !important;
+}
 
 /* Custom theme variables for inline Tailwind styles */
 /* These map CSS custom properties to Tailwind's color system */

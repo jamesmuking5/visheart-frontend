@@ -11,29 +11,10 @@ import visheartLogo from "@/../public/visheart_logo.svg";
 import { useAuth } from "@/context/auth-context";
 import { AuthenticatedUserView } from "@/components/AuthenticatedUserView";
 import { cn } from "@/lib/utils";
-import { Menu, X, Heart, User, Settings, FileText, Info } from "lucide-react";
+import { Menu, X, User, FileText, Info } from "lucide-react";
 
 // Constants for menu items to avoid recreation on each render
 const MOBILE_MENU_ITEMS = [
-  {
-    title: "Tools",
-    items: [
-      {
-        title: "2D Cardiac Segmentation",
-        href: "/cardiac-segmentation",
-        icon: Heart,
-        badge: "Active",
-        isComingSoon: false,
-      },
-      {
-        title: "3D Cardiac Segmentation",
-        href: "#",
-        icon: Settings,
-        badge: undefined,
-        isComingSoon: true,
-      },
-    ],
-  },
   {
     title: "Information",
     items: [
@@ -112,11 +93,11 @@ export default function Header() {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden flex-shrink-0 items-center md:flex">
+            <div className="hidden flex-shrink-0 items-center md:flex ml-[40vw]">
               <NavigationMenu>
                 <NavigationMenuList className="space-x-1">
-                  <HomeDropDown />
                   <ProfileDropDown />
+                  <HomeDropDown />
                 </NavigationMenuList>
               </NavigationMenu>
             </div>
@@ -239,7 +220,7 @@ const HomeDropDown = React.memo(function HomeDropDown() {
       <NavigationMenuTrigger className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2">
         <div className="flex items-center space-x-2">
           <Info className="h-4 w-4" />
-          <span>About</span>
+          <span>Help</span>
         </div>
       </NavigationMenuTrigger>
       <NavigationMenuContent className="bg-background/95 border shadow-lg backdrop-blur-md">

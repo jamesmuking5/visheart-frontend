@@ -18,7 +18,7 @@ export default function FirstSection({
   className = "",
 }: FirstSectionProps) {
   return (
-    <section className={cn("min-h-screen flex items-center justify-center bg-muted-background", className)}>
+    <section className={cn("min-h-screen flex items-start justify-center pt-30 bg-muted-background", className)}>
       <div className="container mx-auto px-4">
         <div className="text-center max-w-4xl mx-auto">
           {/* Main Title */}
