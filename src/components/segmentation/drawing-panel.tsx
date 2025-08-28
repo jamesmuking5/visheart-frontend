@@ -40,10 +40,7 @@ const TOOL_CONFIG: Record<DrawingTool, { icon: React.ComponentType<any>; label: 
   select: { icon: MousePointer2, label: 'Select' },
   brush: { icon: Brush, label: 'Brush', shortcut: 'Brush' },
   eraser: { icon: Eraser, label: 'Eraser', shortcut: 'Eraser' },
-  label: { icon: Type, label: 'Label' },
   rectangle: { icon: Square, label: 'Bounding Box' },
-  circle: { icon: Circle, label: 'Circle' },
-  measure: { icon: Ruler, label: 'Measure' },
   zoom: { icon: Search, label: 'Zoom' },
   pan: { icon: Move, label: 'Pan' },
 } as const;
@@ -51,9 +48,8 @@ const TOOL_CONFIG: Record<DrawingTool, { icon: React.ComponentType<any>; label: 
 // Memoized tool grid layout
 const TOOL_GRID_LAYOUT: DrawingTool[][] = [
   ['select', 'brush', 'eraser'],
-  ['label', 'circle'],
   ['rectangle'],
-  ['measure', 'zoom', 'pan']
+  ['zoom', 'pan']
 ];
 
 export function DrawingPanel({
@@ -387,8 +383,6 @@ export function DrawingPanel({
           <div>• <strong>Brush:</strong> Paint segmentation masks</div>
           <div>• <strong>Eraser:</strong> Remove mask pixels</div>
           <div>• <strong>Rectangle:</strong> Draw bounding box for AI-powered manual segmentation</div>
-          <div>• <strong>Shapes:</strong> Draw geometric annotations</div>
-          <div>• <strong>Measure:</strong> Calculate distances</div>
           <div>• <strong>Zoom/Pan:</strong> Navigate the canvas</div>
         </div>
       </div>

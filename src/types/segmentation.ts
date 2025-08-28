@@ -19,8 +19,8 @@ export const LABEL_NAMES: Record<AnatomicalLabel, string> = {
 
 // Tool type definitions
 export const DRAWING_TOOLS = [
-  'select', 'brush', 'eraser', 'label', 'rectangle', 
-  'circle', 'measure', 'zoom', 'pan'
+  'select', 'brush', 'eraser', 'rectangle', 
+  'zoom', 'pan'
 ] as const;
 export type DrawingTool = typeof DRAWING_TOOLS[number];
 
