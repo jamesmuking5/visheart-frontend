@@ -182,6 +182,7 @@ export function ImageCanvas({
   hardness,
   zoomLevel = 1,
   setZoomLevel,
+  resetTrigger,
 }: ImageCanvasProps) {
   // Get image loading method from ProjectContext
   const { getMRIImage, getMRIImageFilename, tarCacheReady, tarCacheError } = useProject();
@@ -335,12 +336,11 @@ export function ImageCanvas({
 
   // Sync selected label and visibleLabelSet when tool changes or active label changes
   useEffect(() => {
-   if (tool === "rectangle") {
+    if (tool === "rectangle") {
       setSelectedLabel(activeLabel);
       setVisibleLabelSet(new Set([activeLabel]));
     }
-    // Update stage scale if zoomLevel prop changes (use zoomLevel directly so
-    // image renders at original pixel size when zoomLevel === 1)
+    
     if (typeof zoomLevel === 'number') {
       const clamped = Math.min(Math.max(zoomLevel, 0.1), 5);
       const applied = clamped; // do not multiply by baseFitScale
@@ -348,16 +348,6 @@ export function ImageCanvas({
       const stage = stageRef.current;
       if (stage && stage.getStage) {
         const konvaStage = stage.getStage();
-
-        // If zoom level is reset to 1 (original size), also center the canvas
-        if (clamped === 1) {
-          const logicalW = width || displayWidth;
-          const logicalH = height || displayHeight;
-          const offsetX = Math.max(0, (displayWidth - logicalW) / 2);
-          const offsetY = Math.max(0, (displayHeight - logicalH) / 2);
-          konvaStage.position({ x: offsetX, y: offsetY });
-          setStagePosition({ x: offsetX, y: offsetY });
-        }
 
         konvaStage.scale({ x: applied, y: applied });
         konvaStage.batchDraw();
@@ -386,6 +376,33 @@ export function ImageCanvas({
     setStagePosition({ x: offsetX, y: offsetY });
     stage.batchDraw();
   }, [baseFitScale, displayWidth, displayHeight, width, height]); 
+  
+  // Handle reset trigger - reset both zoom and position
+  useEffect(() => {
+    if (resetTrigger !== undefined && resetTrigger > 0) {
+      const stage = stageRef.current?.getStage?.();
+      if (!stage) return;
+
+      // Reset zoom to 1
+      const newScale = 1;
+      stage.scale({ x: newScale, y: newScale });
+      setStageScale(newScale);
+
+      // Center the canvas
+      const logicalW = width || displayWidth;
+      const logicalH = height || displayHeight;
+      const offsetX = Math.max(0, (displayWidth - logicalW * newScale) / 2);
+      const offsetY = Math.max(0, (displayHeight - logicalH * newScale) / 2);
+      stage.position({ x: offsetX, y: offsetY });
+      setStagePosition({ x: offsetX, y: offsetY });
+      stage.batchDraw();
+
+      // Update zoom level prop
+      if (setZoomLevel) {
+        setZoomLevel(1);
+      }
+    }
+  }, [resetTrigger, width, height, displayWidth, displayHeight, setZoomLevel]); 
   
   // Image loading with tar cache and API fallback
   useEffect(() => {

@@ -64,6 +64,7 @@ export interface DrawingPanelProps {
   canClear: boolean;
   zoomLevel?: number;
   setZoomLevel?: (level: number) => void;
+  onReset?: () => void;
 }
 
 export interface ImageCanvasProps {
@@ -93,6 +94,7 @@ export interface ImageCanvasProps {
   // Zoom level (1.0 = 100%)
   zoomLevel?: number;
   setZoomLevel?: (level: number) => void;
+  resetTrigger?: number;
 }
 
 export interface HistoryPanelProps {
@@ -145,9 +147,8 @@ export interface SegmentationSidebarProps {
   // Zoom controls shared with drawing panel / image canvas
   zoomLevel?: number;
   setZoomLevel?: (level: number) => void;
+  onReset?: () => void;
 }
-
-// Utility constants
 export const HARDNESS_TO_BLUR: Record<BrushHardness, number> = {
   soft: 15,
   medium: 7,

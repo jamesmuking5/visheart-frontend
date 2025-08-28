@@ -76,6 +76,13 @@ export default function SegmentationResultsPage() {
   const [currentFrame, setCurrentFrame] = useState(0);
   const [currentSlice, setCurrentSlice] = useState(0);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
+  const [resetTrigger, setResetTrigger] = useState<number>(0);
+
+  // Reset zoom and position
+  const handleReset = useCallback(() => {
+    setZoomLevel(1);
+    setResetTrigger(prev => prev + 1);
+  }, []);
 
   // Frame/Slice-Specific History Management, each frame/slice combination has its own history stack
   const [frameSliceHistories, setFrameSliceHistories] = useState<Record<string, HistoryEntry[]>>({});
@@ -455,6 +462,7 @@ export default function SegmentationResultsPage() {
               hardness={hardness}
               zoomLevel={zoomLevel}
               setZoomLevel={setZoomLevel}
+              resetTrigger={resetTrigger}
             />
           </div>
         </main>
@@ -497,6 +505,7 @@ export default function SegmentationResultsPage() {
               onHistoryCheckpoint={handleHistoryCheckpoint}
               zoomLevel={zoomLevel}
               setZoomLevel={setZoomLevel}
+              onReset={handleReset}
             />
           </div>
         </aside>
