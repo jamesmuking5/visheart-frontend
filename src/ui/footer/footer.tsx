@@ -49,6 +49,9 @@ export default function Footer() {
               <Link href="/doc" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Docs
               </Link>
+              <Link href="/sample" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Sample NIfTi files
+              </Link>
             </div>
           </div>
 
