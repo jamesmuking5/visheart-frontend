@@ -290,7 +290,7 @@ export function ImageCanvas({
   // Visual display size (keeps internal image/mask size unchanged).
   // Default to a larger viewer (like DebugMRIViewer) unless parent overrides.
   const DEFAULT_DISPLAY_WIDTH = 1000;
-  const DEFAULT_DISPLAY_HEIGHT = 600;
+  const DEFAULT_DISPLAY_HEIGHT = 550;
   const displayWidth = canvasWidth ?? DEFAULT_DISPLAY_WIDTH;
   const displayHeight = canvasHeight ?? DEFAULT_DISPLAY_HEIGHT;
 
@@ -348,6 +348,17 @@ export function ImageCanvas({
       const stage = stageRef.current;
       if (stage && stage.getStage) {
         const konvaStage = stage.getStage();
+
+        // If zoom level is reset to 1 (original size), also center the canvas
+        if (clamped === 1) {
+          const logicalW = width || displayWidth;
+          const logicalH = height || displayHeight;
+          const offsetX = Math.max(0, (displayWidth - logicalW) / 2);
+          const offsetY = Math.max(0, (displayHeight - logicalH) / 2);
+          konvaStage.position({ x: offsetX, y: offsetY });
+          setStagePosition({ x: offsetX, y: offsetY });
+        }
+
         konvaStage.scale({ x: applied, y: applied });
         konvaStage.batchDraw();
       }
@@ -355,26 +366,28 @@ export function ImageCanvas({
   }, [activeLabel, tool, zoomLevel]);
 
   // Initialize stage scale and center content inside the visual display area
+  // Only run on mount or when canvas dimensions change, not during zoom interactions
   useEffect(() => {
     const stage = stageRef.current?.getStage?.();
     if (!stage) return;
 
-  const zoom = typeof zoomLevel === 'number' ? Math.min(Math.max(zoomLevel, 0.1), 5) : 1;
-  const newScale = zoom; // keep image at original size when zoom === 1
-  stage.scale({ x: newScale, y: newScale });
-  setStageScale(newScale);
+    const zoom = typeof zoomLevel === 'number' ? Math.min(Math.max(zoomLevel, 0.1), 5) : 1;
+    const newScale = zoom; // keep image at original size when zoom === 1
+    stage.scale({ x: newScale, y: newScale });
+    setStageScale(newScale);
 
-  const logicalW = width || displayWidth;
-  const logicalH = height || displayHeight;
-  // Center the logical image inside the larger display canvas
-  const offsetX = Math.max(0, (displayWidth - logicalW * newScale) / 2);
-  const offsetY = Math.max(0, (displayHeight - logicalH * newScale) / 2);
+    const logicalW = width || displayWidth;
+    const logicalH = height || displayHeight;
+
+    // Center the logical image inside the larger display canvas
+    const offsetX = Math.max(0, (displayWidth - logicalW * newScale) / 2);
+    const offsetY = Math.max(0, (displayHeight - logicalH * newScale) / 2);
     stage.position({ x: offsetX, y: offsetY });
     setStagePosition({ x: offsetX, y: offsetY });
     stage.batchDraw();
-  }, [baseFitScale, displayWidth, displayHeight, width, height, zoomLevel]);
-
-  // Enhanced image loading with tar cache + API fallback
+  }, [baseFitScale, displayWidth, displayHeight, width, height]); 
+  
+  // Image loading with tar cache and API fallback
   useEffect(() => {
     if (!projectData.projectId) return;
 
@@ -494,6 +507,24 @@ export function ImageCanvas({
     return transformed;
   }, []);
 
+  // Debounced zoom level synchronization to prevent lag during smooth zooming
+  const syncZoomLevel = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (scale: number) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          if (typeof setZoomLevel === 'function') {
+            try {
+              setZoomLevel(scale);
+            } catch (err) {}
+          }
+        }, 150); // Small delay to ensure smooth animation completes
+      };
+    })(),
+    [setZoomLevel]
+  );
+
   // Wheel zoom handler (cursor-centered) and pan (draggable stage) helpers
   const handleWheel = useCallback((e: any) => {
     // e is a Konva event wrapper
@@ -527,25 +558,16 @@ export function ImageCanvas({
       stage.position(newPos);
       setStagePosition(newPos);
       stage.batchDraw();
-      // Always update zoomLevel state so DrawingPanel and header stay in sync
-      if (typeof setZoomLevel === 'function') {
-        try {
-          setZoomLevel(nextScale);
-        } catch (err) {}
-      }
+
       if (step < steps) {
         animationFrame = window.requestAnimationFrame(() => animateZoom(from, to, steps, step + 1));
       } else {
-        // Final frame: ensure zoomLevel is exactly the target value
-        if (typeof setZoomLevel === 'function') {
-          try {
-            setZoomLevel(to);
-          } catch (err) {}
-        }
+        // Use debounced zoom level synchronization to prevent lag
+        syncZoomLevel(to);
       }
     };
     animateZoom(oldScale, newScale);
-  }, [setZoomLevel]);
+  }, [syncZoomLevel]);
 
   const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
     if (e.evt.button !== 0) return;
