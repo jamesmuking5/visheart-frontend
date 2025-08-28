@@ -301,7 +301,7 @@ const ComparePanel = React.memo(({
 }) => {
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-foreground">Compare Masks</h2>
+      <h2 className="text-lg font-semibold text-foreground">Compare Masks (WIP)</h2>
       
       <div className="space-y-4">
         <div className="p-4 bg-muted rounded-lg text-center">
@@ -343,7 +343,7 @@ ComparePanel.displayName = 'ComparePanel';
 const SettingsPanel = React.memo(() => {
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-foreground">Settings</h2>
+      <h2 className="text-lg font-semibold text-foreground">Settings (WIP)</h2>
       
       <div className="space-y-4">
         <div>

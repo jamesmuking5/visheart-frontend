@@ -42,7 +42,7 @@ const NavigationControls = memo(({
   onFrameChange: (frame: number) => void;
   onSliceChange: (slice: number) => void;
 }) => (
-  <div className="w-full max-w-5xl mb-4 p-4 bg-muted rounded-lg shadow-md">
+  <div className="w-full max-w-6xl mb-4 p-4 bg-muted rounded-lg shadow-md">
     <div className="grid grid-cols-2 gap-8">
       {/* Frame Controls */}
       <div className="space-y-2">
@@ -289,20 +289,50 @@ export function ImageCanvas({
     }
   }, [isCtrlPressed, tool, isPanningState]);
 
-  // Visual display size (keeps internal image/mask size unchanged).
-  // Default to a larger viewer (like DebugMRIViewer) unless parent overrides.
-  const DEFAULT_DISPLAY_WIDTH = 1000;
-  const DEFAULT_DISPLAY_HEIGHT = 550;
-  const displayWidth = canvasWidth ?? DEFAULT_DISPLAY_WIDTH;
-  const displayHeight = canvasHeight ?? DEFAULT_DISPLAY_HEIGHT;
+  // Visual display size (responsive container sizing)
+  // Uses canvasWidth/canvasHeight props if provided, otherwise responsive
+  const displayWidth = canvasWidth ?? 1000;
+  const displayHeight = canvasHeight ?? 550;
+
+  // Get actual container dimensions for responsive Stage sizing
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number }>({
+    width: displayWidth,
+    height: displayHeight
+  });
+
+  // Update container size when container ref is available
+  useEffect(() => {
+    if (containerRef.current) {
+      const updateSize = () => {
+        if (containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          setContainerSize({
+            width: rect.width,
+            height: rect.height
+          });
+        }
+      };
+
+      // Initial size
+      updateSize();
+
+      // Set up ResizeObserver for responsive updates
+      const resizeObserver = new ResizeObserver(updateSize);
+      resizeObserver.observe(containerRef.current);
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+  }, [displayWidth, displayHeight]);
 
   // Compute a fit scale (kept for possible future use). By default we will
   // render the image at its original logical size and only change stageScale
   // according to `zoomLevel` so annotations remain 1:1 with image pixels.
   const baseFitScale = useMemo(() => {
-    if (!width || !height || !displayWidth || !displayHeight) return 1;
-    return Math.min(displayWidth / width, displayHeight / height);
-  }, [width, height, displayWidth, displayHeight]);
+    if (!width || !height || !containerSize.width || !containerSize.height) return 1;
+    return Math.min(containerSize.width / width, containerSize.height / height);
+  }, [width, height, containerSize.width, containerSize.height]);
 
   // Memoized values from project data
   const { totalFrames, totalSlices } = useMemo(() => ({
@@ -367,16 +397,16 @@ export function ImageCanvas({
     stage.scale({ x: newScale, y: newScale });
     setStageScale(newScale);
 
-    const logicalW = width || displayWidth;
-    const logicalH = height || displayHeight;
+    const logicalW = width || containerSize.width || 1000;
+    const logicalH = height || containerSize.height || 550;
 
     // Center the logical image inside the larger display canvas
-    const offsetX = Math.max(0, (displayWidth - logicalW * newScale) / 2);
-    const offsetY = Math.max(0, (displayHeight - logicalH * newScale) / 2);
+    const offsetX = Math.max(0, ((containerSize.width || 1000) - logicalW * newScale) / 2);
+    const offsetY = Math.max(0, ((containerSize.height || 550) - logicalH * newScale) / 2);
     stage.position({ x: offsetX, y: offsetY });
     setStagePosition({ x: offsetX, y: offsetY });
     stage.batchDraw();
-  }, [baseFitScale, displayWidth, displayHeight, width, height]); 
+  }, [baseFitScale, containerSize.width, containerSize.height, width, height]); 
   
   // Handle reset trigger - reset both zoom and position
   useEffect(() => {
@@ -390,10 +420,10 @@ export function ImageCanvas({
       setStageScale(newScale);
 
       // Center the canvas
-      const logicalW = width || displayWidth;
-      const logicalH = height || displayHeight;
-      const offsetX = Math.max(0, (displayWidth - logicalW * newScale) / 2);
-      const offsetY = Math.max(0, (displayHeight - logicalH * newScale) / 2);
+      const logicalW = width || displayWidth || 1000;
+      const logicalH = height || displayHeight || 550;
+      const offsetX = Math.max(0, ((displayWidth || 1000) - logicalW * newScale) / 2);
+      const offsetY = Math.max(0, ((displayHeight || 550) - logicalH * newScale) / 2);
       stage.position({ x: offsetX, y: offsetY });
       setStagePosition({ x: offsetX, y: offsetY });
       stage.batchDraw();
@@ -982,11 +1012,10 @@ export function ImageCanvas({
     onMouseDown={handleContainerMouseDown}
     onMouseMove={handleContainerMouseMove}
     onMouseUp={handleContainerMouseUp}
-    className="bg-background rounded-lg overflow-hidden relative mx-auto border rounded-lg bg-background"
-    style={{ width: displayWidth }}
+    className="w-full max-w-7xl h-[80vh] min-h-[400px] max-h-[700px] bg-background rounded-lg overflow-hidden relative mx-auto border"
   >
         {/* Top info bar (frame/slice + zoom) */}
-        <div className="flex justify-between items-center p-2 text-xs text-muted-foreground border-b bg-muted/30">
+        <div className="flex justify-between items-center p-2 text-xs text-muted-foreground border-b bg-muted/30 z-10 relative">
           <div className="text-sm text-muted-foreground">Frame {currentFrame + 1} • Slice {currentSlice + 1}</div>
           <div className="text-sm text-muted-foreground">{Math.round((stageScale || 1) * 100)}% zoom</div>
         </div>
@@ -1022,11 +1051,11 @@ export function ImageCanvas({
           </div>
         )}
 
-        <div className="flex items-center justify-center" style={{ width: '100%', height: displayHeight }}>
+        <div className="flex items-center justify-center" style={{ width:'100%', height: '100%' }}>
           <Stage
             ref={stageRef}
-            width={displayWidth}
-            height={displayHeight}
+            width={containerSize.width}
+            height={containerSize.height}
             scaleX={stageScale}
             scaleY={stageScale}
             x={stagePosition.x}
@@ -1037,7 +1066,7 @@ export function ImageCanvas({
             onMouseUp={handleMouseUp}
           >
           <Layer>
-            {/* Background Image */}
+            {/* Background Image */}  
             {imageStatus === "loaded" && image && (
               <KonvaImage image={image} width={width} height={height} />
             )}
