@@ -318,9 +318,11 @@ export function DrawingPanel({
               <div className="text-xs text-muted-foreground">
                 <strong>Instructions:</strong>
                 <ol className="list-decimal list-inside mt-1 space-y-1">
+                  <li>Select your desired anatomical label above before drawing</li>
                   <li>Click and drag to draw a bounding box around the area you want to segment</li>
                   <li>The box will appear as a red dashed outline while drawing</li>
-                  <li>When finished, it will turn green and segmentation will start automatically</li>
+                  <li>Release the mouse to finalize - the box will turn green</li>
+                  <li>Segmentation will start automatically using the selected anatomical label</li>
                   <li>Wait for the AI to process the region and return the segmentation mask</li>
                 </ol>
               </div>
