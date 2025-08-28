@@ -189,7 +189,7 @@ export default function ProfilePage() {
   const isGuest = user.role === "guest";
 
   return (
-    <div className="sm:py-17">
+    <div className="">
       <Toaster richColors />
       <div className="container mx-auto max-w-4xl space-y-8 p-4 md:p-8">
         <div className="flex items-center gap-4">
