@@ -42,8 +42,8 @@ const NavigationControls = memo(({
   onFrameChange: (frame: number) => void;
   onSliceChange: (slice: number) => void;
 }) => (
-  <div className="w-full max-w-3xl mb-4 p-4 bg-muted rounded-lg shadow-md">
-    <div className="grid grid-cols-2 gap-4">
+  <div className="w-full max-w-5xl mb-4 p-4 bg-muted rounded-lg shadow-md">
+    <div className="grid grid-cols-2 gap-8">
       {/* Frame Controls */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
