@@ -44,13 +44,13 @@ export default function Footer() {
                 Home
               </Link>
               <Link href="/about" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                About
+                About Us
               </Link>
               <Link href="/doc" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Docs
+                Documentation
               </Link>
               <Link href="/sample" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Sample NIfTi files
+                Sample NIfTI files
               </Link>
             </div>
           </div>
