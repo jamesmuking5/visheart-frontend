@@ -93,8 +93,8 @@ const SamplePage: React.FC = () => {
   }, []);
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl">
-      <div className="mb-8">
+    <div className="container mx-auto px-4 py-8 max-w-6xl sm:h-dvh h-full">
+      <div className="sm:mb-20 mb-8">
         <h1 className="text-3xl font-bold text-foreground mb-2">Sample NIfTI Files</h1>
         <p className="text-muted-foreground mb-4">Download sample cardiac imaging files for testing and demonstration purposes.</p>
       </div>
