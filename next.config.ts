@@ -21,14 +21,19 @@ const nextConfig: NextConfig = {
         os: false,
       };
     }
-    
+
     // Exclude problematic modules from server-side rendering
-    config.externals = [...(config.externals || []), 'canvas'];
-    
+    config.externals = [...(config.externals || []), "canvas"];
+
     return config;
   },
   // Transpile specific packages that might have issues
-  transpilePackages: ['konva', 'react-konva'],
+  transpilePackages: ["konva", "react-konva"],
+
+  // 🔥 Remove console.* in production
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
+  },
 };
 
 export default nextConfig;
