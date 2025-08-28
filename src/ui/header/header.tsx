@@ -11,29 +11,10 @@ import visheartLogo from "@/../public/visheart_logo.svg";
 import { useAuth } from "@/context/auth-context";
 import { AuthenticatedUserView } from "@/components/AuthenticatedUserView";
 import { cn } from "@/lib/utils";
-import { Menu, X, Heart, User, Settings, FileText, Info, Zap } from "lucide-react";
+import { Menu, X, User, FileText, Info } from "lucide-react";
 
 // Constants for menu items to avoid recreation on each render
 const MOBILE_MENU_ITEMS = [
-  {
-    title: "Tools",
-    items: [
-      {
-        title: "2D Cardiac Segmentation",
-        href: "/cardiac-segmentation",
-        icon: Heart,
-        badge: "Active",
-        isComingSoon: false,
-      },
-      {
-        title: "3D Cardiac Segmentation",
-        href: "#",
-        icon: Settings,
-        badge: undefined,
-        isComingSoon: true,
-      },
-    ],
-  },
   {
     title: "Information",
     items: [
@@ -112,12 +93,11 @@ export default function Header() {
             </div>
 
             {/* Desktop Navigation */}
-            <div className="hidden flex-shrink-0 items-center md:flex">
+            <div className="hidden flex-shrink-0 items-center md:flex ml-[40vw]">
               <NavigationMenu>
                 <NavigationMenuList className="space-x-1">
-                  <ToolsDropDown />
-                  <HomeDropDown />
                   <ProfileDropDown />
+                  <HomeDropDown />
                 </NavigationMenuList>
               </NavigationMenu>
             </div>
@@ -240,33 +220,16 @@ const HomeDropDown = React.memo(function HomeDropDown() {
       <NavigationMenuTrigger className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2">
         <div className="flex items-center space-x-2">
           <Info className="h-4 w-4" />
-          <span>About</span>
+          <span>Help</span>
         </div>
       </NavigationMenuTrigger>
       <NavigationMenuContent className="bg-background/95 border shadow-lg backdrop-blur-md">
-        <div className="grid w-[500px] gap-3 p-6 lg:w-[600px] lg:grid-cols-[1fr_1.5fr]">
-          <div className="row-span-3">
-            <NavigationMenuLink asChild>
-              <Link
-                className="group flex h-full w-full flex-col justify-center rounded-lg border border-red-200/50 bg-gradient-to-br from-red-50 to-pink-50 p-6 no-underline outline-none select-none hover:scale-[1.02] hover:shadow-md dark:border-red-800/50 dark:from-red-950/50 dark:to-pink-950/50"
-                href="/"
-              >
-                <div className="mb-4 flex items-center space-x-3">
-                  <div className="rounded-lg bg-red-500/10 p-2">
-                    <Heart className="h-6 w-6 text-red-500" />
-                  </div>
-                  <div className="text-xl font-bold text-red-500">VisHeart</div>
-                </div>
-                <p className="text-muted-foreground text-sm leading-relaxed">Advanced Cardiac Component Segmentation using AI-powered tools for medical imaging analysis.</p>
-                <div className="mt-4 flex items-center text-sm font-medium text-red-500 group-hover:text-red-600">Learn more →</div>
-              </Link>
-            </NavigationMenuLink>
-          </div>
-          <ul className="flex h-full list-none flex-col">
-            <ListItem href="/doc" title="Documentation" icon={FileText} badge="Updated" className="flex-1">
+        <div className="w-[400px] p-6">
+          <ul className="flex flex-col space-y-3">
+            <ListItem href="/doc" title="Documentation" icon={FileText} badge="Updated" className="min-h-20">
               Complete guide on using VisHeart&apos;s features, tools, and best practices for cardiac imaging.
             </ListItem>
-            <ListItem href="/about" title="About Us" icon={Info} className="min-h-36 flex-1">
+            <ListItem href="/about" title="About Us" icon={Info} className="min-h-20">
               Meet the VisHeart team and learn about our mission to advance cardiac imaging technology.
             </ListItem>
           </ul>
@@ -310,36 +273,6 @@ const ProfileDropDown = React.memo(function ProfileDropDown() {
       </NavigationMenuItem>
     );
   }
-});
-
-// Enhanced ToolsDropDown component
-const ToolsDropDown = React.memo(function ToolsDropDown() {
-  return (
-    <NavigationMenuItem>
-      <NavigationMenuTrigger className="group hover:bg-accent/50 data-[state=open]:bg-accent/50 h-10 bg-transparent px-4 py-2">
-        <div className="flex items-center space-x-2">
-          <Zap className="h-4 w-4" />
-          <span>Tools</span>
-        </div>
-      </NavigationMenuTrigger>
-      <NavigationMenuContent className="bg-background/95 min-h-72 border shadow-lg backdrop-blur-md">
-        <div className="grid w-[500px] gap-3 p-6 md:w-[600px] md:grid-cols-1 lg:w-[700px]">
-          <div className="mb-4">
-            <h3 className="text-primary mb-2 text-lg font-semibold">AI-Powered Segmentation Tools</h3>
-            <p className="text-muted-foreground text-sm">Advanced tools for cardiac imaging analysis and segmentation</p>
-          </div>
-          <div className="grid list-none grid-cols-1 gap-3 md:grid-cols-2">
-            <ListItem href="/cardiac-segmentation" title="2D Cardiac Segmentation" icon={Heart} badge="Active" as="div" className="min-h-36">
-              Advanced <span className="text-green-500">2D</span> cardiac component segmentation using YOLO and MedSAM for precise medical imaging analysis.
-            </ListItem>
-            <ListItem href="#" title="3D Cardiac Segmentation" icon={Settings} isComingSoon={true} as="div" className="min-h-36">
-              Upcoming <span className="text-red-500">3D</span> cardiac imaging capabilities with enhanced depth analysis and volumetric segmentation.
-            </ListItem>
-          </div>
-        </div>
-      </NavigationMenuContent>
-    </NavigationMenuItem>
-  );
 });
 
 // Mobile Menu Component

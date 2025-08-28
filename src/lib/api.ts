@@ -525,4 +525,50 @@ export const gpuConfigApi = {
   },
 };
 
+// Sample NIfTI files API
+export const sampleNiftiApi = {
+  /**
+   * Get information about all available sample NIfTI files
+   * @returns Promise<SampleNiftiResponse> - Response containing file information
+   */
+  getFileInfo: async () => {
+    try {
+      const response = await api.get("/sample-nifti/info");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Get metadata for a specific NIfTI file
+   * @param filename - Name of the NIfTI file
+   * @returns Promise<ApiResponse> - Response containing file metadata
+   */
+  getFileMetadata: async (filename: string) => {
+    try {
+      const response = await api.get(`/sample-nifti/metadata/${filename}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Download a specific NIfTI file
+   * @param filename - Name of the NIfTI file to download
+   * @returns Promise<Blob> - File blob for download
+   */
+  downloadFile: async (filename: string): Promise<Blob> => {
+    try {
+      const response = await api.get(`/sample-nifti/download/${filename}`, {
+        responseType: 'blob',
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
 export default api;

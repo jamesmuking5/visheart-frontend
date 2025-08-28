@@ -44,10 +44,13 @@ export default function Footer() {
                 Home
               </Link>
               <Link href="/about" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                About
+                About Us
               </Link>
               <Link href="/doc" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                Docs
+                Documentation
+              </Link>
+              <Link href="/sample" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Sample NIfTI files
               </Link>
             </div>
           </div>
@@ -74,7 +77,7 @@ export default function Footer() {
                   <Mail className="h-4 w-4 text-primary" />
                   <span className="font-medium text-foreground">Kathy Wong</span>
                 </div>
-                <div className="text-xs text-muted-foreground ml-6">Client</div>
+                <div className="text-xs text-muted-foreground ml-6">Co-Supervisor</div>
                 <div className="text-xs ml-6">
                   <a href="mailto:hywong@swinburne.edu.my" className="text-muted-foreground hover:text-primary transition-colors">
                     hywong@swinburne.edu.my
