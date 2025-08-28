@@ -1,9 +1,11 @@
+import FirstSection from "@/components/home/First";
+import SecondSection from "@/components/home/Second";
+
 export default function Home() {
   return (
-    <main>
-      <div className="min-h-screen flex items-center justify-center">
-        <h1 className="text-4xl font-bold">Welcome to VisHeart</h1>
-      </div>
+    <main className="w-full h-full">
+      <FirstSection />
+      <SecondSection />
     </main>
   );
 }
