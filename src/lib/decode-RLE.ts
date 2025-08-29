@@ -117,14 +117,14 @@ export function decodeSegmentationMasks(
   // Decode masks
   masks.forEach((maskData) => {
     if (maskData.frames) {
-      maskData.frames.forEach((frame: ProjectTypes.FrameData, frameIndex: number) => {
+      maskData.frames.forEach((frame: ProjectTypes.FrameData) => {
         if (frame.slices) {
-          frame.slices.forEach((slice: ProjectTypes.SliceData, sliceIndex: number) => {
+          frame.slices.forEach((slice: ProjectTypes.SliceData) => {
             if (slice.segmentationmasks) {
               slice.segmentationmasks.forEach((mask: ProjectTypes.SegmentationMaskContent) => {
-                // Example name: "medSam_mask_0_frame_0_slice_0_class1"
+                // Use actual frame.frameindex and slice.sliceindex instead of forEach indices
                 const maskType = maskData.isMedSAMOutput ? "medSamOutput" : "editable";
-                const maskKey = `${maskType}_frame_${frameIndex}_slice_${sliceIndex}_${mask.class}`;
+                const maskKey = `${maskType}_frame_${frame.frameindex}_slice_${slice.sliceindex}_${mask.class}`;
                 const decodedMask = rleDecodeToArray(
                   mask.segmentationmaskcontents,
                   height,

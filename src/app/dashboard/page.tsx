@@ -274,9 +274,8 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div
-                  className={`text-2xl font-bold ${
-                    gpuStatus === "online" ? "text-green-600" : gpuStatus === "timeout" ? "text-red-600" : gpuStatus === "offline" ? "text-red-600" : "text-yellow-600"
-                  }`}
+                  className={`text-2xl font-bold ${gpuStatus === "online" ? "text-green-600" : gpuStatus === "timeout" ? "text-red-600" : gpuStatus === "offline" ? "text-red-600" : "text-yellow-600"
+                    }`}
                 >
                   {gpuStatus === "timeout" ? "Timeout" : gpuStatus.charAt(0).toUpperCase() + gpuStatus.slice(1)}
                 </div>

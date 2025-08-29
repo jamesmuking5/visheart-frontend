@@ -268,7 +268,7 @@ export default function ProjectPage() {
                           <Button asChild className="h-12">
                             <Link href={`/project/${projectId}/segmentation`}>
                               <Edit className="h-4 w-4 mr-2 " />
-                              Edit Segmentation
+                              Edit Segmentation on Images
                             </Link>
                           </Button>
                         </TooltipTrigger>

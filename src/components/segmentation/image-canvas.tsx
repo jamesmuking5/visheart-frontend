@@ -435,6 +435,13 @@ export function ImageCanvas({
     }
   }, [resetTrigger, width, height, displayWidth, displayHeight, setZoomLevel]); 
   
+  // Clear bounding box when frame/slice changes to prevent confusion
+  useEffect(() => {
+    setFinalBoundingBox(null);
+    setCurrentRect(null);
+    setIsDrawingRect(false);
+  }, [currentFrame, currentSlice]);
+  
   // Image loading with tar cache and API fallback
   useEffect(() => {
     if (!projectData.projectId) return;
@@ -742,8 +749,8 @@ export function ImageCanvas({
       setIsDrawingRect(false);
       console.log('Bounding box created:', bbox);
       
-      // Automatically start segmentation
-      startManualSegmentation(selectedLabel, bbox);
+      // Automatically start segmentation with explicit frame/slice to avoid stale closure
+      startManualSegmentation(selectedLabel, bbox, currentFrame, currentSlice);
       return;
     }
     
@@ -780,8 +787,16 @@ export function ImageCanvas({
   ]);
 
   // Manual segmentation function
-  const startManualSegmentation = useCallback(async (selectedLabel: AnatomicalLabel, bbox?: number[]) => {
+  const startManualSegmentation = useCallback(async (
+    selectedLabel: AnatomicalLabel, 
+    bbox?: number[], 
+    frameOverride?: number, 
+    sliceOverride?: number
+  ) => {
     const boundingBox = bbox || finalBoundingBox;
+    const useFrame = frameOverride ?? currentFrame;
+    const useSlice = sliceOverride ?? currentSlice;
+    
     if (!boundingBox || !projectData.projectId) {
       console.error('No bounding box or project ID available');
       alert('No bounding box or project ID available');
@@ -808,37 +823,41 @@ export function ImageCanvas({
       console.log('Starting manual segmentation with:');
       console.log('- Project ID:', projectData.projectId);
       console.log('- Bounding box:', boundingBox);
-      console.log('- Current frame:', currentFrame);
-      console.log('- Current slice:', currentSlice);
+      console.log('- Current frame (override):', useFrame);
+      console.log('- Current slice (override):', useSlice);
       console.log('- Selected label:', selectedLabel);
       
-      // Get the actual filename from the tar cache
+      // Get the actual filename from the tar cache using explicit frame/slice
       let imageName: string;
       
       if (tarCacheReady) {
-        const actualFilename = await getMRIImageFilename(currentFrame, currentSlice);
+        const actualFilename = await getMRIImageFilename(useFrame, useSlice);
         if (actualFilename) {
           imageName = actualFilename;
           console.log('- Using actual filename from tar cache:', imageName);
         } else {
-          // Fallback to constructed filename
-          imageName = `image_frame${currentFrame}_slice${currentSlice}.jpg`;
+          // Fallback to constructed filename using format that backend can parse
+          // Backend expects: something_frameNumber_sliceNumber.jpg
+          imageName = `image_${useFrame}_${useSlice}.jpg`;
           console.log('- Tar cache filename not found, using fallback:', imageName);
         }
       } else {
-        // Fallback to constructed filename when tar cache isn't ready
-        imageName = `image_frame${currentFrame}_slice${currentSlice}.jpg`;
+        // Fallback to constructed filename when tar cache isn't ready  
+        // Backend expects: something_frameNumber_sliceNumber.jpg
+        imageName = `image_${useFrame}_${useSlice}.jpg`;
         console.log('- Tar cache not ready, using fallback filename:', imageName);
       }
       
       const requestData = {
         image_name: imageName,
         bbox: boundingBox,
-        segmentationName: `Manual ${LABEL_NAMES[selectedLabel]} - Frame ${currentFrame + 1}, Slice ${currentSlice + 1}`,
+        segmentationName: `Manual ${LABEL_NAMES[selectedLabel]} - Frame ${useFrame + 1}, Slice ${useSlice + 1}`,
         segmentationDescription: `User-drawn bounding box segmentation for ${LABEL_NAMES[selectedLabel]}`
       };
       
       console.log('Request data:', requestData);
+      console.log('Making API call to startManualSegmentation...');
+      console.log(`Filename format check: "${imageName}" should parse to frame=${useFrame}, slice=${useSlice}`);
       
       const response = await segmentationApi.startManualSegmentation(
         projectData.projectId,
@@ -846,6 +865,8 @@ export function ImageCanvas({
       );
       
       console.log('Manual segmentation response:', response);
+      console.log('Response type:', typeof response);
+      console.log('Response segmentations:', response?.segmentations);
 
       // Defensive check for response and segmentations
       if (!response || !Array.isArray(response.segmentations) || response.segmentations.length === 0) {
@@ -867,15 +888,18 @@ export function ImageCanvas({
         console.log('Decoded new masks:', Object.keys(decodedResult.masks));
 
           // Remap manual mask key to selected anatomical label if needed
-          const frame = currentFrame;
-          const slice = currentSlice;
-          const manualKey = `editable_frame_${frame}_slice_${slice}_manual`;
-          const labelKey = `editable_frame_${frame}_slice_${slice}_${selectedLabel}`;
-          let masksToUpdate = { ...decodedResult.masks };
+          // Use explicit frame/slice to ensure consistency
+          const manualKey = `editable_frame_${useFrame}_slice_${useSlice}_manual`;
+          const labelKey = `editable_frame_${useFrame}_slice_${useSlice}_${selectedLabel}`;
+          const masksToUpdate = { ...decodedResult.masks };
           if (manualKey in masksToUpdate) {
             masksToUpdate[labelKey] = masksToUpdate[manualKey];
             delete masksToUpdate[manualKey];
           }
+          
+          console.log(`Manual segmentation: Remapping ${manualKey} to ${labelKey}`);
+          console.log('Masks being updated:', Object.keys(masksToUpdate));
+          
           // Merge with existing masks
           onMaskUpdate({ ...decodedMasks, ...masksToUpdate }, undefined);
 
@@ -898,7 +922,7 @@ export function ImageCanvas({
     } finally {
       setIsSegmentationLoading(false);
     }
-  }, [projectData.projectId, currentFrame, currentSlice, tarCacheReady, getMRIImageFilename]);
+  }, [projectData.projectId, finalBoundingBox, tarCacheReady, getMRIImageFilename, decodedMasks, onMaskUpdate, projectData.dimensions, currentFrame, currentSlice]);
 
   // Direct mask rendering - create ImageData directly from decodedMasks for each label
   // Render active mask last so it appears on top
