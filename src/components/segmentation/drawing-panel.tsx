@@ -369,7 +369,7 @@ export function DrawingPanel({
             aria-label="Clear current mask (Delete)"
           >
             <Trash2 className="w-4 h-4 mr-2" />
-            Clear Current
+            Clear Current Mask
             <span className="text-xs text-muted-foreground ml-auto">Del</span>
           </Button>
         </div>
@@ -382,8 +382,9 @@ export function DrawingPanel({
           <div>• <strong>Select:</strong> Move and select objects</div>
           <div>• <strong>Brush:</strong> Paint segmentation masks</div>
           <div>• <strong>Eraser:</strong> Remove mask pixels</div>
-          <div>• <strong>Rectangle:</strong> Draw bounding box for AI-powered manual segmentation</div>
-          <div>• <strong>Zoom/Pan:</strong> Navigate the canvas</div>
+          <div>• <strong>Bounding Box:</strong> Draw bounding box for AI-powered manual segmentation</div>
+          <div>• <strong>Zoom:</strong> Enlarge the image</div>
+          <div>• <strong>Pan:</strong> Navigate the canvas</div>
         </div>
       </div>
     </div>
