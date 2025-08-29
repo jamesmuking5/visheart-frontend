@@ -45,11 +45,7 @@ export function ProtectedRoute({
       if (!user) {
         setShouldRedirect(true);
         router.push(redirectTo);
-      } else if (
-        user &&
-        allowedRoles.length > 0 &&
-        !allowedRoles.includes(user.role)
-      ) {
+      } else if (user && allowedRoles.length > 0 && !allowedRoles.includes(user.role)) {
         setShouldRedirect(true);
         router.push(redirectTo);
       }
@@ -92,23 +88,12 @@ export function ProtectedRoute({
 }
 
 // Specific role protection components
-export function AdminOnly({
-  children,
-  fallback,
-}: {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-}) {
+export function AdminOnly({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) {
   const defaultFallback = (
     <div className="flex min-h-[60vh] items-center justify-center">
       <div className="w-full max-w-md space-y-4 text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
-          <svg
-            className="h-8 w-8 text-red-600 dark:text-red-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
+          <svg className="h-8 w-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -118,13 +103,8 @@ export function AdminOnly({
           </svg>
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Access Restricted
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            This area is restricted to administrators only. If you need access,
-            please contact your system administrator.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Access Restricted</h1>
+          <p className="text-gray-600 dark:text-gray-400">This area is restricted to administrators only. If you need access, please contact your system administrator.</p>
         </div>
         <div className="pt-4">
           <button
@@ -139,22 +119,13 @@ export function AdminOnly({
   );
 
   return (
-    <ProtectedRoute
-      allowedRoles={["admin"]}
-      fallback={fallback || defaultFallback}
-    >
+    <ProtectedRoute allowedRoles={["admin"]} fallback={fallback || defaultFallback}>
       {children}
     </ProtectedRoute>
   );
 }
 
-export function UserOrAdmin({
-  children,
-  fallback,
-}: {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-}) {
+export function UserOrAdmin({ children, fallback }: { children: React.ReactNode; fallback?: React.ReactNode }) {
   return (
     <ProtectedRoute allowedRoles={["user", "admin"]} fallback={fallback}>
       {children}
@@ -163,13 +134,7 @@ export function UserOrAdmin({
 }
 
 // Registration and Login protection - only allows guests and unauthenticated users
-export function RegistrationOnly({
-  children,
-  redirectTo = "/",
-}: {
-  children: React.ReactNode;
-  redirectTo?: string;
-}) {
+export function RegistrationOnly({ children, redirectTo = "/dashboard" }: { children: React.ReactNode; redirectTo?: string }) {
   const { user, loading } = useAuth();
   const router = useRouter();
 

@@ -19,7 +19,7 @@ import { RegistrationOnly } from "@/components/ProtectedRoute";
  */
 export default function LoginPage() {
   return (
-    <RegistrationOnly redirectTo="/">
+    <RegistrationOnly redirectTo="/dashboard">
       <div className="bg-background">
         {/* Login Form Component */}
         <LoginForm />

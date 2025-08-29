@@ -184,8 +184,7 @@ export default function DashboardPage() {
           <div className="text-muted-foreground flex items-center gap-2">
             {getRoleIcon(user.role)}
             <span>
-              Welcome back,
-              {user.role === "guest" ? "Guest User" : user.username}.
+              Welcome back, <span className="font-semibold">{user.role === "guest" ? "Guest User" : user.username}.</span>
             </span>
             <Badge variant="outline" className="ml-2">
               {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
@@ -442,12 +441,7 @@ export default function DashboardPage() {
                   onSave={handleSaveProject}
                   onDelete={handleDeleteProject}
                   onExport={handleExportProject}
-                  segmentationIndicator={
-                    <SegmentationIndicator 
-                      status={segmentationStatuses[project.projectId]} 
-                      variant="badge" 
-                    />
-                  }
+                  segmentationIndicator={<SegmentationIndicator status={segmentationStatuses[project.projectId]} variant="badge" />}
                 />
               </div>
             ))}
