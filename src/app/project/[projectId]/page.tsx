@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useProject } from "@/context/ProjectContext";
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 // API
 import { projectApi, segmentationApi } from "@/lib/api";
@@ -34,7 +34,7 @@ import * as ProjectTypes from "@/types/project";
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
-  const { loading, projectData, error, hasMasks, undecodedMasks, jobs, jobsError } = useProject();
+  const { loading, projectData, error, hasMasks, undecodedMasks, jobs, jobsError, refreshMasks } = useProject();
 
   // Local state for editing
   const [isEditing, setIsEditing] = useState(false);
@@ -50,6 +50,62 @@ export default function ProjectPage() {
   // Local project data (for optimistic updates after editing)
   const [localProjectName, setLocalProjectName] = useState<string | null>(null);
   const [localProjectDescription, setLocalProjectDescription] = useState<string | null>(null);
+
+  // Polling state
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Helper function to check if we should poll for masks
+  const shouldPollForMasks = useCallback((): boolean => {
+    // Poll if: no masks exist AND there are jobs (indicating segmentation might be in progress)
+    return !hasMasks && jobs !== null && jobs.length > 0 && loading === "done";
+  }, [hasMasks, jobs, loading]);
+
+  // Polling effect - check for masks every 1 minute when conditions are met
+  useEffect(() => {
+    const startPolling = () => {
+      if (shouldPollForMasks()) {
+        console.log("[Project] Starting mask polling - no masks found but jobs exist");
+        
+        pollIntervalRef.current = setInterval(async () => {
+          if (shouldPollForMasks()) {
+            console.log("[Project] Polling for masks...");
+            try {
+              await refreshMasks();
+            } catch (error) {
+              console.error("[Project] Error during mask polling:", error);
+            }
+          } else {
+            // Stop polling if conditions no longer met
+            if (pollIntervalRef.current) {
+              console.log("[Project] Stopping mask polling - masks found or no jobs");
+              clearInterval(pollIntervalRef.current);
+              pollIntervalRef.current = null;
+            }
+          }
+        }, 60000); // Poll every 1 minute (60000ms)
+      }
+    };
+
+    const stopPolling = () => {
+      if (pollIntervalRef.current) {
+        console.log("[Project] Stopping mask polling");
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+
+    // Start or stop polling based on conditions
+    if (shouldPollForMasks()) {
+      startPolling();
+    } else {
+      stopPolling();
+    }
+
+    // Cleanup function
+    return () => {
+      stopPolling();
+    };
+  }, [shouldPollForMasks, refreshMasks]);
 
   // Missing projectId handling
   if (!projectId) return <NoProjectFound message="Project ID is missing." />;
@@ -247,20 +303,22 @@ export default function ProjectPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <TooltipProvider>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button asChild className="h-12" variant="outline">
-                          <Link href={`/project/${projectId}/preview`}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            Preview Images
-                          </Link>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>View MRI images without segmentation masks</p>
-                      </TooltipContent>
-                    </Tooltip>
+                  <div className={`grid gap-4 ${hasMasks ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+                    {!hasMasks && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button asChild className="h-12" variant="outline">
+                            <Link href={`/project/${projectId}/preview`}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Preview Images
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>View MRI images without segmentation masks</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
 
                     {hasMasks ? (
                       <Tooltip>
