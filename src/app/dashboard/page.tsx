@@ -385,12 +385,21 @@ export default function DashboardPage() {
               <h2 className="text-2xl font-bold">My Projects</h2>
               <p className="text-muted-foreground">Manage your cardiac imaging projects</p>
             </div>
-            <ShowForUser fallback={null}>
-              <Button onClick={() => setUploadDialogOpen(true)}>
-                <Upload className="mr-2 h-4 w-4" />
-                Upload New Project
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => window.open('/sample', '_blank')}
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Sample NIfTI Files
               </Button>
-            </ShowForUser>
+              <ShowForUser fallback={null}>
+                <Button onClick={() => setUploadDialogOpen(true)}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload New Project
+                </Button>
+              </ShowForUser>
+            </div>
           </div>
 
           {/* Project Management Info */}
