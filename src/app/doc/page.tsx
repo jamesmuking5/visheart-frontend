@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BookOpen, Zap, Info, Users } from "lucide-react";
+import { BookOpen, Zap, Info, Users, Play } from "lucide-react";
 
 const DocPage = () => {
   return (
@@ -36,6 +37,12 @@ const DocPage = () => {
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4" />
                   <span className="text-sm">Accounts</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger value="how-it-works" className="w-full justify-start text-left h-auto py-2 px-3 data-[state=active]:bg-secondary">
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4" />
+                  <span className="text-sm">How It Works</span>
                 </div>
               </TabsTrigger>
             </TabsList>
@@ -346,6 +353,281 @@ const DocPage = () => {
                       </CardContent>
                     </Card>
                   </div>
+                </div>
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="how-it-works" className="flex-1 m-0 h-full">
+            <ScrollArea className="h-full w-full">
+              <div className="p-8 w-full">
+                <div className="space-y-8 max-w-none">
+                  <div>
+                    <h1 className="text-3xl font-bold mb-4">How the Segmentation System Works</h1>
+                    <p className="text-muted-foreground mb-6">
+                      Follow this comprehensive guide to understand the complete workflow from project creation to cardiac segmentation results.
+                    </p>
+                  </div>
+
+                  {/* Step 1: Getting Started */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">1</div>
+                        Welcome to VisHeart
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Start your journey with VisHeart&apos;s intuitive homepage. Here you&apos;ll find the main entry points to access the platform.
+                      </p>
+                      <div className="rounded-lg border bg-muted/30 p-4">
+                        <Image 
+                          src="/images/doc/homescreen.png" 
+                          alt="VisHeart Homepage - Welcome screen showing platform features and Get Started button" 
+                          width={1200}
+                          height={800}
+                          className="w-full rounded-md border shadow-sm"
+                        />
+                        <p className="text-xs text-muted-foreground mt-2">The VisHeart homepage with key features highlighted and easy access to get started.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Step 2: Dashboard Overview */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">2</div>
+                        Dashboard Overview
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Your dashboard provides a comprehensive overview of your projects, GPU status, and system statistics.
+                      </p>
+                      <div className="rounded-lg border bg-muted/30 p-4">
+                        <Image 
+                          src="/images/doc/dashboard-overview.png" 
+                          alt="Dashboard Overview - Statistics cards showing total projects, completed segmentations, pending jobs, and GPU status" 
+                          width={1200}
+                          height={800}
+                          className="w-full rounded-md border shadow-sm"
+                        />
+                        <p className="text-xs text-muted-foreground mt-2">Dashboard overview showing project statistics, GPU status, and quick access to new project creation.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Step 3: New Project State */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">3</div>
+                        Starting Fresh
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        When you first access the Projects tab, you&apos;ll see a clean interface ready for your first medical imaging project.
+                      </p>
+                      <div className="rounded-lg border bg-muted/30 p-4">
+                        <Image 
+                          src="/images/doc/dashboard-project-no-projects.png" 
+                          alt="Empty Projects Dashboard - Clean interface showing no projects with Upload New Project button" 
+                          width={1200}
+                          height={800}
+                          className="w-full rounded-md border shadow-sm"
+                        />
+                        <p className="text-xs text-muted-foreground mt-2">Empty projects dashboard with clear call-to-action to upload your first project.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Step 4: Upload Process */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">4</div>
+                        Upload Your Medical Images
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        The upload process is straightforward - simply drag and drop or click to browse for your medical imaging files.
+                      </p>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="rounded-lg border bg-muted/30 p-4">
+                          <Image 
+                            src="/images/doc/dashboard-project-upload-new-project.png" 
+                            alt="Upload Dialog - File upload interface with drag and drop zone" 
+                            width={600}
+                            height={400}
+                            className="w-full rounded-md border shadow-sm"
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">Upload dialog with drag-and-drop interface for medical imaging files.</p>
+                        </div>
+                        <div className="rounded-lg border bg-muted/30 p-4">
+                          <Image 
+                            src="/images/doc/dashboard-project-upload-new-project-with-file-added.png" 
+                            alt="Upload Dialog with File - Shows selected file with metadata and project details form" 
+                            width={600}
+                            height={400}
+                            className="w-full rounded-md border shadow-sm"
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">Upload dialog showing selected file with metadata and project configuration options.</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Step 5: Project Management */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold">5</div>
+                        Project Management
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Once uploaded, your projects appear in the dashboard with detailed information and management options.
+                      </p>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="rounded-lg border bg-muted/30 p-4">
+                          <Image 
+                            src="/images/doc/dashboard-project-with-1-project.png" 
+                            alt="Project Card - Shows project with No Masks status and project actions" 
+                            width={600}
+                            height={400}
+                            className="w-full rounded-md border shadow-sm"
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">Project card showing uploaded project with &quot;No Masks&quot; status, ready for segmentation.</p>
+                        </div>
+                        <div className="rounded-lg border bg-muted/30 p-4">
+                          <Image 
+                            src="/images/doc/dashboard-project-with-1-project-saved.png" 
+                            alt="Saved Project Card - Shows project marked as Saved with edit icon" 
+                            width={600}
+                            height={400}
+                            className="w-full rounded-md border shadow-sm"
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">Project card showing saved project with persistent storage status.</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Step 6: Project Details & Segmentation */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold">6</div>
+                        Project Details & AI Segmentation
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Access detailed project information and start the AI-powered segmentation process with a single click.
+                      </p>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="rounded-lg border bg-muted/30 p-4">
+                          <Image 
+                            src="/images/doc/project-overview.png" 
+                            alt="Project Overview - Detailed project view with technical specifications and Start Segmentation button" 
+                            width={600}
+                            height={400}
+                            className="w-full rounded-md border shadow-sm"
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">Detailed project overview showing technical specifications and segmentation controls.</p>
+                        </div>
+                        <div className="rounded-lg border bg-muted/30 p-4">
+                          <Image 
+                            src="/images/doc/project-overview-segmentation-done.png" 
+                            alt="Completed Segmentation - Project view showing available masks and Edit Segmentation option" 
+                            width={600}
+                            height={400}
+                            className="w-full rounded-md border shadow-sm"
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">Project view after successful segmentation showing available masks and editing options.</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Step 7: Image Viewer & Manual Editing */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">7</div>
+                        Advanced Visualization & Manual Editing
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Use our advanced MRI viewer to examine your cardiac images and manually edit segmentation masks with precision tools.
+                      </p>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="rounded-lg border bg-muted/30 p-4">
+                          <Image 
+                            src="/images/doc/project-preview.png" 
+                            alt="MRI Viewer - Medical image viewer with frame navigation and zoom controls" 
+                            width={600}
+                            height={400}
+                            className="w-full rounded-md border shadow-sm"
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">MRI viewer interface with frame navigation, zoom controls, and image display options.</p>
+                        </div>
+                        <div className="rounded-lg border bg-muted/30 p-4">
+                          <Image 
+                            src="/images/doc/project-segmentation.png" 
+                            alt="Manual Segmentation Tools - Advanced editing interface with drawing tools and mask overlays" 
+                            width={600}
+                            height={400}
+                            className="w-full rounded-md border shadow-sm"
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">Manual segmentation interface with precision drawing tools, brush settings, and real-time mask editing.</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Workflow Summary */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Zap className="w-5 h-5" />
+                        Complete Workflow Summary
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid gap-3">
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                          <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">1</div>
+                          <span className="text-sm">Start from the homepage and navigate to the dashboard</span>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                          <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">2</div>
+                          <span className="text-sm">Upload your medical imaging files (NIfTI, DICOM)</span>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
+                          <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold">3</div>
+                          <span className="text-sm">Review project details and start AI segmentation</span>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800">
+                          <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold">4</div>
+                          <span className="text-sm">Use advanced tools to view and manually edit results</span>
+                        </div>
+                      </div>
+                      <div className="p-4 rounded-lg bg-muted/50 border-l-4 border-primary">
+                        <p className="text-sm font-medium mb-1">Pro Tip</p>
+                        <p className="text-sm text-muted-foreground">
+                          Register for a user account to save your projects permanently and access advanced project management features.
+                          Guest accounts provide full functionality but projects are only available during your session.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             </ScrollArea>
