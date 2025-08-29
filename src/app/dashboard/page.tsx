@@ -8,6 +8,8 @@ import { ShowForUser, ShowForGuest, ShowForRegisteredUser } from "@/components/R
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -81,6 +83,33 @@ export default function DashboardPage() {
     id: string;
     name: string;
   } | null>(null);
+
+  // State for sorting and filtering
+  const [sortBy, setSortBy] = useState<string>("date");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Function to sort and filter projects
+  const getSortedAndFilteredProjects = () => {
+    const filteredProjects = projects.filter((project) => 
+      project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      project.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return filteredProjects.sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+        case "size":
+          return b.filesize - a.filesize; // Larger files first
+        case "type":
+          return a.filetype.toLowerCase().localeCompare(b.filetype.toLowerCase());
+        case "date":
+        default:
+          // Sort by creation date (newest first)
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      }
+    });
+  };
 
   const isLoadingData = projectsLoading || jobsLoading || gpuLoading;
 
@@ -274,8 +303,9 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div
-                  className={`text-2xl font-bold ${gpuStatus === "online" ? "text-green-600" : gpuStatus === "timeout" ? "text-red-600" : gpuStatus === "offline" ? "text-red-600" : "text-yellow-600"
-                    }`}
+                  className={`text-2xl font-bold ${
+                    gpuStatus === "online" ? "text-green-600" : gpuStatus === "timeout" ? "text-red-600" : gpuStatus === "offline" ? "text-red-600" : "text-yellow-600"
+                  }`}
                 >
                   {gpuStatus === "timeout" ? "Timeout" : gpuStatus.charAt(0).toUpperCase() + gpuStatus.slice(1)}
                 </div>
@@ -440,8 +470,36 @@ export default function DashboardPage() {
             </Alert>
           </ShowForGuest>
 
+          {/* Sorting and Filtering Controls */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex-1">
+              <Input placeholder="Search projects by name or description..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="max-w-sm" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Sort by:</span>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date">Date Added</SelectItem>
+                  <SelectItem value="name">Name (A-Z)</SelectItem>
+                  <SelectItem value="size">File Size</SelectItem>
+                  <SelectItem value="type">File Type</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Results count */}
+          {searchTerm && (
+            <div className="text-sm text-muted-foreground">
+              Showing {getSortedAndFilteredProjects().length} of {projects.length} projects
+            </div>
+          )}
+
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {projects.map((project) => (
+            {getSortedAndFilteredProjects().map((project) => (
               <div key={project.projectId} className="group">
                 <EditableProjectCard
                   project={project}
