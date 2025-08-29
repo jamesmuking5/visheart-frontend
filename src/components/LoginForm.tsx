@@ -11,12 +11,27 @@ import { CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
-import { Lock, User as UserIcon, Mail, Eye, EyeOff, LogIn, UserPlus, Zap, AlertTriangle, CheckCircle, ArrowRight, Shield } from "lucide-react";
+import { Lock, User as UserIcon, Mail, Eye, EyeOff, LogIn, UserPlus, Zap, AlertTriangle, CheckCircle, ArrowRight, Shield, RefreshCw } from "lucide-react";
 
 export const LoginForm = () => {
-  const { username, setUsername, password, setPassword, error, loading, handleLogin, handleGuestLogin } = useLogin();
+  const { username, setUsername, password, setPassword, error, loading, isRedirecting, handleLogin, handleGuestLogin } = useLogin("/dashboard");
 
   const [showPassword, setShowPassword] = useState(false);
+
+  // Show redirecting state after successful login
+  if (isRedirecting) {
+    return (
+      <div className="mx-auto flex h-screen w-full flex-col items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+          <div className="text-center">
+            <h2 className="text-lg font-semibold">Redirecting to Dashboard</h2>
+            <p className="text-muted-foreground text-sm">Please wait while we prepare your workspace...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex w-full flex-col items-center self-center justify-center sm:flex-row sm:my-30">

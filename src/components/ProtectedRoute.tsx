@@ -139,8 +139,8 @@ export function RegistrationOnly({ children, redirectTo = "/dashboard" }: { chil
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && user && user.role !== "guest") {
-      // If user is authenticated and not a guest, redirect to home or dashboard
+    if (!loading && user) {
+      // If user is authenticated (including guests), redirect to dashboard
       router.push(redirectTo);
     }
   }, [user, loading, router, redirectTo]);
@@ -157,18 +157,21 @@ export function RegistrationOnly({ children, redirectTo = "/dashboard" }: { chil
     );
   }
 
-  // Allow access for unauthenticated users or guests
-  if (!user || user.role === "guest") {
-    return <>{children}</>;
+  // Immediately redirect authenticated users (including guests) without showing login form
+  if (user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+          <div className="text-center">
+            <h2 className="text-lg font-semibold">Redirecting to Dashboard</h2>
+            <p className="text-muted-foreground text-sm">You&apos;re already signed in. Taking you to your workspace...</p>
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  // Show redirecting state for authenticated non-guest users
-  return (
-    <div className="flex h-64 items-center justify-center">
-      <div className="flex items-center space-x-2">
-        <RefreshCw className="text-foreground h-4 w-4 animate-spin" />
-        <span className="text-foreground text-sm">Redirecting</span>
-      </div>
-    </div>
-  );
+  // Allow access only for unauthenticated users
+  return <>{children}</>;
 }

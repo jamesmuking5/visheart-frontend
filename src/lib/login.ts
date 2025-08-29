@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 export function useLogin(redirectTo: string = "#") {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const { login, guestLogin, error, loading } = useAuth();
   const router = useRouter();
 
@@ -19,12 +20,14 @@ export function useLogin(redirectTo: string = "#") {
         login(username, password),
         new Promise((resolve) => setTimeout(resolve, 1000)),
       ]);
-      // Only redirect if redirectTo is not the default "#" value
-      // This prevents double redirects when using RegistrationOnly wrapper
+      // Set redirecting state to prevent login screen flash
       if (redirectTo !== "#") {
+        setIsRedirecting(true);
         router.push(redirectTo);
       }
     } catch (error) {
+      // Reset redirecting state on error
+      setIsRedirecting(false);
       // Error is handled by the auth context
       console.error("Login failed:", error);
     }
@@ -37,12 +40,14 @@ export function useLogin(redirectTo: string = "#") {
         guestLogin(),
         new Promise((resolve) => setTimeout(resolve, 1000)),
       ]);
-      // Only redirect if redirectTo is not the default "#" value
-      // This prevents double redirects when using RegistrationOnly wrapper
+      // Set redirecting state to prevent login screen flash
       if (redirectTo !== "#") {
+        setIsRedirecting(true);
         router.push(redirectTo);
       }
     } catch (error) {
+      // Reset redirecting state on error
+      setIsRedirecting(false);
       // Error is handled by the auth context
       console.error("Guest login failed:", error);
     }
@@ -55,6 +60,7 @@ export function useLogin(redirectTo: string = "#") {
     setPassword,
     error,
     loading,
+    isRedirecting,
     handleLogin,
     handleGuestLogin,
   };
