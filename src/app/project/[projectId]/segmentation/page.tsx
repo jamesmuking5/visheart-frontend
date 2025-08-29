@@ -103,12 +103,24 @@ export default function SegmentationResultsPage() {
   // Get current frame/slice history step
   const currentHistoryStep = useMemo(() => {
     const key = getCurrentFrameSliceKey();
-    return frameSliceHistorySteps[key] || 0;
+    const step = frameSliceHistorySteps[key] || 0;
+    console.log(`[Segmentation] Current history step for ${key}: ${step}`);
+    return step;
   }, [frameSliceHistorySteps, getCurrentFrameSliceKey]);
 
   // Memoized History Values for current frame/slice
-  const canUndo = useMemo(() => currentHistoryStep > 0, [currentHistoryStep]);
-  const canRedo = useMemo(() => currentHistoryStep < currentHistory.length - 1, [currentHistoryStep, currentHistory.length]);
+  const canUndo = useMemo(() => {
+    const result = currentHistoryStep > 0;
+    console.log(`[Segmentation] canUndo: ${result} (step: ${currentHistoryStep})`);
+    return result;
+  }, [currentHistoryStep]);
+  
+  const canRedo = useMemo(() => {
+    const result = currentHistoryStep < currentHistory.length - 1;
+    console.log(`[Segmentation] canRedo: ${result} (step: ${currentHistoryStep}, history length: ${currentHistory.length})`);
+    return result;
+  }, [currentHistoryStep, currentHistory.length]);
+  
   const canClear = useMemo(() => !!decodedMasks, [decodedMasks]);
 
   const [visibleMasks, setVisibleMasks] = useState<Set<AnatomicalLabel>>(new Set(["lvc", "rv", "myo"]));
@@ -421,6 +433,20 @@ export default function SegmentationResultsPage() {
       console.log("[Segmentation] History initialized successfully with", Object.keys(contextDecodedMasks).length, "masks");
     }
   }, [contextDecodedMasks, masksInitialized, initializeHistory]);
+
+  // Auto-initialize history for new frame/slice combinations
+  useEffect(() => {
+    // Only run if we have masks and are initialized
+    if (masksInitialized && decodedMasks && Object.keys(decodedMasks).length > 0) {
+      const frameSliceKey = getCurrentFrameSliceKey();
+      
+      // Check if history exists for current frame/slice
+      if (!frameSliceHistories[frameSliceKey]) {
+        console.log(`[Segmentation] Auto-initializing history for new frame/slice: ${frameSliceKey}`);
+        initializeHistory(decodedMasks);
+      }
+    }
+  }, [currentFrame, currentSlice, masksInitialized, decodedMasks, frameSliceHistories, getCurrentFrameSliceKey, initializeHistory]);
 
   // Loading states - now much simpler since ProjectContext handles main data loading
   if (!projectId) return <ErrorProject error="Project ID is missing." />;
