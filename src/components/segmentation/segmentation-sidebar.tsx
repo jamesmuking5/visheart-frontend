@@ -158,22 +158,6 @@ const MasksPanel = React.memo(({
           </div>
         )}
       </div>
-
-      {/* Mask Actions */}
-      <div className="pt-4 border-t border-border">
-        <h3 className="text-sm font-medium text-foreground mb-3">Mask Actions</h3>
-        <div className="space-y-2">
-          <Button variant="outline" size="sm" className="w-full text-xs">
-            Import Mask
-          </Button>
-          <Button variant="outline" size="sm" className="w-full text-xs">
-            Export Current
-          </Button>
-          <Button variant="outline" size="sm" className="w-full text-xs">
-            Clear All
-          </Button>
-        </div>
-      </div>
     </div>
   );
 });
@@ -482,6 +466,25 @@ export function SegmentationSidebar({
         ))}
       </div>
 
+      {/* Save Button - Moved to top for better accessibility */}
+      <div className="p-4 border-b border-[var(--sidebar-border)]">
+        <Button 
+          onClick={onSave}
+          disabled={saveButtonConfig.disabled}
+          className="w-full transition-colors justify-start text-xs"
+          variant={saveButtonConfig.variant}
+          aria-label={`${saveButtonConfig.text} - ${hasUnsavedChanges ? 'Click to save your changes' : 'All changes are saved'}`}
+        >
+          {isSaving ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4 mr-2" />
+          )}
+          {saveButtonConfig.text}
+          {!isSaving && <span className="text-xs text-muted-foreground ml-auto">Ctrl+S</span>}
+        </Button>
+      </div>
+
       {/* Sidebar Content with proper error boundaries */}
       <div className="flex-1 flex flex-col p-4 overflow-y-auto">
         {activeTab === 'masks' && (
@@ -551,25 +554,6 @@ export function SegmentationSidebar({
         )}
 
         {activeTab === 'settings' && <SettingsPanel />}
-      </div>
-
-      {/* Save Button with enhanced accessibility */}
-      <div className="p-4 border-t border-[var(--sidebar-border)]">
-        <Button 
-          onClick={onSave}
-          disabled={saveButtonConfig.disabled}
-          className="w-full transition-colors justify-start text-xs"
-          variant={saveButtonConfig.variant}
-          aria-label={`${saveButtonConfig.text} - ${hasUnsavedChanges ? 'Click to save your changes' : 'All changes are saved'}`}
-        >
-          {isSaving ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
-          )}
-          {saveButtonConfig.text}
-          {!isSaving && <span className="text-xs text-muted-foreground ml-auto">Ctrl+S</span>}
-        </Button>
       </div>
     </div>
   );
