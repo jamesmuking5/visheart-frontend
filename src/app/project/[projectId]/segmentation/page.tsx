@@ -39,8 +39,8 @@ export default function SegmentationResultsPage() {
     // NEW: Tar cache from context
     tarCacheReady,
     tarCacheError,
-    // Cache invalidation
-    refreshMasks,
+    // Optimistic updates
+    updateContextMasks,
   } = useProject();
 
   // Segmentation-specific state (not duplicated in context)
@@ -397,20 +397,21 @@ export default function SegmentationResultsPage() {
 
       console.log("[Segmentation] Successfully saved masks to backend");
 
-      // Refresh masks from backend to ensure we have the latest data
-      await refreshMasks();
+      // Optimistic update - update context directly with current masks
+      // This eliminates the need for refreshMasks and prevents UI reload
+      updateContextMasks(decodedMasks);
 
-      // After refreshing, clear local changes state
+      // Clear local changes state immediately
       setHasUnsavedChanges(false);
-      setLocalDecodedMasks(null); // Clear local edits since they're now saved in backend
+      setLocalDecodedMasks(null); // Clear local edits since they're now saved in context
 
-      console.log("[Segmentation] Successfully saved and refreshed masks from backend");
+      console.log("[Segmentation] Successfully saved and updated context with optimistic approach");
     } catch (err) {
       console.error("Failed to save editable masks:", err);
     } finally {
       setIsSaving(false);
     }
-  }, [decodedMasks, projectId, isSaving, refreshMasks]);
+  }, [decodedMasks, projectId, isSaving, updateContextMasks]);
 
   // Keyboard shortcuts handler
   useEffect(() => {

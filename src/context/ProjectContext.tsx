@@ -38,6 +38,9 @@ interface ProjectContextType {
   
   // Cache invalidation
   refreshMasks: () => Promise<void>;
+  
+  // Optimistic updates
+  updateContextMasks: (newMasks: Record<string, Uint8Array>) => void;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -509,6 +512,14 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     }
   }, [projectId, projectData?.dimensions]);
 
+  // Optimistic update function - updates context masks directly without backend fetch
+  const updateContextMasks = useCallback((newMasks: Record<string, Uint8Array>) => {
+    console.log("[ProjectContext] Optimistic update - updating context masks directly:", Object.keys(newMasks));
+    setDecodedMasks(newMasks);
+    setHasMasks(Object.keys(newMasks).length > 0);
+    setSegmentationError(null); // Clear any existing errors
+  }, []);
+
   // Memoized context value to prevent unnecessary re-renders
   const contextValue: ProjectContextType = useMemo(
     () => ({
@@ -532,6 +543,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       fetchAndExtractProjectImages,
       clearProjectCache,
       refreshMasks,
+      updateContextMasks,
     }),
     [
       loading,
@@ -553,6 +565,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       fetchAndExtractProjectImages,
       clearProjectCache,
       refreshMasks,
+      updateContextMasks,
     ],
   );
 
