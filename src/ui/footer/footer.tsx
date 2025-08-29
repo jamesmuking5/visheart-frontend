@@ -78,7 +78,7 @@ export default function Footer() {
               <div className="space-y-1">
                 <div className="flex items-center space-x-2 text-sm">
                   <Mail className="h-4 w-4 text-primary" />
-                  <span className="font-medium text-foreground">Kathy Wong</span>
+                  <span className="font-medium text-foreground">Kathy Wong H.Y.</span>
                 </div>
                 <div className="text-xs text-muted-foreground ml-6">Co-Supervisor</div>
                 <div className="text-xs ml-6">
