@@ -232,7 +232,7 @@ export default function SegmentationResultsPage() {
 
       const newHistory = currentFrameHistory.slice(0, currentStep + 1);
       newHistory.push(newEntry);
-      const trimmedHistory = newHistory.slice(-100); // Keep last 100 entries per frame/slice
+      const trimmedHistory = newHistory.slice(-50); // Keep last 50 entries per frame/slice
 
       setFrameSliceHistories((prev) => ({
         ...prev,
@@ -258,7 +258,18 @@ export default function SegmentationResultsPage() {
 
     const frameSliceKey = getCurrentFrameSliceKey();
     const newStep = currentHistoryStep - 1;
+    
+    // Validate step bounds and entry existence
+    if (newStep < 0 || newStep >= currentHistory.length) {
+      console.warn(`[Segmentation] Invalid undo step: ${newStep}, history length: ${currentHistory.length}`);
+      return;
+    }
+    
     const targetEntry = currentHistory[newStep];
+    if (!targetEntry || !targetEntry.masksSnapshot) {
+      console.warn(`[Segmentation] Invalid history entry at step ${newStep}`);
+      return;
+    }
 
     setFrameSliceHistorySteps((prev) => ({
       ...prev,
@@ -272,8 +283,13 @@ export default function SegmentationResultsPage() {
 
     // Restore only the masks for the current frame/slice from the snapshot
     Object.entries(targetEntry.masksSnapshot).forEach(([key, maskData]) => {
-      if (key.startsWith(currentFrameSlicePrefix)) {
-        mergedMasks[key] = maskData;
+      if (key.startsWith(currentFrameSlicePrefix) && maskData) {
+        // Ensure maskData is valid Uint8Array
+        try {
+          mergedMasks[key] = new Uint8Array(maskData);
+        } catch (error) {
+          console.error(`[Segmentation] Failed to restore mask ${key}:`, error);
+        }
       }
     });
 
@@ -283,13 +299,24 @@ export default function SegmentationResultsPage() {
     console.log(`[Segmentation] Undo operation for ${frameSliceKey}: ${targetEntry.description}`);
   }, [canUndo, currentHistory, currentHistoryStep, getCurrentFrameSliceKey, setDecodedMasks, decodedMasks, currentFrame, currentSlice]);
 
-  // Redo Handler - Frame/Slice Specific
+  // Redo Handler - Frame/Slice Specific  
   const handleRedo = useCallback(() => {
     if (!canRedo || currentHistory.length === 0 || !decodedMasks) return;
 
     const frameSliceKey = getCurrentFrameSliceKey();
     const newStep = currentHistoryStep + 1;
+    
+    // Validate step bounds and entry existence
+    if (newStep < 0 || newStep >= currentHistory.length) {
+      console.warn(`[Segmentation] Invalid redo step: ${newStep}, history length: ${currentHistory.length}`);
+      return;
+    }
+    
     const targetEntry = currentHistory[newStep];
+    if (!targetEntry || !targetEntry.masksSnapshot) {
+      console.warn(`[Segmentation] Invalid history entry at step ${newStep}`);
+      return;
+    }
 
     setFrameSliceHistorySteps((prev) => ({
       ...prev,
@@ -303,8 +330,13 @@ export default function SegmentationResultsPage() {
 
     // Restore only the masks for the current frame/slice from the snapshot
     Object.entries(targetEntry.masksSnapshot).forEach(([key, maskData]) => {
-      if (key.startsWith(currentFrameSlicePrefix)) {
-        mergedMasks[key] = maskData;
+      if (key.startsWith(currentFrameSlicePrefix) && maskData) {
+        // Ensure maskData is valid Uint8Array
+        try {
+          mergedMasks[key] = new Uint8Array(maskData);
+        } catch (error) {
+          console.error(`[Segmentation] Failed to restore mask ${key}:`, error);
+        }
       }
     });
 
@@ -312,9 +344,7 @@ export default function SegmentationResultsPage() {
     setHasUnsavedChanges(true);
 
     console.log(`[Segmentation] Redo operation for ${frameSliceKey}: ${targetEntry.description}`);
-  }, [canRedo, currentHistory, currentHistoryStep, getCurrentFrameSliceKey, setDecodedMasks, decodedMasks, currentFrame, currentSlice]);
-
-  // Clear Handler
+  }, [canRedo, currentHistory, currentHistoryStep, getCurrentFrameSliceKey, setDecodedMasks, decodedMasks, currentFrame, currentSlice]);  // Clear Handler
   const handleClear = useCallback(() => {
     if (!decodedMasks) return;
 
@@ -330,9 +360,21 @@ export default function SegmentationResultsPage() {
   // History Navigation - for history panel clicks, different from undo/redo
   const handleHistoryStepChange = useCallback(
     (step: number) => {
-      if (step >= 0 && step < currentHistory.length && decodedMasks) {
+      // Validate step bounds and history length
+      if (step < 0 || step >= currentHistory.length) {
+        console.warn(`[Segmentation] Invalid history step: ${step}, history length: ${currentHistory.length}`);
+        return;
+      }
+      
+      if (decodedMasks) {
         const frameSliceKey = getCurrentFrameSliceKey();
         const targetEntry = currentHistory[step];
+        
+        // Validate target entry exists and has valid data
+        if (!targetEntry || !targetEntry.masksSnapshot) {
+          console.warn(`[Segmentation] Invalid history entry at step ${step}`);
+          return;
+        }
 
         setFrameSliceHistorySteps((prev) => ({
           ...prev,
@@ -346,8 +388,13 @@ export default function SegmentationResultsPage() {
 
         // Restore only the masks for the current frame/slice from the snapshot
         Object.entries(targetEntry.masksSnapshot).forEach(([key, maskData]) => {
-          if (key.startsWith(currentFrameSlicePrefix)) {
-            mergedMasks[key] = maskData;
+          if (key.startsWith(currentFrameSlicePrefix) && maskData) {
+            // Ensure maskData is valid Uint8Array
+            try {
+              mergedMasks[key] = new Uint8Array(maskData);
+            } catch (error) {
+              console.error(`[Segmentation] Failed to restore mask ${key}:`, error);
+            }
           }
         });
 
