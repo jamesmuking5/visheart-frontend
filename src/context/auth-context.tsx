@@ -72,7 +72,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
       }
     } catch (err) {
-      console.error("Auth check failed:", err);
+      // Only log unexpected errors (not authentication failures)
+      const errorStatus = (err as any)?.response?.status;
+      if (errorStatus !== 401 && errorStatus !== 403) {
+        console.error("Auth check failed:", err);
+      }
       setUser(null);
     } finally {
       setLoading(false);

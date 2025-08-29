@@ -102,9 +102,10 @@ export const authApi = {
       const response = await api.get("/auth/fetch");
       return response.data;
     } catch (error: any) {
-      // If user is not authenticated (401/403), return null instead of throwing
+      // If user is not authenticated (401/403), this is expected behavior when not logged in
       if (error.response?.status === 401 || error.response?.status === 403) {
-        console.log("User not authenticated, no session found.");
+        // Don't log this as it's expected behavior for unauthenticated users
+        return { fetch: false, user: null };
       }
       // For other errors (network issues, server errors), still throw
       throw error;

@@ -156,36 +156,37 @@ export const LoginForm = () => {
                       <Zap className="h-6 w-6 text-white" />
                     </div>
                     <AlertDialogTitle className="text-xl font-bold">Guest Access Mode</AlertDialogTitle>
-                    <AlertDialogDescription className="mt-4 space-y-4 text-left">
-                      <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 dark:bg-orange-950/20">
-                        <h4 className="mb-2 flex items-center gap-2 font-semibold text-orange-800 dark:text-orange-200">
-                          <CheckCircle className="h-4 w-4" />
-                          What you get:
-                        </h4>
-                        <ul className="space-y-1 text-sm text-orange-700 dark:text-orange-300">
-                          <li>• Full access to all brushing tools and exports</li>
-                          <li>• Real-time cardiac segmentation via Artificial Intelligence</li>
-                          <li>• Interactive analysis features</li>
-                        </ul>
-                      </div>
-
-                      <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:bg-red-950/20">
-                        <h4 className="mb-2 flex items-center gap-2 font-semibold text-red-800 dark:text-red-200">
-                          <AlertTriangle className="h-4 w-4" />
-                          Important limitations:
-                        </h4>
-                        <ul className="space-y-1 text-sm text-red-700 dark:text-red-300">
-                          <li>• Projects are temporary and will be deleted at 3am daily</li>
-                          <li>• No data persistence after logout</li>
-                          <li>• Cannot save work in cloud</li>
-                        </ul>
-                      </div>
-
-                      <div className="bg-muted/50 rounded-lg p-3 text-center">
-                        <p className="text-sm font-medium">💡 Create a free account to save your valuable work - only 2 minutes!</p>
-                      </div>
-                    </AlertDialogDescription>
                   </AlertDialogHeader>
+                  
+                  <div className="mt-4 space-y-4 text-left">
+                    <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 dark:bg-orange-950/20">
+                      <h4 className="mb-2 flex items-center gap-2 font-semibold text-orange-800 dark:text-orange-200">
+                        <CheckCircle className="h-4 w-4" />
+                        What you get:
+                      </h4>
+                      <ul className="space-y-1 text-sm text-orange-700 dark:text-orange-300">
+                        <li>• Full access to all brushing tools and exports</li>
+                        <li>• Real-time cardiac segmentation via Artificial Intelligence</li>
+                        <li>• Interactive analysis features</li>
+                      </ul>
+                    </div>
+
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:bg-red-950/20">
+                      <h4 className="mb-2 flex items-center gap-2 font-semibold text-red-800 dark:text-red-200">
+                        <AlertTriangle className="h-4 w-4" />
+                        Important limitations:
+                      </h4>
+                      <ul className="space-y-1 text-sm text-red-700 dark:text-red-300">
+                        <li>• Projects are temporary and will be deleted at 3am daily</li>
+                        <li>• No data persistence after logout</li>
+                        <li>• Cannot save work in cloud</li>
+                      </ul>
+                    </div>
+
+                    <div className="bg-muted/50 rounded-lg p-3 text-center">
+                      <p className="text-sm font-medium">💡 Create a free account to save your valuable work - only 2 minutes!</p>
+                    </div>
+                  </div>
 
                   <AlertDialogFooter className="flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
                     <AlertDialogCancel className="h-10 w-full sm:w-auto">Go Back</AlertDialogCancel>
