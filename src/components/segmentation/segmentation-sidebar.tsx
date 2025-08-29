@@ -558,7 +558,7 @@ export function SegmentationSidebar({
         <Button 
           onClick={onSave}
           disabled={saveButtonConfig.disabled}
-          className="w-full transition-colors"
+          className="w-full transition-colors justify-start text-xs"
           variant={saveButtonConfig.variant}
           aria-label={`${saveButtonConfig.text} - ${hasUnsavedChanges ? 'Click to save your changes' : 'All changes are saved'}`}
         >
@@ -568,6 +568,7 @@ export function SegmentationSidebar({
             <Save className="h-4 w-4 mr-2" />
           )}
           {saveButtonConfig.text}
+          {!isSaving && <span className="text-xs text-muted-foreground ml-auto">Ctrl+S</span>}
         </Button>
       </div>
     </div>

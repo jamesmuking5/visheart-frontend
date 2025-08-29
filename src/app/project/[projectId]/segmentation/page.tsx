@@ -412,6 +412,30 @@ export default function SegmentationResultsPage() {
     }
   }, [decodedMasks, projectId, isSaving, refreshMasks]);
 
+  // Keyboard shortcuts handler
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ctrl+S to save
+      if (event.ctrlKey && event.key === 's') {
+        event.preventDefault(); // Prevent browser's default save dialog
+        
+        // Only save if there are unsaved changes and not currently saving
+        if (hasUnsavedChanges && !isSaving) {
+          console.log('[Segmentation] Ctrl+S shortcut triggered - saving changes...');
+          handleSave();
+        }
+      }
+    };
+
+    // Add event listener
+    window.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup on unmount
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [hasUnsavedChanges, isSaving, handleSave]);
+
   // To do: Export history timeline
   const handleHistoryExport = useCallback(() => {
     console.log("Export triggered from page level");
