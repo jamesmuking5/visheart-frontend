@@ -52,6 +52,9 @@ export default function Footer() {
               <Link href="/sample" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                 Sample NIfTI files
               </Link>
+              <Link href="/policy" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                Privacy Policy
+              </Link>
             </div>
           </div>
 
