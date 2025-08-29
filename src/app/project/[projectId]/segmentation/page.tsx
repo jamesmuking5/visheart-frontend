@@ -254,7 +254,7 @@ export default function SegmentationResultsPage() {
 
   // Undo Handler - Frame/Slice Specific
   const handleUndo = useCallback(() => {
-    if (!canUndo || currentHistory.length === 0) return;
+    if (!canUndo || currentHistory.length === 0 || !decodedMasks) return;
 
     const frameSliceKey = getCurrentFrameSliceKey();
     const newStep = currentHistoryStep - 1;
@@ -265,15 +265,27 @@ export default function SegmentationResultsPage() {
       [frameSliceKey]: newStep,
     }));
 
-    setDecodedMasks(targetEntry.masksSnapshot);
+    // Only restore masks that belong to the current frame/slice
+    // Keep all other frame/slice masks unchanged
+    const currentFrameSlicePrefix = `editable_frame_${currentFrame}_slice_${currentSlice}_`;
+    const mergedMasks = { ...decodedMasks };
+
+    // Restore only the masks for the current frame/slice from the snapshot
+    Object.entries(targetEntry.masksSnapshot).forEach(([key, maskData]) => {
+      if (key.startsWith(currentFrameSlicePrefix)) {
+        mergedMasks[key] = maskData;
+      }
+    });
+
+    setDecodedMasks(mergedMasks);
     setHasUnsavedChanges(true);
 
     console.log(`[Segmentation] Undo operation for ${frameSliceKey}: ${targetEntry.description}`);
-  }, [canUndo, currentHistory, currentHistoryStep, getCurrentFrameSliceKey, setDecodedMasks]);
+  }, [canUndo, currentHistory, currentHistoryStep, getCurrentFrameSliceKey, setDecodedMasks, decodedMasks, currentFrame, currentSlice]);
 
   // Redo Handler - Frame/Slice Specific
   const handleRedo = useCallback(() => {
-    if (!canRedo || currentHistory.length === 0) return;
+    if (!canRedo || currentHistory.length === 0 || !decodedMasks) return;
 
     const frameSliceKey = getCurrentFrameSliceKey();
     const newStep = currentHistoryStep + 1;
@@ -284,11 +296,23 @@ export default function SegmentationResultsPage() {
       [frameSliceKey]: newStep,
     }));
 
-    setDecodedMasks(targetEntry.masksSnapshot);
+    // Only restore masks that belong to the current frame/slice
+    // Keep all other frame/slice masks unchanged
+    const currentFrameSlicePrefix = `editable_frame_${currentFrame}_slice_${currentSlice}_`;
+    const mergedMasks = { ...decodedMasks };
+
+    // Restore only the masks for the current frame/slice from the snapshot
+    Object.entries(targetEntry.masksSnapshot).forEach(([key, maskData]) => {
+      if (key.startsWith(currentFrameSlicePrefix)) {
+        mergedMasks[key] = maskData;
+      }
+    });
+
+    setDecodedMasks(mergedMasks);
     setHasUnsavedChanges(true);
 
     console.log(`[Segmentation] Redo operation for ${frameSliceKey}: ${targetEntry.description}`);
-  }, [canRedo, currentHistory, currentHistoryStep, getCurrentFrameSliceKey, setDecodedMasks]);
+  }, [canRedo, currentHistory, currentHistoryStep, getCurrentFrameSliceKey, setDecodedMasks, decodedMasks, currentFrame, currentSlice]);
 
   // Clear Handler
   const handleClear = useCallback(() => {
@@ -306,7 +330,7 @@ export default function SegmentationResultsPage() {
   // History Navigation - for history panel clicks, different from undo/redo
   const handleHistoryStepChange = useCallback(
     (step: number) => {
-      if (step >= 0 && step < currentHistory.length) {
+      if (step >= 0 && step < currentHistory.length && decodedMasks) {
         const frameSliceKey = getCurrentFrameSliceKey();
         const targetEntry = currentHistory[step];
 
@@ -315,13 +339,25 @@ export default function SegmentationResultsPage() {
           [frameSliceKey]: step,
         }));
 
-        setDecodedMasks(targetEntry.masksSnapshot);
+        // Only restore masks that belong to the current frame/slice
+        // Keep all other frame/slice masks unchanged
+        const currentFrameSlicePrefix = `editable_frame_${currentFrame}_slice_${currentSlice}_`;
+        const mergedMasks = { ...decodedMasks };
+
+        // Restore only the masks for the current frame/slice from the snapshot
+        Object.entries(targetEntry.masksSnapshot).forEach(([key, maskData]) => {
+          if (key.startsWith(currentFrameSlicePrefix)) {
+            mergedMasks[key] = maskData;
+          }
+        });
+
+        setDecodedMasks(mergedMasks);
         setHasUnsavedChanges(true);
 
         console.log(`[Segmentation] History navigation for ${frameSliceKey} to step ${step}: ${targetEntry.description}`);
       }
     },
-    [currentHistory, getCurrentFrameSliceKey, setDecodedMasks],
+    [currentHistory, getCurrentFrameSliceKey, setDecodedMasks, decodedMasks, currentFrame, currentSlice],
   );
 
   // History Management Actions - Frame/Slice Specific
