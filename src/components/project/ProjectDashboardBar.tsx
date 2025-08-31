@@ -5,11 +5,41 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Heart, Clock, CheckCircle2, XCircle, AlertCircle, Database, Activity, Download, Settings } from "lucide-react";
+import { segmentationApi } from "@/lib/api";
 
 export function ProjectDashboardBar() {
   const { projectData, loading, hasMasks, undecodedMasks, jobs, error } = useProject();
 
   if (!projectData) return null;
+
+  // Export function
+  const handleExportProject = async () => {
+    if (!projectData?.projectId) return;
+    
+    try {
+      console.log(`[Export] Starting export for project: ${projectData.projectId}`);
+      const exportResult = await segmentationApi.exportProjectData(projectData.projectId);
+      console.log(`[Export] Received export result:`, { 
+        blobSize: exportResult.blob.size, 
+        blobType: exportResult.blob.type,
+        expectedSize: exportResult.fileSizeBytes,
+        filename: exportResult.suggestedFilename
+      });
+      
+      const url = window.URL.createObjectURL(exportResult.blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = exportResult.suggestedFilename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      console.log(`[Export] Successfully downloaded export for project: ${projectData.projectId} as ${exportResult.suggestedFilename}`);
+    } catch (error) {
+      console.error("Error exporting project:", error);
+    }
+  };
 
   // Get status info
   const getProjectStatus = () => {
@@ -81,7 +111,13 @@ export function ProjectDashboardBar() {
 
           {/* Right side - Actions */}
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="h-8 text-xs" disabled>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="h-8 text-xs" 
+              disabled={!hasMasks}
+              onClick={handleExportProject}
+            >
               <Download className="h-3 w-3 mr-1" />
               Export
             </Button>
