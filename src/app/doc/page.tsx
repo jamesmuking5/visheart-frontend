@@ -555,39 +555,80 @@ const DocPage = () => {
                     </CardContent>
                   </Card>
 
-                  {/* Step 7: Image Viewer & Manual Editing */}
+                  {/* Step 7: MRI Viewer (Pre-Segmentation) */}
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">7</div>
-                        Advanced Visualization & Manual Editing
+                        MRI Viewer (Before Segmentation)
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <p className="text-sm text-muted-foreground">
-                        Use our advanced MRI viewer to examine your cardiac images and manually edit segmentation masks with precision tools.
+                        When segmentation masks are not yet available or processing is pending, the MRI viewer allows you to preview and examine your medical images.
                       </p>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="rounded-lg border bg-muted/30 p-4">
-                          <Image 
-                            src="/images/doc/project-preview.png" 
-                            alt="MRI Viewer - Medical image viewer with frame navigation and zoom controls" 
-                            width={600}
-                            height={400}
-                            className="w-full rounded-md border shadow-sm"
-                          />
-                          <p className="text-xs text-muted-foreground mt-2">MRI viewer interface with frame navigation, zoom controls, and image display options.</p>
-                        </div>
-                        <div className="rounded-lg border bg-muted/30 p-4">
-                          <Image 
-                            src="/images/doc/project-segmentation.png" 
-                            alt="Manual Segmentation Tools - Advanced editing interface with drawing tools and mask overlays" 
-                            width={600}
-                            height={400}
-                            className="w-full rounded-md border shadow-sm"
-                          />
-                          <p className="text-xs text-muted-foreground mt-2">Manual segmentation interface with precision drawing tools, brush settings, and real-time mask editing.</p>
-                        </div>
+                      <div className="rounded-lg border bg-muted/30 p-4">
+                        <Image 
+                          src="/images/doc/project-preview.png" 
+                          alt="MRI Viewer - Medical image viewer with frame navigation and zoom controls available when no masks exist" 
+                          width={1200}
+                          height={800}
+                          className="w-full rounded-md border shadow-sm"
+                        />
+                        <p className="text-xs text-muted-foreground mt-2">MRI viewer interface with frame navigation, zoom controls, and image display options - available when segmentation is not yet complete.</p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                        <p className="text-sm font-medium mb-1">📋 MRI Viewer Features</p>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Frame-by-frame navigation through medical image slices</li>
+                          <li>• Zoom and pan controls for detailed examination</li>
+                          <li>• Technical specifications display (dimensions, voxel size)</li>
+                          <li>• Thumbnail overview of all frames</li>
+                          <li>• Available when masks are not generated or processing is pending</li>
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Step 8: Segmentation Viewer (Post-Segmentation) */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center text-sm font-bold">8</div>
+                        Segmentation Viewer & Manual Editing
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Once AI segmentation is complete, the segmentation viewer becomes available with advanced editing tools. This viewer includes all MRI viewing capabilities plus mask editing features.
+                      </p>
+                      <div className="rounded-lg border bg-muted/30 p-4">
+                        <Image 
+                          src="/images/doc/project-segmentation.png" 
+                          alt="Segmentation Viewer - Advanced editing interface with drawing tools, mask overlays, and medical image access" 
+                          width={1200}
+                          height={800}
+                          className="w-full rounded-md border shadow-sm"
+                        />
+                        <p className="text-xs text-muted-foreground mt-2">Segmentation viewer with precision drawing tools, brush settings, mask overlays, and full medical image access.</p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                        <p className="text-sm font-medium mb-1">🎨 Segmentation Viewer Features</p>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• <strong>All MRI viewer capabilities</strong> - frame navigation, zoom, pan, thumbnails</li>
+                          <li>• Advanced drawing tools (brush, select, linear tool)</li>
+                          <li>• Mask overlay toggle and opacity controls</li>
+                          <li>• Brush size and hardness adjustments</li>
+                          <li>• Undo/redo functionality for precise editing</li>
+                          <li>• Real-time mask preview and editing</li>
+                          <li>• Available only after successful AI segmentation</li>
+                        </ul>
+                      </div>
+                      <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                        <p className="text-sm font-medium mb-1">💡 Important Note</p>
+                        <p className="text-sm text-muted-foreground">
+                          The original medical images remain fully accessible in the segmentation viewer. You can toggle between viewing the raw medical data and the segmented masks, or view them overlaid together for precise editing.
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
@@ -616,7 +657,11 @@ const DocPage = () => {
                         </div>
                         <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800">
                           <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold">4</div>
-                          <span className="text-sm">Use advanced tools to view and manually edit results</span>
+                          <span className="text-sm">Use MRI viewer to preview images (before segmentation)</span>
+                        </div>
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                          <div className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold">5</div>
+                          <span className="text-sm">Access segmentation viewer for advanced editing (after AI processing)</span>
                         </div>
                       </div>
                       <div className="p-4 rounded-lg bg-muted/50 border-l-4 border-primary">
@@ -624,6 +669,13 @@ const DocPage = () => {
                         <p className="text-sm text-muted-foreground">
                           Register for a user account to save your projects permanently and access advanced project management features.
                           Guest accounts provide full functionality but projects are only available during your session.
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500">
+                        <p className="text-sm font-medium mb-1">Viewer Availability</p>
+                        <p className="text-sm text-muted-foreground">
+                          <strong>MRI Viewer:</strong> Available immediately after upload for image preview and examination.<br/>
+                          <strong>Segmentation Viewer:</strong> Available only after AI processing completes, includes all MRI viewer features plus advanced editing tools.
                         </p>
                       </div>
                     </CardContent>

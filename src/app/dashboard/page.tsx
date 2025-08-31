@@ -125,15 +125,25 @@ export default function DashboardPage() {
 
   const handleExportProject = async (projectId: string) => {
     try {
-      const blob = await segmentationApi.exportProjectData(projectId);
-      const url = window.URL.createObjectURL(blob);
+      console.log(`[Export] Starting export for project: ${projectId}`);
+      const exportResult = await segmentationApi.exportProjectData(projectId);
+      console.log(`[Export] Received export result:`, { 
+        blobSize: exportResult.blob.size, 
+        blobType: exportResult.blob.type,
+        expectedSize: exportResult.fileSizeBytes,
+        filename: exportResult.suggestedFilename
+      });
+      
+      const url = window.URL.createObjectURL(exportResult.blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `project-${projectId}-export.nii.gz`;
+      a.download = exportResult.suggestedFilename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      console.log(`[Export] Successfully downloaded export for project: ${projectId} as ${exportResult.suggestedFilename}`);
     } catch (error) {
       console.error("Error exporting project:", error);
     }

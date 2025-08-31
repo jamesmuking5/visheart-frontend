@@ -339,14 +339,49 @@ export const segmentationApi = {
   // Export project data
   exportProjectData: async (projectId: string) => {
     try {
+      console.log(`[API] Starting export for project: ${projectId}`);
+      
+      // First, get the presigned URL from the backend
       const response = await api.get(
         `/segmentation/export-project-data/${projectId}`,
-        {
-          responseType: "blob",
-        },
       );
-      return response.data;
+      
+      console.log(`[API] Backend response:`, response.data);
+      
+      if (!response.data.success || !response.data.exportPackageUrl) {
+        throw new Error(response.data.message || "Export failed - no download URL received");
+      }
+      
+      // Then download the actual file from the presigned URL
+      console.log(`[API] Downloading from presigned URL: ${response.data.exportPackageUrl}`);
+      const fileResponse = await fetch(response.data.exportPackageUrl);
+      
+      console.log(`[API] File response:`, {
+        status: fileResponse.status,
+        statusText: fileResponse.statusText,
+        headers: Object.fromEntries(fileResponse.headers.entries()),
+        ok: fileResponse.ok
+      });
+      
+      if (!fileResponse.ok) {
+        throw new Error(`Failed to download export file: ${fileResponse.status} ${fileResponse.statusText}`);
+      }
+      
+      const blob = await fileResponse.blob();
+      console.log(`[API] Created blob:`, {
+        size: blob.size,
+        type: blob.type,
+        expectedSize: response.data.fileSizeBytes
+      });
+      
+      // Return both the blob and metadata
+      return {
+        blob,
+        suggestedFilename: response.data.suggestedFilename || `project-${projectId}-export.nii.gz`,
+        fileSizeBytes: response.data.fileSizeBytes
+      };
     } catch (error) {
+      console.error(`[API] Export error:`, error);
       throw error;
     }
   },
