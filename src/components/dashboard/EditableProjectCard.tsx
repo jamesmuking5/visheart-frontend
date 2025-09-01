@@ -16,9 +16,10 @@ interface EditableProjectCardProps {
   onDelete: (projectId: string, projectName: string) => void;
   onExport: (projectId: string) => void;
   segmentationIndicator?: React.ReactNode;
+  hasMasks?: boolean; // Add mask availability info
 }
 
-export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExport, segmentationIndicator }: EditableProjectCardProps) {
+export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExport, segmentationIndicator, hasMasks = false }: EditableProjectCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editedName, setEditedName] = useState(project.name);
@@ -184,7 +185,14 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
             <Edit className="mr-1 h-3 w-3" />
             Open
           </Button>
-          <Button size="sm" variant="outline" className="flex-1" onClick={() => onExport(project.projectId)}>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="flex-1" 
+            onClick={() => onExport(project.projectId)}
+            disabled={!hasMasks}
+            title={hasMasks ? "Export segmentation as NIfTI" : "Complete segmentation to enable export"}
+          >
             <Download className="mr-1 h-3 w-3" />
             Export
           </Button>

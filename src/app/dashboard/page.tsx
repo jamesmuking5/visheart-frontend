@@ -518,6 +518,7 @@ export default function DashboardPage() {
                   onDelete={handleDeleteProject}
                   onExport={handleExportProject}
                   segmentationIndicator={<SegmentationIndicator status={segmentationStatuses[project.projectId]} variant="badge" />}
+                  hasMasks={segmentationStatuses[project.projectId]?.hasMasks || false}
                 />
               </div>
             ))}

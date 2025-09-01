@@ -65,7 +65,7 @@ export default function ProjectPage() {
     const startPolling = () => {
       if (shouldPollForMasks()) {
         console.log("[Project] Starting mask polling - no masks found but jobs exist");
-        
+
         pollIntervalRef.current = setInterval(async () => {
           if (shouldPollForMasks()) {
             console.log("[Project] Polling for masks...");
@@ -303,7 +303,7 @@ export default function ProjectPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <TooltipProvider>
-                  <div className={`grid gap-4 ${hasMasks ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2'}`}>
+                  <div className={`grid gap-4 ${hasMasks ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
                     {!hasMasks && (
                       <Tooltip>
                         <TooltipTrigger asChild>
