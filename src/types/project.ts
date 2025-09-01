@@ -35,6 +35,7 @@ export type LoadingStage = "idle" | "project" | "mask" | "job" | "tar-cache" | "
  * @property {number} voxelsize.y - Y dimension of the voxel size.
  * @property {number} [voxelsize.z] - Optional Z dimension of the voxel size.
  * @property {number} [voxelsize.t] - Optional T dimension of the voxel size.
+ * @property {number[][]} [affineMatrix] - Optional 4x4 affine transformation matrix for spatial coordinates.
  * @property {string} [createdAt] - Optional creation date of the project in ISO format.
  * @property {string} [updatedAt] - Optional last updated date of the project in ISO format.
  */
@@ -57,6 +58,7 @@ export interface ProjectData {
         z?: number;
         t?: number;
     };
+    affineMatrix?: number[][];
     createdAt?: string;
     updatedAt?: string;
 }

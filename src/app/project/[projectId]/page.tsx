@@ -27,6 +27,7 @@ import { NoProjectFound } from "@/components/project/NoProjectFound";
 import { ErrorProject } from "@/components/project/ErrorProject";
 import { LoadingProject } from "@/components/project/LoadingProject";
 import { ShowForUser, ShowForRegisteredUser } from "@/components/RoleGuard";
+import { AffineMatrixDisplay } from "@/components/ui/AffineMatrixDisplay";
 
 // Types
 import * as ProjectTypes from "@/types/project";
@@ -386,7 +387,7 @@ export default function ProjectPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div className="space-y-3">
                     <h4 className="font-semibold">Dimensions</h4>
                     <div className="space-y-2 text-sm">
@@ -430,6 +431,13 @@ export default function ProjectPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Affine Matrix Display - Full Version for Project Details */}
+                  <AffineMatrixDisplay 
+                    affineMatrix={projectData.affineMatrix} 
+                    compact={false}
+                    title="Spatial Transform"
+                  />
                 </div>
 
                 <Separator className="my-4" />

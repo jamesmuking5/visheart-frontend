@@ -8,6 +8,7 @@ import { Edit2, Check, X, Loader2, Edit, Download, Trash2, Eye, Brain } from "lu
 import { Project } from "@/types/dashboard";
 import { projectApi } from "@/lib/api";
 import { ShowForRegisteredUser } from "@/components/RoleGuard";
+import { AffineMatrixDisplay } from "@/components/ui/AffineMatrixDisplay";
 
 interface EditableProjectCardProps {
   project: Project;
@@ -179,6 +180,13 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
             <p className="font-medium">{new Date(project.createdAt).toLocaleDateString()}</p>
           </div>
         </div>
+
+        {/* Affine Matrix Display - Compact Version for Dashboard */}
+        <AffineMatrixDisplay 
+          affineMatrix={project.affineMatrix} 
+          compact={true}
+          className="mt-3"
+        />
 
         <div className="flex gap-2">
           <Button size="sm" className="flex-1" onClick={() => window.open(`/project/${project.projectId}`, "_blank")} title={`Open project ${project.name}`}>
