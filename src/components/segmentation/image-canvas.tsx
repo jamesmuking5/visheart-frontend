@@ -212,6 +212,8 @@ export function ImageCanvas({
   // Container pan (move whole stage by dragging the wrapper) — preferred for
   // Debug-like behavior: panning moves the viewer instead of moving image coordinates inside the canvas.
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const canvasAreaRef = useRef<HTMLDivElement | null>(null);
+  const infoBarRef = useRef<HTMLDivElement | null>(null);
   const isContainerPanning = useRef(false);
   const lastContainerPoint = useRef<{ x: number; y: number } | null>(null);
   const [isCtrlPressed, setIsCtrlPressed] = useState(false);
@@ -302,13 +304,13 @@ export function ImageCanvas({
 
   // Update container size when container ref is available
   useEffect(() => {
-    if (containerRef.current) {
+    if (canvasAreaRef.current && infoBarRef.current) {
       const updateSize = () => {
-        if (containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect();
+        if (canvasAreaRef.current && infoBarRef.current) {
+          const canvasRect = canvasAreaRef.current.getBoundingClientRect();
           setContainerSize({
-            width: rect.width,
-            height: rect.height
+            width: canvasRect.width,
+            height: canvasRect.height
           });
         }
       };
@@ -318,7 +320,7 @@ export function ImageCanvas({
 
       // Set up ResizeObserver for responsive updates
       const resizeObserver = new ResizeObserver(updateSize);
-      resizeObserver.observe(containerRef.current);
+      resizeObserver.observe(canvasAreaRef.current);
 
       return () => {
         resizeObserver.disconnect();
@@ -397,8 +399,8 @@ export function ImageCanvas({
     stage.scale({ x: newScale, y: newScale });
     setStageScale(newScale);
 
-    const logicalW = width || containerSize.width || 1000;
-    const logicalH = height || containerSize.height || 550;
+    const logicalW = width || 1000;
+    const logicalH = height || 550;
 
     // Center the logical image inside the larger display canvas
     const offsetX = Math.max(0, ((containerSize.width || 1000) - logicalW * newScale) / 2);
@@ -419,11 +421,11 @@ export function ImageCanvas({
       stage.scale({ x: newScale, y: newScale });
       setStageScale(newScale);
 
-      // Center the canvas
-      const logicalW = width || displayWidth || 1000;
-      const logicalH = height || displayHeight || 550;
-      const offsetX = Math.max(0, ((displayWidth || 1000) - logicalW * newScale) / 2);
-      const offsetY = Math.max(0, ((displayHeight || 550) - logicalH * newScale) / 2);
+      // Center the canvas using actual image dimensions for proper positioning
+      const logicalW = width || 1000;
+      const logicalH = height || 550;
+      const offsetX = Math.max(0, ((containerSize.width || 1000) - logicalW * newScale) / 2);
+      const offsetY = Math.max(0, ((containerSize.height || 550) - logicalH * newScale) / 2);
       stage.position({ x: offsetX, y: offsetY });
       setStagePosition({ x: offsetX, y: offsetY });
       stage.batchDraw();
@@ -433,7 +435,7 @@ export function ImageCanvas({
         setZoomLevel(1);
       }
     }
-  }, [resetTrigger, width, height, displayWidth, displayHeight, setZoomLevel]); 
+  }, [resetTrigger, width, height, containerSize.width, containerSize.height, setZoomLevel]); 
   
   // Clear bounding box when frame/slice changes to prevent confusion
   useEffect(() => {
@@ -1036,10 +1038,13 @@ export function ImageCanvas({
     onMouseDown={handleContainerMouseDown}
     onMouseMove={handleContainerMouseMove}
     onMouseUp={handleContainerMouseUp}
-    className="w-full max-w-7xl h-[80vh] min-h-[400px] max-h-[700px] bg-background rounded-lg overflow-hidden relative mx-auto border"
+    className="w-full max-w-7xl h-[80vh] min-h-[400px] max-h-[700px] bg-background rounded-lg overflow-hidden relative mx-auto border flex flex-col"
   >
         {/* Top info bar (frame/slice + zoom) */}
-        <div className="flex justify-between items-center p-2 text-xs text-muted-foreground border-b bg-muted/30 z-10 relative">
+        <div 
+          ref={infoBarRef}
+          className="flex justify-between items-center p-2 text-xs text-muted-foreground border-b bg-muted/30 z-10 flex-shrink-0"
+        >
           <div className="text-sm text-muted-foreground">Frame {currentFrame + 1} • Slice {currentSlice + 1}</div>
           <div className="text-sm text-muted-foreground">{Math.round((stageScale || 1) * 100)}% zoom</div>
         </div>
@@ -1075,7 +1080,10 @@ export function ImageCanvas({
           </div>
         )}
 
-        <div className="flex items-center justify-center" style={{ width:'100%', height: '100%' }}>
+        <div 
+          ref={canvasAreaRef}
+          className="flex-1 relative w-full"
+        >
           <Stage
             ref={stageRef}
             width={containerSize.width}
