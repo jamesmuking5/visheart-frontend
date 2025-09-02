@@ -101,27 +101,27 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
                   className="font-semibold text-lg"
                   disabled={isUpdating}
                 />
-                <Textarea
+                <Input
                   value={editedDescription}
                   onChange={(e) => setEditedDescription(e.target.value)}
                   onKeyDown={handleKeyPress}
                   placeholder="Project description (optional)"
-                  className="text-sm min-h-[60px] resize-none"
+                  className="text-sm"
                   disabled={isUpdating}
                 />
                 {updateError && <p className="text-sm text-destructive">{updateError}</p>}
               </div>
             ) : (
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold truncate">{project.name}</h3>
+                <div className="flex items-center justify-between gap-2 max-w-64">
+                  <p className="text-lg font-semibold truncate">{project.name}</p>
                   <ShowForRegisteredUser fallback={null}>
-                    <Button variant="ghost" size="sm" onClick={handleStartEdit} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto">
+                    <Button variant="ghost" size="sm" onClick={handleStartEdit} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto self-end">
                       <Edit2 className="h-3 w-3" />
                     </Button>
                   </ShowForRegisteredUser>
                 </div>
-                <p className="text-sm text-muted-foreground line-clamp-2">{project.description || "No description"}</p>
+                <p className="text-sm text-muted-foreground truncate max-w-80">{project.description || "No description"}</p>
               </div>
             )}
           </div>
@@ -182,21 +182,17 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
         </div>
 
         {/* Affine Matrix Display - Compact Version for Dashboard */}
-        <AffineMatrixDisplay 
-          affineMatrix={project.affineMatrix} 
-          compact={true}
-          className="mt-3"
-        />
+        <AffineMatrixDisplay affineMatrix={project.affineMatrix} compact={true} className="mt-3" />
 
         <div className="flex gap-2">
           <Button size="sm" className="flex-1" onClick={() => window.open(`/project/${project.projectId}`, "_blank")} title={`Open project ${project.name}`}>
             <Edit className="mr-1 h-3 w-3" />
             Open
           </Button>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="flex-1" 
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1"
             onClick={() => onExport(project.projectId)}
             disabled={!hasMasks}
             title={hasMasks ? "Export segmentation as NIfTI" : "Complete segmentation to enable export"}
