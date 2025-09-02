@@ -12,6 +12,7 @@ export interface Project {
       slices?: number;
       frames?: number;
     };
+    affineMatrix?: number[][];
     createdAt: string;
     updatedAt: string;
   }

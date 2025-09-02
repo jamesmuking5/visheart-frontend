@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useGpuStatus, useUserProjects, useUserJobs, useUserStats } from "@/lib/dashboard-hooks";
 import { useProjectSegmentationStatus } from "@/hooks/useProjectSegmentationStatus";
@@ -13,7 +13,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Brain, Download, FolderOpen, Heart, Upload, Clock, CheckCircle, XCircle, RefreshCw, FileText, Cpu, User, UserCheck, Settings, Shield } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertCircle,
+  Brain,
+  Download,
+  FolderOpen,
+  Heart,
+  Upload,
+  Clock,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  FileText,
+  Cpu,
+  User,
+  UserCheck,
+  Settings,
+  Shield,
+  Grid3X3,
+  List,
+  Edit,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { projectApi, segmentationApi } from "@/lib/api";
 import { FileUploadDialog } from "@/components/upload/FileUploadDialog";
@@ -88,12 +112,46 @@ export default function DashboardPage() {
   const [sortBy, setSortBy] = useState<string>("date");
   const [searchTerm, setSearchTerm] = useState("");
 
+  // State for view mode (card or table view) with localStorage persistence
+  const [viewMode, setViewMode] = useState<"card" | "table">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("dashboard-view-mode") as "card" | "table") || "card";
+    }
+    return "card";
+  });
+
+  // Save view mode preference to localStorage
+  const handleViewModeChange = (value: "card" | "table") => {
+    setViewMode(value);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("dashboard-view-mode", value);
+    }
+  };
+
+  // Add keyboard shortcuts for view switching
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+          case "1":
+            event.preventDefault();
+            handleViewModeChange("card");
+            break;
+          case "2":
+            event.preventDefault();
+            handleViewModeChange("table");
+            break;
+        }
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyPress);
+    return () => document.removeEventListener("keydown", handleKeyPress);
+  }, []);
+
   // Function to sort and filter projects
   const getSortedAndFilteredProjects = () => {
-    const filteredProjects = projects.filter((project) => 
-      project.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      project.description.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredProjects = projects.filter((project) => project.name.toLowerCase().includes(searchTerm.toLowerCase()) || project.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
     return filteredProjects.sort((a, b) => {
       switch (sortBy) {
@@ -127,13 +185,13 @@ export default function DashboardPage() {
     try {
       console.log(`[Export] Starting export for project: ${projectId}`);
       const exportResult = await segmentationApi.exportProjectData(projectId);
-      console.log(`[Export] Received export result:`, { 
-        blobSize: exportResult.blob.size, 
+      console.log(`[Export] Received export result:`, {
+        blobSize: exportResult.blob.size,
         blobType: exportResult.blob.type,
         expectedSize: exportResult.fileSizeBytes,
-        filename: exportResult.suggestedFilename
+        filename: exportResult.suggestedFilename,
       });
-      
+
       const url = window.URL.createObjectURL(exportResult.blob);
       const a = document.createElement("a");
       a.href = url;
@@ -142,7 +200,7 @@ export default function DashboardPage() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      
+
       console.log(`[Export] Successfully downloaded export for project: ${projectId} as ${exportResult.suggestedFilename}`);
     } catch (error) {
       console.error("Error exporting project:", error);
@@ -426,10 +484,7 @@ export default function DashboardPage() {
               <p className="text-muted-foreground">Manage your cardiac imaging projects</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => window.open('/sample', '_blank')}
-              >
+              <Button variant="outline" onClick={() => window.open("/sample", "_blank")}>
                 <FileText className="mr-2 h-4 w-4" />
                 Sample NIfTI Files
               </Button>
@@ -480,48 +535,202 @@ export default function DashboardPage() {
             </Alert>
           </ShowForGuest>
 
-          {/* Sorting and Filtering Controls */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="flex-1">
-              <Input placeholder="Search projects by name or description..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="max-w-sm" />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Sort by:</span>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="date">Date Added</SelectItem>
-                  <SelectItem value="name">Name (A-Z)</SelectItem>
-                  <SelectItem value="size">File Size</SelectItem>
-                  <SelectItem value="type">File Type</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Results count */}
-          {searchTerm && (
-            <div className="text-sm text-muted-foreground">
-              Showing {getSortedAndFilteredProjects().length} of {projects.length} projects
-            </div>
-          )}
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {getSortedAndFilteredProjects().map((project) => (
-              <div key={project.projectId} className="group">
-                <EditableProjectCard
-                  project={project}
-                  onUpdate={refreshProjects}
-                  onSave={handleSaveProject}
-                  onDelete={handleDeleteProject}
-                  onExport={handleExportProject}
-                  segmentationIndicator={<SegmentationIndicator status={segmentationStatuses[project.projectId]} variant="badge" />}
-                />
+          {/* Sorting, Filtering and View Controls */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-1 items-center gap-4">
+              <div className="flex-1 max-w-sm">
+                <Input placeholder="Search projects by name or description..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
               </div>
-            ))}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Sort by:</span>
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="date">Date Added</SelectItem>
+                    <SelectItem value="name">Name (A-Z)</SelectItem>
+                    <SelectItem value="size">File Size</SelectItem>
+                    <SelectItem value="type">File Type</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">View:</span>
+              <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && handleViewModeChange(value as "card" | "table")} className="border rounded-md">
+                <ToggleGroupItem value="card" aria-label="Card view (Ctrl+1)" size="sm" title="Card view (Ctrl+1)">
+                  <Grid3X3 className="h-4 w-4" />
+                </ToggleGroupItem>
+                <ToggleGroupItem value="table" aria-label="Table view (Ctrl+2)" size="sm" title="Table view (Ctrl+2)">
+                  <List className="h-4 w-4" />
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
           </div>
+
+          {/* Results count with view mode indicator */}
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div>{searchTerm ? `Showing ${getSortedAndFilteredProjects().length} of ${projects.length} projects` : `${projects.length} project${projects.length !== 1 ? "s" : ""} total`}</div>
+            <div className="flex items-center gap-2">
+              <span>Viewing as {viewMode === "card" ? "cards" : "table"}</span>
+            </div>
+          </div>
+
+          {/* Projects Display - Card or Table View */}
+          {getSortedAndFilteredProjects().length === 0 ? (
+            <Card>
+              <CardContent className="text-center py-12">
+                <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold mb-2">{searchTerm ? "No projects match your search" : "No projects yet"}</h3>
+                <p className="text-muted-foreground mb-4">
+                  {searchTerm ? "Try adjusting your search terms or clear the search to see all projects." : "Upload your first project to get started with cardiac segmentation."}
+                </p>
+                <ShowForUser fallback={null}>
+                  {!searchTerm && (
+                    <Button onClick={() => setUploadDialogOpen(true)}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload First Project
+                    </Button>
+                  )}
+                </ShowForUser>
+              </CardContent>
+            </Card>
+          ) : viewMode === "card" ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {getSortedAndFilteredProjects().map((project) => (
+                <div key={project.projectId} className="group">
+                  <EditableProjectCard
+                    project={project}
+                    onUpdate={refreshProjects}
+                    onSave={handleSaveProject}
+                    onDelete={handleDeleteProject}
+                    onExport={handleExportProject}
+                    segmentationIndicator={<SegmentationIndicator status={segmentationStatuses[project.projectId]} variant="badge" />}
+                    hasMasks={segmentationStatuses[project.projectId]?.hasMasks || false}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Card>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="hidden sm:table-cell">Size</TableHead>
+                      <TableHead className="hidden md:table-cell">Type</TableHead>
+                      <TableHead className="hidden lg:table-cell">Dimensions</TableHead>
+                      <TableHead className="hidden lg:table-cell">Affine Matrix</TableHead>
+                      <TableHead className="hidden md:table-cell">Created</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {getSortedAndFilteredProjects().map((project) => (
+                      <TableRow key={project.projectId} className="group hover:bg-muted/50">
+                        <TableCell className="font-medium">
+                          <div>
+                            <div className="font-semibold">{project.name}</div>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div className="text-sm text-muted-foreground truncate max-w-xs cursor-help">{project.description || "No description"}</div>
+                                </TooltipTrigger>
+                                {project.description && project.description.length > 50 && (
+                                  <TooltipContent className="max-w-xs">
+                                    <p>{project.description}</p>
+                                  </TooltipContent>
+                                )}
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <ShowForRegisteredUser fallback={<Badge variant={project.isSaved ? "default" : "secondary"}>{project.isSaved ? "Saved" : "Temp"}</Badge>}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleSaveProject(project.projectId, !project.isSaved)}
+                                className="h-auto p-1"
+                                title={`Click to ${project.isSaved ? "mark as temporary" : "save permanently"}`}
+                              >
+                                <Badge variant={project.isSaved ? "default" : "secondary"} className="cursor-pointer hover:opacity-80">
+                                  {project.isSaved ? "Saved" : "Temp"}
+                                </Badge>
+                              </Button>
+                            </ShowForRegisteredUser>
+                            <SegmentationIndicator status={segmentationStatuses[project.projectId]} variant="badge" />
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">{formatFileSize(project.filesize)}</TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <Badge variant="outline" className="font-mono text-xs">
+                            {project.filetype}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <span className="font-mono text-sm">
+                            {(() => {
+                              let dimensionStringRepresentation = `${project.dimensions.width}×${project.dimensions.height}`;
+                              if (project.dimensions.slices) dimensionStringRepresentation += `×${project.dimensions.slices}`;
+                              if (project.dimensions.frames) dimensionStringRepresentation += `×${project.dimensions.frames}`;
+                              return dimensionStringRepresentation;
+                            })()}
+                          </span>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          {project.affineMatrix && project.affineMatrix.length > 0 ? (
+                            <Badge variant="outline" className="text-xs">
+                              4×4 Available
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-xs text-muted-foreground">
+                              Not Available
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{new Date(project.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => window.open(`/project/${project.projectId}`, "_blank")} title={`Open project ${project.name}`}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                              onClick={() => handleExportProject(project.projectId)}
+                              disabled={!segmentationStatuses[project.projectId]?.hasMasks}
+                              title={segmentationStatuses[project.projectId]?.hasMasks ? "Export segmentation as NIfTI" : "Complete segmentation to enable export"}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <ShowForRegisteredUser fallback={null}>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => handleDeleteProject(project.projectId, project.name)}
+                                title={`Delete project ${project.name}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </ShowForRegisteredUser>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Ongoing Segmentation Jobs Tab */}

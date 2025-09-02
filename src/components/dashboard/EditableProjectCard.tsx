@@ -8,6 +8,7 @@ import { Edit2, Check, X, Loader2, Edit, Download, Trash2, Eye, Brain } from "lu
 import { Project } from "@/types/dashboard";
 import { projectApi } from "@/lib/api";
 import { ShowForRegisteredUser } from "@/components/RoleGuard";
+import { AffineMatrixDisplay } from "@/components/ui/AffineMatrixDisplay";
 
 interface EditableProjectCardProps {
   project: Project;
@@ -16,9 +17,10 @@ interface EditableProjectCardProps {
   onDelete: (projectId: string, projectName: string) => void;
   onExport: (projectId: string) => void;
   segmentationIndicator?: React.ReactNode;
+  hasMasks?: boolean; // Add mask availability info
 }
 
-export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExport, segmentationIndicator }: EditableProjectCardProps) {
+export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExport, segmentationIndicator, hasMasks = false }: EditableProjectCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editedName, setEditedName] = useState(project.name);
@@ -179,12 +181,26 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
           </div>
         </div>
 
+        {/* Affine Matrix Display - Compact Version for Dashboard */}
+        <AffineMatrixDisplay 
+          affineMatrix={project.affineMatrix} 
+          compact={true}
+          className="mt-3"
+        />
+
         <div className="flex gap-2">
           <Button size="sm" className="flex-1" onClick={() => window.open(`/project/${project.projectId}`, "_blank")} title={`Open project ${project.name}`}>
             <Edit className="mr-1 h-3 w-3" />
             Open
           </Button>
-          <Button size="sm" variant="outline" className="flex-1" onClick={() => onExport(project.projectId)}>
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="flex-1" 
+            onClick={() => onExport(project.projectId)}
+            disabled={!hasMasks}
+            title={hasMasks ? "Export segmentation as NIfTI" : "Complete segmentation to enable export"}
+          >
             <Download className="mr-1 h-3 w-3" />
             Export
           </Button>
