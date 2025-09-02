@@ -273,6 +273,27 @@ export const segmentationApi = {
     }
   },
 
+  // Batch get segmentation status for multiple projects
+  batchSegmentationStatus: async (projectIds: string[]) => {
+    console.log('[API] Batch segmentation status check:', { projectIds });
+    
+    try {
+      const response = await api.post('/segmentation/batch-segmentation-status', {
+        projectIds,
+      });
+      
+      console.log('[API] Batch segmentation status response:', { 
+        success: response.data.success, 
+        statusCount: Object.keys(response.data.statuses || {}).length 
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('[API] Batch segmentation status error:', error);
+      throw error;
+    }
+  },
+
   // Start manual segmentation
   startManualSegmentation: async (
     projectId: string,
