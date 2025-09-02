@@ -114,14 +114,18 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
             ) : (
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-2 max-w-64">
-                  <p className="text-lg font-semibold truncate">{project.name}</p>
+                  <p className="text-lg font-semibold truncate" title={project.name}>
+                    {project.name}
+                  </p>
                   <ShowForRegisteredUser fallback={null}>
                     <Button variant="ghost" size="sm" onClick={handleStartEdit} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto self-end">
                       <Edit2 className="h-3 w-3" />
                     </Button>
                   </ShowForRegisteredUser>
                 </div>
-                <p className="text-sm text-muted-foreground truncate max-w-80">{project.description || "No description"}</p>
+                <p className="text-sm text-muted-foreground truncate max-w-80" title={project.description || "No description"}>
+                  {project.description || "No description"}
+                </p>
               </div>
             )}
           </div>

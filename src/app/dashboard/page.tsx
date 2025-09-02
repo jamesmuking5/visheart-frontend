@@ -15,7 +15,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertCircle,
   Brain,
@@ -429,7 +428,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-3">
                       <FileText className="text-muted-foreground h-4 w-4" />
                       <div>
-                        <p className="text-sm font-medium">{project.name}</p>
+                        <p className="text-sm font-medium truncate max-w-96">{project.name}</p>
                         <p className="text-muted-foreground text-xs">
                           {formatFileSize(project.filesize)} •{project.filetype}
                         </p>
@@ -635,19 +634,12 @@ export default function DashboardPage() {
                       <TableRow key={project.projectId} className="group hover:bg-muted/50">
                         <TableCell className="font-medium">
                           <div>
-                            <div className="font-semibold">{project.name}</div>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="text-sm text-muted-foreground truncate max-w-xs cursor-help">{project.description || "No description"}</div>
-                                </TooltipTrigger>
-                                {project.description && project.description.length > 50 && (
-                                  <TooltipContent className="max-w-xs">
-                                    <p>{project.description}</p>
-                                  </TooltipContent>
-                                )}
-                              </Tooltip>
-                            </TooltipProvider>
+                            <div className="font-semibold truncate max-w-80" title={project.name}>
+                              {project.name}
+                            </div>
+                            <div className="text-sm text-muted-foreground truncate max-w-xs" title={project.description || "No description"}>
+                              {project.description || "No description"}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
