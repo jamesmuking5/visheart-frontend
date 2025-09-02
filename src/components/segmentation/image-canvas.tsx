@@ -157,7 +157,9 @@ const NavigationControls = memo(({
       </div>
     </div>
     {/* Keyboard shortcut hint */}
-    <div className="mt-3 text-xs text-muted-foreground text-center py-1 bg-muted/20 rounded">← → frames • ↑ ↓ slices</div>
+    <div className="mt-3 text-xs text-muted-foreground text-center py-1 bg-muted/20 rounded">
+      ← → frames • ↑ ↓ slices • + - zoom
+    </div>
   </div>
 ));
 
@@ -218,8 +220,8 @@ export function ImageCanvas({
   const isContainerPanning = useRef(false);
   const lastContainerPoint = useRef<{ x: number; y: number } | null>(null);
   const [isCtrlPressed, setIsCtrlPressed] = useState(false);
-  // Local state mirror for panning to trigger rerenders for cursor updates
   const [isPanningState, setIsPanningState] = useState(false);
+  const [isZoomKeyPressed, setIsZoomKeyPressed] = useState(false);
 
   const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -254,20 +256,34 @@ export function ImageCanvas({
     }
   }, [isCtrlPressed, tool]);
 
-  // Track Ctrl key state so user can hold Ctrl to pan
+  // Track key states for visual feedback (Ctrl for pan, +/- for zoom)
   useEffect(() => {
     const onKeyDown = (ev: KeyboardEvent) => {
+      // Track Ctrl key for pan feedback
       if (ev.key === 'Control' || ev.ctrlKey) {
         if (!isCtrlPressed) setIsCtrlPressed(true);
       }
+      // Track zoom keys for zoom feedback
+      if (ev.key === '+' || ev.key === '=' || ev.key === '-' || ev.key === '_') {
+        if (!isZoomKeyPressed) setIsZoomKeyPressed(true);
+      }
     };
+
     const onKeyUp = (ev: KeyboardEvent) => {
+      // Release Ctrl key
       if (ev.key === 'Control' || !ev.ctrlKey) {
         if (isCtrlPressed) setIsCtrlPressed(false);
       }
+      // Release zoom keys
+      if (ev.key === '+' || ev.key === '=' || ev.key === '-' || ev.key === '_') {
+        if (isZoomKeyPressed) setIsZoomKeyPressed(false);
+      }
     };
+
     const onWindowBlur = () => {
+      // Reset all key states on window blur
       if (isCtrlPressed) setIsCtrlPressed(false);
+      if (isZoomKeyPressed) setIsZoomKeyPressed(false);
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -278,7 +294,7 @@ export function ImageCanvas({
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onWindowBlur);
     };
-  }, [isCtrlPressed]);
+  }, [isCtrlPressed, isZoomKeyPressed]);
 
   // Keep the container cursor in sync whenever ctrl/tool/panning state changes
   useEffect(() => {
@@ -343,7 +359,7 @@ export function ImageCanvas({
     totalSlices: projectData.dimensions?.slices || 1,
   }), [projectData.dimensions]);
 
-  // Keyboard shortcut handling for frame/slice navigation
+  // Keyboard shortcut handling for frame/slice navigation and zoom
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Only trigger if not focused on input/textarea/select
@@ -362,11 +378,39 @@ export function ImageCanvas({
       } else if (event.key === "ArrowDown") {
         event.preventDefault();
         if (currentSlice < totalSlices - 1) onSliceChange(currentSlice + 1);
+      } else if (event.key === "+" || event.key === "=") {
+        event.preventDefault();
+        // Zoom in
+        const currentScale = stageScale || 1;
+        const newScale = Math.min(5, currentScale * 1.2);
+        setStageScale(newScale);
+        const stage = stageRef.current?.getStage?.();
+        if (stage) {
+          stage.scale({ x: newScale, y: newScale });
+          stage.batchDraw();
+          if (setZoomLevel) {
+            setZoomLevel(newScale);
+          }
+        }
+      } else if (event.key === "-" || event.key === "_") {
+        event.preventDefault();
+        // Zoom out
+        const currentScale = stageScale || 1;
+        const newScale = Math.max(0.1, currentScale * 0.8);
+        setStageScale(newScale);
+        const stage = stageRef.current?.getStage?.();
+        if (stage) {
+          stage.scale({ x: newScale, y: newScale });
+          stage.batchDraw();
+          if (setZoomLevel) {
+            setZoomLevel(newScale);
+          }
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentFrame, currentSlice, totalFrames, totalSlices, onFrameChange, onSliceChange]);
+  }, [currentFrame, currentSlice, totalFrames, totalSlices, onFrameChange, onSliceChange, stageScale, setZoomLevel]);
 
   // Sync selected label and visibleLabelSet when tool changes or active label changes
   useEffect(() => {
@@ -982,6 +1026,16 @@ export function ImageCanvas({
             isPanningState ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
           )}>
             {isPanningState ? 'Panning — release mouse' : (tool === 'pan' ? 'Pan mode' : (isCtrlPressed ? 'Hold Ctrl to pan (click+drag)' : 'Hold Ctrl to pan'))}
+          </div>
+        </div>
+
+        {/* Zoom shortcuts hint badge */}
+        <div className="absolute right-4 bottom-4 z-40">
+          <div className={cn(
+            "px-2 py-1 rounded-md text-xs font-medium shadow",
+            isZoomKeyPressed ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+          )}>
+            + - to zoom
           </div>
         </div>
         
