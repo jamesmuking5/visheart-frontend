@@ -8,6 +8,8 @@ import type { KonvaEventObject } from "konva/lib/Node";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { decodeSegmentationMasks } from "@/lib/decode-RLE";
 import { cn } from "@/lib/utils";
@@ -1021,24 +1023,40 @@ export function ImageCanvas({
 
         {/* Ctrl / Pan hint badge */}
         <div className="absolute left-4 bottom-4 z-40">
-          <div className={cn(
-            "px-2 py-1 rounded-md text-xs font-medium shadow",
-            isPanningState ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-          )}>
-            {isPanningState ? 'Panning — release mouse' : (tool === 'pan' ? 'Pan mode' : (isCtrlPressed ? 'Hold Ctrl to pan (click+drag)' : 'Hold Ctrl to pan'))}
-          </div>
+          <Badge
+            variant={isPanningState ? "default" : "secondary"}
+            className={cn( "px-2 py-1 text-xs font-medium shadow", )}
+          >
+            {isPanningState ? "Panning — release mouse" : tool === "pan" ? "Pan mode" : isCtrlPressed ? "Hold Ctrl to pan (click+drag)" : "Hold Ctrl to pan"}
+          </Badge>
         </div>
 
         {/* Zoom shortcuts hint badge */}
         <div className="absolute right-4 bottom-4 z-40">
-          <div className={cn(
-            "px-2 py-1 rounded-md text-xs font-medium shadow",
-            isZoomKeyPressed ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-          )}>
+          <Badge
+            variant={isZoomKeyPressed ? "default" : "secondary"}
+            className="px-2 py-1 text-xs font-medium shadow"
+          >
             + - to zoom
-          </div>
+          </Badge>
         </div>
-        
+
+        <div className="absolute right-4 bottom-4 z-40">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant={isZoomKeyPressed ? "default" : "secondary"}
+                className="px-2 py-1 text-xs font-medium shadow cursor-help"
+              >
+                + - to zoom
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>Press + to zoom in or - to zoom out</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+
         {/* Only show loading spinner on initial load or when there's no current image */}
         {imageStatus === "loading" && isInitialLoad && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
