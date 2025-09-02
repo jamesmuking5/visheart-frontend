@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { Stage, Layer, Line, Image as KonvaImage, Rect } from "react-konva";
-import { Play, Loader2 } from "lucide-react";
+import { Play, Loader2, RotateCcw } from "lucide-react";
 import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { Slider } from "@/components/ui/slider";
@@ -224,6 +224,7 @@ export function ImageCanvas({
   const [isCtrlPressed, setIsCtrlPressed] = useState(false);
   const [isPanningState, setIsPanningState] = useState(false);
   const [isZoomKeyPressed, setIsZoomKeyPressed] = useState(false);
+  const [isResetKeyPressed, setIsResetKeyPressed] = useState(false);
 
   const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -258,7 +259,7 @@ export function ImageCanvas({
     }
   }, [isCtrlPressed, tool]);
 
-  // Track key states for visual feedback (Ctrl for pan, +/- for zoom)
+  // Track key states for visual feedback (Ctrl for pan, +/- for zoom, R for reset)
   useEffect(() => {
     const onKeyDown = (ev: KeyboardEvent) => {
       // Track Ctrl key for pan feedback
@@ -268,6 +269,10 @@ export function ImageCanvas({
       // Track zoom keys for zoom feedback
       if (ev.key === '+' || ev.key === '=' || ev.key === '-' || ev.key === '_') {
         if (!isZoomKeyPressed) setIsZoomKeyPressed(true);
+      }
+      // Track reset key for reset feedback
+      if (ev.key === 'r' || ev.key === 'R') {
+        if (!isResetKeyPressed) setIsResetKeyPressed(true);
       }
     };
 
@@ -280,12 +285,17 @@ export function ImageCanvas({
       if (ev.key === '+' || ev.key === '=' || ev.key === '-' || ev.key === '_') {
         if (isZoomKeyPressed) setIsZoomKeyPressed(false);
       }
+      // Release reset key
+      if (ev.key === 'r' || ev.key === 'R') {
+        if (isResetKeyPressed) setIsResetKeyPressed(false);
+      }
     };
 
     const onWindowBlur = () => {
       // Reset all key states on window blur
       if (isCtrlPressed) setIsCtrlPressed(false);
       if (isZoomKeyPressed) setIsZoomKeyPressed(false);
+      if (isResetKeyPressed) setIsResetKeyPressed(false);
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -296,7 +306,7 @@ export function ImageCanvas({
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onWindowBlur);
     };
-  }, [isCtrlPressed, isZoomKeyPressed]);
+  }, [isCtrlPressed, isZoomKeyPressed, isResetKeyPressed]);
 
   // Keep the container cursor in sync whenever ctrl/tool/panning state changes
   useEffect(() => {
@@ -408,11 +418,35 @@ export function ImageCanvas({
             setZoomLevel(newScale);
           }
         }
+      } else if (event.key === "r" || event.key === "R") {
+        event.preventDefault();
+        // Reset zoom and position
+        const stage = stageRef.current?.getStage?.();
+        if (!stage) return;
+
+        // Reset zoom to 1
+        const newScale = 1;
+        stage.scale({ x: newScale, y: newScale });
+        setStageScale(newScale);
+
+        // Center the canvas using actual image dimensions for proper positioning
+        const logicalW = width || 1000;
+        const logicalH = height || 550;
+        const offsetX = Math.max(0, ((containerSize.width || 1000) - logicalW * newScale) / 2);
+        const offsetY = Math.max(0, ((containerSize.height || 550) - logicalH * newScale) / 2);
+        stage.position({ x: offsetX, y: offsetY });
+        setStagePosition({ x: offsetX, y: offsetY });
+        stage.batchDraw();
+
+        // Update zoom level prop
+        if (setZoomLevel) {
+          setZoomLevel(1);
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentFrame, currentSlice, totalFrames, totalSlices, onFrameChange, onSliceChange, stageScale, setZoomLevel]);
+  }, [currentFrame, currentSlice, totalFrames, totalSlices, onFrameChange, onSliceChange, stageScale, setZoomLevel, width, height, containerSize.width, containerSize.height]);
 
   // Sync selected label and visibleLabelSet when tool changes or active label changes
   useEffect(() => {
@@ -987,7 +1021,7 @@ export function ImageCanvas({
     opacity
   });
 
-  // Debug logging for optimization verification
+  // Debug logging for optimization verification (development only)
   if (process.env.NODE_ENV === 'development') {
     console.log(`[ImageCanvas] Using optimized mask rendering hook - found ${processedMasks.length} processed masks`);
   }
@@ -1031,17 +1065,8 @@ export function ImageCanvas({
           </Badge>
         </div>
 
-        {/* Zoom shortcuts hint badge */}
-        <div className="absolute right-4 bottom-4 z-40">
-          <Badge
-            variant={isZoomKeyPressed ? "default" : "secondary"}
-            className="px-2 py-1 text-xs font-medium shadow"
-          >
-            + - to zoom
-          </Badge>
-        </div>
-
-        <div className="absolute right-4 bottom-4 z-40">
+        {/* Keyboard shortcuts hint badges */}
+        <div className="absolute right-4 bottom-4 z-40 flex flex-row gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
               <Badge
@@ -1055,8 +1080,22 @@ export function ImageCanvas({
               <p>Press + to zoom in or - to zoom out</p>
             </TooltipContent>
           </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant={isResetKeyPressed ? "default" : "secondary"}
+                className="px-2 py-1 text-xs font-medium shadow cursor-help"
+              >
+                <RotateCcw className="w-3 h-3 mr-1" />
+                R to reset
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>Press R to reset zoom and position</p>
+            </TooltipContent>
+          </Tooltip>
         </div>
-
         {/* Only show loading spinner on initial load or when there's no current image */}
         {imageStatus === "loading" && isInitialLoad && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
