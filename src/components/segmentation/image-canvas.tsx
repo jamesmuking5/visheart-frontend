@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { decodeSegmentationMasks } from "@/lib/decode-RLE";
 import { cn } from "@/lib/utils";
+import { useMaskRendering } from "@/hooks/useMaskRendering";
 
 // Import shared types and constants
 import type { ImageCanvasProps, AnatomicalLabel } from "@/types/segmentation";
@@ -926,99 +927,24 @@ export function ImageCanvas({
     }
   }, [projectData.projectId, finalBoundingBox, tarCacheReady, getMRIImageFilename, decodedMasks, onMaskUpdate, projectData.dimensions, currentFrame, currentSlice]);
 
-  // Direct mask rendering - create ImageData directly from decodedMasks for each label
-  // Render active mask last so it appears on top
-  const allMaskElements = useMemo(() => {
-    const maskElements: Array<{ label: string; image: HTMLImageElement; color: string }> = [];
-    
-    // Helper function to create mask element for a given label
-    const createMaskElement = (label: string, color: string) => {
-      if (!visibleMasks.has(label as AnatomicalLabel)) return null; // Only show visible masks
-      
-      if (tool === "rectangle" && !visibleLabelSet.has(label as AnatomicalLabel)) return null;
-      if (tool !== "rectangle" && !visibleMasks.has(label as AnatomicalLabel)) return null;
+  // Use optimized mask rendering hook
+  const { processedMasks } = useMaskRendering({
+    decodedMasks,
+    currentFrame,
+    currentSlice,
+    visibleMasks,
+    activeLabel,
+    tool,
+    visibleLabelSet,
+    width,
+    height,
+    opacity
+  });
 
-      const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
-      const maskData = decodedMasks[editableMaskKey];
-      
-      if (!maskData || maskData.every((val: number) => val === 0)) {
-        return null;
-      }
-      
-      const maskWidth = projectData.dimensions?.width || width;
-      const maskHeight = projectData.dimensions?.height || height;
-
-      // Direct conversion: mask data to canvas
-      const canvas = document.createElement("canvas");
-      canvas.width = maskWidth;
-      canvas.height = maskHeight;
-      const ctx = canvas.getContext("2d")!;
-
-      const imageData = ctx.createImageData(maskWidth, maskHeight);
-            const [r, g, b] = [
-              parseInt(color.slice(1, 3), 16),
-              parseInt(color.slice(3, 5), 16),
-              parseInt(color.slice(5, 7), 16)
-            ];
-            
-            const data = imageData.data;
-      
-      // Simple 1:1 pixel mapping: direct array index to canvas pixel mapping
-      for (let i = 0; i < maskData.length && i < (maskWidth * maskHeight); i++) {
-        if (maskData[i] > 0) {
-          const pixelIndex = i * 4;
-          data[pixelIndex] = r;       // Red
-          data[pixelIndex + 1] = g;   // Green
-          data[pixelIndex + 2] = b;   // Blue
-          data[pixelIndex + 3] = Math.round(255 * opacity); // Alpha
-        }
-      }
-      
-      ctx.putImageData(imageData, 0, 0);
-      
-      const img = new window.Image();
-      img.src = canvas.toDataURL();
-      
-      return {
-        label,
-        image: img,
-        color
-      };
-    };
-    
-    // Render all mask layers for the current frame/slice.
-    // If tool is 'rectangle', only show the mask for the selected label
-    if (tool === "rectangle") {
-      Object.entries(LABEL_COLORS).forEach(([label, color]) => {
-        if (visibleLabelSet.has(label as AnatomicalLabel)) {
-          const maskElement = createMaskElement(label, color);
-          if (maskElement) {
-            maskElements.push(maskElement);
-          }
-        }
-      });
-    } else {
-      // Otherwise, show all masks as before
-      Object.entries(LABEL_COLORS).forEach(([label, color]) => {
-        if (label !== activeLabel) {
-          const maskElement = createMaskElement(label, color);
-          if (maskElement) {
-            maskElements.push(maskElement);
-          }
-        }
-      });
-      // Render the active mask last so it appears on top of other masks
-      if (LABEL_COLORS[activeLabel]) {
-        const activeMaskElement = createMaskElement(activeLabel, LABEL_COLORS[activeLabel]);
-        if (activeMaskElement) {
-          maskElements.push(activeMaskElement);
-        }
-      }
-    }
-
-    console.log(`[ImageCanvas] Total mask elements found: ${maskElements.length}, active mask "${activeLabel}" rendered last`);
-    return maskElements;
-  }, [decodedMasks, currentFrame, currentSlice, width, height, opacity, visibleMasks, activeLabel, tool, visibleLabelSet]);
+  // Debug logging for optimization verification
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[ImageCanvas] Using optimized mask rendering hook - found ${processedMasks.length} processed masks`);
+  }
 
   return (
     <div className="flex flex-col items-center w-full h-full">
@@ -1104,7 +1030,7 @@ export function ImageCanvas({
             )}
             
             {/* Display all anatomical labels */}
-            {allMaskElements.map((maskElement) => (
+            {processedMasks.map((maskElement) => (
               <KonvaImage
                 key={`mask-${maskElement.label}`}
                 image={maskElement.image}

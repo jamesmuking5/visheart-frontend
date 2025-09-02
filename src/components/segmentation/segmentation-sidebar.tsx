@@ -10,6 +10,7 @@ import type { SegmentationSidebarProps, AnatomicalLabel } from "@/types/segmenta
 import { LABEL_COLORS, LABEL_NAMES } from "@/types/segmentation";
 import { DrawingPanel } from './drawing-panel';
 import { HistoryPanel } from './history-panel';
+import { useMaskStats } from '@/hooks/useMaskStats';
 
 // Navigation configuration with proper typing
 const NAV_ITEMS = [
@@ -164,7 +165,7 @@ const MasksPanel = React.memo(({
 
 MasksPanel.displayName = 'MasksPanel';
 
-// Stats Panel Component with memoization
+// Stats Panel Component with optimized custom hook
 const StatsPanel = React.memo(({
   decodedMasks,
   currentFrame,
@@ -176,34 +177,13 @@ const StatsPanel = React.memo(({
   currentSlice: number;
   projectData: any; // Using ProjectData from shared types
 }) => {
-  // Memoized current masks and stats calculation
-  const { currentMasks, projectStats } = useMemo(() => {
-    const masks = Object.entries(decodedMasks).filter(
-      ([key]) =>
-        key.startsWith("editable_") &&
-        key.includes(`_frame_${currentFrame}_slice_${currentSlice}_`)
-    );
-
-    const stats = {
-      totalMasks: Object.keys(decodedMasks).filter((k) =>
-        k.startsWith("editable_")
-      ).length,
-      width: projectData.dimensions?.width || 0,
-      height: projectData.dimensions?.height || 0,
-      frames: projectData.dimensions?.frames || 0,
-      slices: projectData.dimensions?.slices || 0,
-    };
-
-    return { currentMasks: masks, projectStats: stats };
-  }, [decodedMasks, currentFrame, currentSlice, projectData]);
-
-  // Memoized mask stats calculator
-  const calculateMaskStats = useCallback((mask: Uint8Array) => {
-    const totalPixels = mask.length;
-    const filledPixels = mask.filter(pixel => pixel > 0).length;
-    const percentage = totalPixels > 0 ? (filledPixels / totalPixels) * 100 : 0;
-    return { totalPixels, filledPixels, percentage };
-  }, []);
+  // Use optimized custom hook for statistics
+  const { currentMaskStats, projectStats, hasMasks } = useMaskStats({
+    decodedMasks,
+    currentFrame,
+    currentSlice,
+    projectData
+  });
 
   return (
     <div className="space-y-6">
@@ -214,41 +194,33 @@ const StatsPanel = React.memo(({
           Frame {currentFrame + 1}, Slice {currentSlice + 1}
         </div>
         
-        {currentMasks.length > 0 ? (
-          currentMasks.map(([maskKey, maskData]) => {
-            const stats = calculateMaskStats(maskData);
-            const label = maskKey.split('_').pop() || 'unknown';
-            const anatomicalLabel = label as AnatomicalLabel;
-            const labelName = LABEL_NAMES[anatomicalLabel] || label.toUpperCase();
-            const color = LABEL_COLORS[anatomicalLabel] || '#primary';
-            
-            return (
-              <div key={maskKey} className="p-3 bg-muted rounded-lg">
-                <div className="flex items-center gap-2 mb-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: color }}
-                  />
-                  <span className="font-medium text-sm">{labelName}</span>
-                  <span className="text-xs text-muted-foreground ml-auto">
-                    {stats.percentage.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="text-xs text-muted-foreground mb-2">
-                  {stats.filledPixels.toLocaleString()} / {stats.totalPixels.toLocaleString()} pixels
-                </div>
-                <div className="w-full bg-background rounded-full h-2">
-                  <div 
-                    className="h-2 rounded-full transition-all duration-300" 
-                    style={{ 
-                      width: `${stats.percentage}%`,
-                      backgroundColor: color
-                    }}
-                  />
-                </div>
+        {hasMasks ? (
+          currentMaskStats.map(({ label, maskKey, totalPixels, filledPixels, percentage, color, labelName }) => (
+            <div key={maskKey} className="p-3 bg-muted rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <div 
+                  className="w-3 h-3 rounded-full" 
+                  style={{ backgroundColor: color }}
+                />
+                <span className="font-medium text-sm">{labelName}</span>
+                <span className="text-xs text-muted-foreground ml-auto">
+                  {percentage.toFixed(1)}%
+                </span>
               </div>
-            );
-          })
+              <div className="text-xs text-muted-foreground mb-2">
+                {filledPixels.toLocaleString()} / {totalPixels.toLocaleString()} pixels
+              </div>
+              <div className="w-full bg-background rounded-full h-2">
+                <div 
+                  className="h-2 rounded-full transition-all duration-300" 
+                  style={{ 
+                    width: `${percentage}%`,
+                    backgroundColor: color
+                  }}
+                />
+              </div>
+            </div>
+          ))
         ) : (
           <div className="text-center text-muted-foreground text-sm py-8">
             No masks found for current frame/slice
@@ -434,14 +406,6 @@ export function SegmentationSidebar({
     disabled: !hasUnsavedChanges || isSaving
   }), [hasUnsavedChanges, isSaving]);
 
-  // Memoized default handlers for optional props
-  const defaultHistoryHandlers = useMemo(() => ({
-    onClear: onHistoryClear || (() => console.warn('History clear not implemented')),
-    onExport: onHistoryExport || (() => console.warn('History export not implemented')),
-    onCheckpoint: onHistoryCheckpoint || (() => console.warn('History checkpoint not implemented')),
-    onHistoryStepChange: onHistoryStepChange || (() => console.warn('History step change not implemented'))
-  }), [onHistoryClear, onHistoryExport, onHistoryCheckpoint, onHistoryStepChange]);
-
   return (
     <div className="flex flex-col h-full bg-[var(--sidebar)] rounded-xl border border-[var(--sidebar-border)] shadow-sm">
       {/* Top Navigation Bar with proper accessibility */}
@@ -534,10 +498,10 @@ export function SegmentationSidebar({
 
         {activeTab === 'history' && (
           <HistoryPanel
-            onClear={defaultHistoryHandlers.onClear}
-            onExport={defaultHistoryHandlers.onExport}
-            onCheckpoint={defaultHistoryHandlers.onCheckpoint}
-            onHistoryStepChange={defaultHistoryHandlers.onHistoryStepChange}
+            onClear={onHistoryClear || (() => {})}
+            onExport={onHistoryExport || (() => {})}
+            onCheckpoint={onHistoryCheckpoint || (() => {})}
+            onHistoryStepChange={onHistoryStepChange || (() => {})}
             currentFrame={currentFrame}
             currentSlice={currentSlice}
             currentHistoryStep={currentHistoryStep}

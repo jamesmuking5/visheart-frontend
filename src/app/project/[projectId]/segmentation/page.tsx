@@ -13,7 +13,9 @@ import { LoadingProject } from "@/components/project/LoadingProject";
 import { ErrorProject } from "@/components/project/ErrorProject";
 import { SegmentationSidebar } from "@/components/segmentation/segmentation-sidebar";
 import type { AnatomicalLabel, HistoryEntry, DrawingTool } from "@/types/segmentation";
+import { generateMaskKey } from "@/types/segmentation";
 import { useProject } from "@/context/ProjectContext";
+import { useSegmentationHistory } from "@/hooks/useSegmentationHistory";
 
 const ImageCanvas = dynamic(() => import("@/components/segmentation/image-canvas").then((mod) => mod.ImageCanvas), {
   ssr: false,
@@ -36,10 +38,8 @@ export default function SegmentationResultsPage() {
     decodedMasks: contextDecodedMasks,
     hasMasks,
     segmentationError,
-    // NEW: Tar cache from context
     tarCacheReady,
     tarCacheError,
-    // Optimistic updates
     updateContextMasks,
   } = useProject();
 
@@ -54,15 +54,18 @@ export default function SegmentationResultsPage() {
   // After loading guard, we know contextDecodedMasks is available, so create a safe version
   const safeDecodedMasks = decodedMasks || {};
 
-  // Debug: Log mask data flow for troubleshooting
+  // Debug: Log mask data flow for troubleshooting (only in development)
   useEffect(() => {
-    console.log("[Segmentation Debug] Data flow check:");
-    console.log("- contextDecodedMasks:", contextDecodedMasks ? Object.keys(contextDecodedMasks) : null);
-    console.log("- localDecodedMasks:", localDecodedMasks ? Object.keys(localDecodedMasks) : null);
-    console.log("- final decodedMasks:", decodedMasks ? Object.keys(decodedMasks) : null);
-    console.log("- masksInitialized:", masksInitialized);
-    console.log("- tarCacheReady:", tarCacheReady);
-    console.log("- tarCacheError:", tarCacheError);
+    if (process.env.NODE_ENV === 'development') {
+      console.log("[Segmentation Debug] Data flow check:", {
+        contextMasks: contextDecodedMasks ? Object.keys(contextDecodedMasks).length : 0,
+        localMasks: localDecodedMasks ? Object.keys(localDecodedMasks).length : 0,
+        finalMasks: decodedMasks ? Object.keys(decodedMasks).length : 0,
+        masksInitialized,
+        tarCacheReady,
+        tarCacheError
+      });
+    }
   }, [contextDecodedMasks, localDecodedMasks, decodedMasks, masksInitialized, tarCacheReady, tarCacheError]);
 
   // UI state
@@ -84,117 +87,31 @@ export default function SegmentationResultsPage() {
     setResetTrigger(prev => prev + 1);
   }, []);
 
-  // Frame/Slice-Specific History Management, each frame/slice combination has its own history stack
-  const [frameSliceHistories, setFrameSliceHistories] = useState<Record<string, HistoryEntry[]>>({});
-  const [frameSliceHistorySteps, setFrameSliceHistorySteps] = useState<Record<string, number>>({});
-  const historyIdCounter = useRef(0);
+  // Use custom history hook to simplify state management
+  const {
+    currentHistory,
+    currentStep: currentHistoryStep,
+    canUndo,
+    canRedo,
+    createEntry: createHistoryEntry,
+    addToHistory,
+    navigateToStep: handleHistoryStepChange,
+    initialize: initializeHistory,
+    clear: handleHistoryClear
+  } = useSegmentationHistory({
+    currentFrame,
+    currentSlice,
+    decodedMasks
+  });
 
-  // Helper to get current frame/slice key
-  const getCurrentFrameSliceKey = useCallback(() => {
-    return `frame_${currentFrame}_slice_${currentSlice}`;
-  }, [currentFrame, currentSlice]);
-
-  // Get current frame/slice history
-  const currentHistory = useMemo(() => {
-    const key = getCurrentFrameSliceKey();
-    return frameSliceHistories[key] || [];
-  }, [frameSliceHistories, getCurrentFrameSliceKey]);
-
-  // Get current frame/slice history step
-  const currentHistoryStep = useMemo(() => {
-    const key = getCurrentFrameSliceKey();
-    const step = frameSliceHistorySteps[key] || 0;
-    console.log(`[Segmentation] Current history step for ${key}: ${step}`);
-    return step;
-  }, [frameSliceHistorySteps, getCurrentFrameSliceKey]);
-
-  // Memoized History Values for current frame/slice
-  const canUndo = useMemo(() => {
-    const result = currentHistoryStep > 0;
-    console.log(`[Segmentation] canUndo: ${result} (step: ${currentHistoryStep})`);
-    return result;
-  }, [currentHistoryStep]);
-  
-  const canRedo = useMemo(() => {
-    const result = currentHistoryStep < currentHistory.length - 1;
-    console.log(`[Segmentation] canRedo: ${result} (step: ${currentHistoryStep}, history length: ${currentHistory.length})`);
-    return result;
-  }, [currentHistoryStep, currentHistory.length]);
-  
   const canClear = useMemo(() => !!decodedMasks, [decodedMasks]);
 
   const [visibleMasks, setVisibleMasks] = useState<Set<AnatomicalLabel>>(new Set(["lvc", "rv", "myo"]));
 
-  // Compute canvas dimensions based on project data
-  const canvasDimensions = useMemo(() => {
-    // Define database dimensions (original stored values)
-    const dbWidth = projectData?.dimensions?.width || 512;
-    const dbHeight = projectData?.dimensions?.height || 512;
-
-    // Define canvas dimensions
-    return {
-      width: dbWidth,
-      height: dbHeight,
-    };
-  }, [projectData?.dimensions]);
-
-  // Create History Entry Helper
-  const createHistoryEntry = useCallback(
-    (type: HistoryEntry["type"], description: string, masksSnapshot: Record<string, Uint8Array>, maskChanges?: HistoryEntry["maskChanges"], componentLabel?: AnatomicalLabel): HistoryEntry => {
-      // Calculate checkpoint number if this is a checkpoint (per frame/slice)
-      let checkpointNumber: number | undefined;
-      if (type === "checkpoint") {
-        const existingCheckpoints = currentHistory.filter((entry) => entry.type === "checkpoint").length;
-        checkpointNumber = existingCheckpoints + 1;
-      }
-
-      return {
-        id: `history_${Date.now()}_${++historyIdCounter.current}`,
-        type,
-        description,
-        timestamp: Date.now(),
-        frameSlice: `Frame ${currentFrame + 1}, Slice ${currentSlice + 1}`,
-        checkpointNumber,
-        maskChanges,
-        masksSnapshot: { ...masksSnapshot }, // Deep copy
-        componentLabel,
-      };
-    },
-    [currentFrame, currentSlice, currentHistory],
-  );
-
-  // Initialize History for a specific frame/slice
-  const initializeHistory = useCallback(
-    (initialMasks: Record<string, Uint8Array>) => {
-      const frameSliceKey = getCurrentFrameSliceKey();
-
-      // Only initialize if this frame/slice doesn't have history yet
-      if (frameSliceHistories[frameSliceKey]) {
-        console.log(`[Segmentation] History already exists for ${frameSliceKey}`);
-        return;
-      }
-
-      const initialEntry = createHistoryEntry("import", "Project loaded", initialMasks);
-
-      setFrameSliceHistories((prev) => ({
-        ...prev,
-        [frameSliceKey]: [initialEntry],
-      }));
-
-      setFrameSliceHistorySteps((prev) => ({
-        ...prev,
-        [frameSliceKey]: 0,
-      }));
-
-      console.log(`[Segmentation] History initialized for ${frameSliceKey} with`, Object.keys(initialMasks).length, "masks");
-    },
-    [createHistoryEntry, getCurrentFrameSliceKey, frameSliceHistories],
-  );
-
-  // Calculate Mask Changes for Statistics using editable key format
+  // Memoize mask changes calculation using editable key format
   const calculateMaskChanges = useCallback(
     (oldMasks: Record<string, Uint8Array>, newMasks: Record<string, Uint8Array>, label: string): HistoryEntry["maskChanges"] => {
-      const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
+      const editableMaskKey = generateMaskKey(currentFrame, currentSlice, label as AnatomicalLabel);
       const oldMask = oldMasks[editableMaskKey];
       const newMask = newMasks[editableMaskKey];
 
@@ -221,135 +138,90 @@ export default function SegmentationResultsPage() {
     (newMasks: Record<string, Uint8Array>, actionType: HistoryEntry["type"] = "brush", description?: string) => {
       if (!decodedMasks) return;
 
-      const frameSliceKey = getCurrentFrameSliceKey();
       const maskChanges = calculateMaskChanges(decodedMasks, newMasks, activeLabel);
-
       const newEntry = createHistoryEntry(actionType, description || `${actionType} action on ${activeLabel.toUpperCase()}`, newMasks, maskChanges, activeLabel);
 
-      // Update history for current frame/slice only
-      const currentFrameHistory = frameSliceHistories[frameSliceKey] || [];
-      const currentStep = frameSliceHistorySteps[frameSliceKey] || 0;
-
-      const newHistory = currentFrameHistory.slice(0, currentStep + 1);
-      newHistory.push(newEntry);
-      const trimmedHistory = newHistory.slice(-50); // Keep last 50 entries per frame/slice
-
-      setFrameSliceHistories((prev) => ({
-        ...prev,
-        [frameSliceKey]: trimmedHistory,
-      }));
-
-      setFrameSliceHistorySteps((prev) => ({
-        ...prev,
-        [frameSliceKey]: trimmedHistory.length - 1,
-      }));
+      // Add to history using our custom hook
+      addToHistory(newEntry);
 
       setDecodedMasks(newMasks);
       setHasUnsavedChanges(true);
 
-      console.log(`[Segmentation] Updated history for ${frameSliceKey}, step: ${trimmedHistory.length - 1}`);
+      console.log(`[Segmentation] Updated history for current frame/slice`);
     },
-    [decodedMasks, activeLabel, createHistoryEntry, getCurrentFrameSliceKey, frameSliceHistories, frameSliceHistorySteps, calculateMaskChanges, setDecodedMasks],
+    [decodedMasks, activeLabel, createHistoryEntry, addToHistory, calculateMaskChanges, setDecodedMasks],
   );
 
-  // Undo Handler - Frame/Slice Specific
+  // Compute canvas dimensions based on project data
+  const canvasDimensions = useMemo(() => {
+    // Define database dimensions (original stored values)
+    const dbWidth = projectData?.dimensions?.width || 512;
+    const dbHeight = projectData?.dimensions?.height || 512;
+
+    // Define canvas dimensions
+    return {
+      width: dbWidth,
+      height: dbHeight,
+    };
+  }, [projectData?.dimensions]);
+
+  // Optimized function to restore masks from history entry
+  const restoreMasksFromHistory = useCallback((entry: HistoryEntry | null) => {
+    if (!entry || !entry.masksSnapshot || !decodedMasks) return;
+
+    // Only restore masks for current frame/slice
+    const currentFrameSlicePrefix = `editable_frame_${currentFrame}_slice_${currentSlice}_`;
+    const mergedMasks = { ...decodedMasks };
+
+    for (const [key, maskData] of Object.entries(entry.masksSnapshot)) {
+      if (key.startsWith(currentFrameSlicePrefix) && maskData) {
+        try {
+          mergedMasks[key] = new Uint8Array(maskData as ArrayLike<number>);
+        } catch (error) {
+          console.error(`[Segmentation] Failed to restore mask ${key}:`, error);
+        }
+      }
+    }
+
+    setDecodedMasks(mergedMasks);
+    setHasUnsavedChanges(true);
+  }, [decodedMasks, currentFrame, currentSlice, setDecodedMasks]);
+
+  // Enhanced history step change handler that updates masks
+  const handleHistoryStepChangeWithMasks = useCallback((step: number) => {
+    console.log(`[Segmentation] Navigating to history step ${step}`);
+    const entry = handleHistoryStepChange(step);
+    if (entry) {
+      restoreMasksFromHistory(entry);
+      console.log(`[Segmentation] Successfully navigated to history step ${step}`);
+    }
+    return entry;
+  }, [handleHistoryStepChange, restoreMasksFromHistory]);
+
+  // Undo Handler - uses custom hook
   const handleUndo = useCallback(() => {
-    if (!canUndo || currentHistory.length === 0 || !decodedMasks) return;
-
-    const frameSliceKey = getCurrentFrameSliceKey();
-    const newStep = currentHistoryStep - 1;
+    if (!canUndo || !decodedMasks) return;
     
-    // Validate step bounds and entry existence
-    if (newStep < 0 || newStep >= currentHistory.length) {
-      console.warn(`[Segmentation] Invalid undo step: ${newStep}, history length: ${currentHistory.length}`);
-      return;
+    const previousEntry = handleHistoryStepChangeWithMasks(currentHistoryStep - 1);
+    if (previousEntry) {
+      console.log(`[Segmentation] Undo operation completed`);
     }
-    
-    const targetEntry = currentHistory[newStep];
-    if (!targetEntry || !targetEntry.masksSnapshot) {
-      console.warn(`[Segmentation] Invalid history entry at step ${newStep}`);
-      return;
-    }
+  }, [canUndo, decodedMasks, handleHistoryStepChangeWithMasks, currentHistoryStep]);
 
-    setFrameSliceHistorySteps((prev) => ({
-      ...prev,
-      [frameSliceKey]: newStep,
-    }));
-
-    // Only restore masks that belong to the current frame/slice
-    // Keep all other frame/slice masks unchanged
-    const currentFrameSlicePrefix = `editable_frame_${currentFrame}_slice_${currentSlice}_`;
-    const mergedMasks = { ...decodedMasks };
-
-    // Restore only the masks for the current frame/slice from the snapshot
-    Object.entries(targetEntry.masksSnapshot).forEach(([key, maskData]) => {
-      if (key.startsWith(currentFrameSlicePrefix) && maskData) {
-        // Ensure maskData is valid Uint8Array
-        try {
-          mergedMasks[key] = new Uint8Array(maskData);
-        } catch (error) {
-          console.error(`[Segmentation] Failed to restore mask ${key}:`, error);
-        }
-      }
-    });
-
-    setDecodedMasks(mergedMasks);
-    setHasUnsavedChanges(true);
-
-    console.log(`[Segmentation] Undo operation for ${frameSliceKey}: ${targetEntry.description}`);
-  }, [canUndo, currentHistory, currentHistoryStep, getCurrentFrameSliceKey, setDecodedMasks, decodedMasks, currentFrame, currentSlice]);
-
-  // Redo Handler - Frame/Slice Specific  
+  // Redo Handler - uses custom hook  
   const handleRedo = useCallback(() => {
-    if (!canRedo || currentHistory.length === 0 || !decodedMasks) return;
-
-    const frameSliceKey = getCurrentFrameSliceKey();
-    const newStep = currentHistoryStep + 1;
+    if (!canRedo || !decodedMasks) return;
     
-    // Validate step bounds and entry existence
-    if (newStep < 0 || newStep >= currentHistory.length) {
-      console.warn(`[Segmentation] Invalid redo step: ${newStep}, history length: ${currentHistory.length}`);
-      return;
+    const nextEntry = handleHistoryStepChangeWithMasks(currentHistoryStep + 1);
+    if (nextEntry) {
+      console.log(`[Segmentation] Redo operation completed`);
     }
-    
-    const targetEntry = currentHistory[newStep];
-    if (!targetEntry || !targetEntry.masksSnapshot) {
-      console.warn(`[Segmentation] Invalid history entry at step ${newStep}`);
-      return;
-    }
-
-    setFrameSliceHistorySteps((prev) => ({
-      ...prev,
-      [frameSliceKey]: newStep,
-    }));
-
-    // Only restore masks that belong to the current frame/slice
-    // Keep all other frame/slice masks unchanged
-    const currentFrameSlicePrefix = `editable_frame_${currentFrame}_slice_${currentSlice}_`;
-    const mergedMasks = { ...decodedMasks };
-
-    // Restore only the masks for the current frame/slice from the snapshot
-    Object.entries(targetEntry.masksSnapshot).forEach(([key, maskData]) => {
-      if (key.startsWith(currentFrameSlicePrefix) && maskData) {
-        // Ensure maskData is valid Uint8Array
-        try {
-          mergedMasks[key] = new Uint8Array(maskData);
-        } catch (error) {
-          console.error(`[Segmentation] Failed to restore mask ${key}:`, error);
-        }
-      }
-    });
-
-    setDecodedMasks(mergedMasks);
-    setHasUnsavedChanges(true);
-
-    console.log(`[Segmentation] Redo operation for ${frameSliceKey}: ${targetEntry.description}`);
-  }, [canRedo, currentHistory, currentHistoryStep, getCurrentFrameSliceKey, setDecodedMasks, decodedMasks, currentFrame, currentSlice]);  // Clear Handler
+  }, [canRedo, decodedMasks, handleHistoryStepChangeWithMasks, currentHistoryStep]);  // Clear Handler
   const handleClear = useCallback(() => {
     if (!decodedMasks) return;
 
     const newMasks = { ...decodedMasks };
-    const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${activeLabel}`;
+    const editableMaskKey = generateMaskKey(currentFrame, currentSlice, activeLabel);
 
     if (newMasks[editableMaskKey]) {
       newMasks[editableMaskKey] = new Uint8Array(newMasks[editableMaskKey].length);
@@ -357,78 +229,7 @@ export default function SegmentationResultsPage() {
     }
   }, [decodedMasks, currentFrame, currentSlice, activeLabel, updateMasksWithHistory]);
 
-  // History Navigation - for history panel clicks, different from undo/redo
-  const handleHistoryStepChange = useCallback(
-    (step: number) => {
-      // Validate step bounds and history length
-      if (step < 0 || step >= currentHistory.length) {
-        console.warn(`[Segmentation] Invalid history step: ${step}, history length: ${currentHistory.length}`);
-        return;
-      }
-      
-      if (decodedMasks) {
-        const frameSliceKey = getCurrentFrameSliceKey();
-        const targetEntry = currentHistory[step];
-        
-        // Validate target entry exists and has valid data
-        if (!targetEntry || !targetEntry.masksSnapshot) {
-          console.warn(`[Segmentation] Invalid history entry at step ${step}`);
-          return;
-        }
-
-        setFrameSliceHistorySteps((prev) => ({
-          ...prev,
-          [frameSliceKey]: step,
-        }));
-
-        // Only restore masks that belong to the current frame/slice
-        // Keep all other frame/slice masks unchanged
-        const currentFrameSlicePrefix = `editable_frame_${currentFrame}_slice_${currentSlice}_`;
-        const mergedMasks = { ...decodedMasks };
-
-        // Restore only the masks for the current frame/slice from the snapshot
-        Object.entries(targetEntry.masksSnapshot).forEach(([key, maskData]) => {
-          if (key.startsWith(currentFrameSlicePrefix) && maskData) {
-            // Ensure maskData is valid Uint8Array
-            try {
-              mergedMasks[key] = new Uint8Array(maskData);
-            } catch (error) {
-              console.error(`[Segmentation] Failed to restore mask ${key}:`, error);
-            }
-          }
-        });
-
-        setDecodedMasks(mergedMasks);
-        setHasUnsavedChanges(true);
-
-        console.log(`[Segmentation] History navigation for ${frameSliceKey} to step ${step}: ${targetEntry.description}`);
-      }
-    },
-    [currentHistory, getCurrentFrameSliceKey, setDecodedMasks, decodedMasks, currentFrame, currentSlice],
-  );
-
-  // History Management Actions - Frame/Slice Specific
-  const handleHistoryClear = useCallback(() => {
-    if (!decodedMasks) return;
-
-    const frameSliceKey = getCurrentFrameSliceKey();
-
-    // Keep only the current state for this frame/slice
-    const currentEntry = createHistoryEntry("clear", "History cleared", decodedMasks);
-
-    setFrameSliceHistories((prev) => ({
-      ...prev,
-      [frameSliceKey]: [currentEntry],
-    }));
-
-    setFrameSliceHistorySteps((prev) => ({
-      ...prev,
-      [frameSliceKey]: 0,
-    }));
-
-    console.log(`[Segmentation] History cleared for ${frameSliceKey}`);
-  }, [decodedMasks, createHistoryEntry, getCurrentFrameSliceKey]);
-
+  // History Checkpoint Handler - creates manual checkpoint
   const handleHistoryCheckpoint = useCallback(() => {
     if (!decodedMasks) return;
 
@@ -520,7 +321,7 @@ export default function SegmentationResultsPage() {
     };
   }, [hasUnsavedChanges, isSaving, handleSave]);
 
-  // To do: Export history timeline
+  // Export history timeline handler
   const handleHistoryExport = useCallback(() => {
     console.log("Export triggered from page level");
   }, []);
@@ -528,33 +329,20 @@ export default function SegmentationResultsPage() {
   // Initialize history when masks become available from context - ONLY ONCE
   useEffect(() => {
     // Only initialize history if we have masks from context and haven't initialized yet
-    if (!masksInitialized && contextDecodedMasks && Object.keys(contextDecodedMasks).length > 0) {
-      console.log("[Segmentation] Initializing history with context masks...");
-
-      // Set local masks to context masks initially
-      setLocalDecodedMasks(contextDecodedMasks);
-
-      // Initialize history
+    if (contextDecodedMasks && !masksInitialized) {
+      console.log("[Segmentation] Initializing history with context masks");
       initializeHistory(contextDecodedMasks);
       setMasksInitialized(true);
-
-      console.log("[Segmentation] History initialized successfully with", Object.keys(contextDecodedMasks).length, "masks");
     }
   }, [contextDecodedMasks, masksInitialized, initializeHistory]);
 
   // Auto-initialize history for new frame/slice combinations
   useEffect(() => {
-    // Only run if we have masks and are initialized
-    if (masksInitialized && decodedMasks && Object.keys(decodedMasks).length > 0) {
-      const frameSliceKey = getCurrentFrameSliceKey();
-      
-      // Check if history exists for current frame/slice
-      if (!frameSliceHistories[frameSliceKey]) {
-        console.log(`[Segmentation] Auto-initializing history for new frame/slice: ${frameSliceKey}`);
-        initializeHistory(decodedMasks);
-      }
+    if (masksInitialized && decodedMasks) {
+      console.log(`[Segmentation] Auto-initializing history for new frame/slice if needed`);
+      initializeHistory(decodedMasks);
     }
-  }, [currentFrame, currentSlice, masksInitialized, decodedMasks, frameSliceHistories, getCurrentFrameSliceKey, initializeHistory]);
+  }, [currentFrame, currentSlice, masksInitialized, decodedMasks, initializeHistory]);
 
   // Loading states - now much simpler since ProjectContext handles main data loading
   if (!projectId) return <ErrorProject error="Project ID is missing." />;
@@ -633,7 +421,7 @@ export default function SegmentationResultsPage() {
               totalSlices={projectData.dimensions?.slices || 1}
               historyData={currentHistory}
               currentHistoryStep={currentHistoryStep}
-              onHistoryStepChange={handleHistoryStepChange}
+              onHistoryStepChange={handleHistoryStepChangeWithMasks}
               onHistoryClear={handleHistoryClear}
               onHistoryExport={handleHistoryExport}
               onHistoryCheckpoint={handleHistoryCheckpoint}
