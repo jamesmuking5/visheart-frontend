@@ -174,3 +174,16 @@ export const isValidDrawingTool = (tool: string): tool is DrawingTool => {
 export const isValidBrushHardness = (hardness: string): hardness is BrushHardness => {
   return BRUSH_HARDNESS.includes(hardness as BrushHardness);
 };
+
+// Centralized key generation to avoid duplication
+export const generateMaskKey = (currentFrame: number, currentSlice: number, label: AnatomicalLabel): string => {
+  return `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
+};
+
+export const generateFrameSliceKey = (currentFrame: number, currentSlice: number): string => {
+  return `frame_${currentFrame}_slice_${currentSlice}`;
+};
+
+export const generateFrameSlicePrefix = (currentFrame: number, currentSlice: number): string => {
+  return `editable_frame_${currentFrame}_slice_${currentSlice}_`;
+};

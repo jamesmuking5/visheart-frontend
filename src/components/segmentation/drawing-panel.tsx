@@ -3,21 +3,7 @@
 import React, { useEffect } from "react"; 
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { 
-  Undo2, 
-  Redo2, 
-  Trash2, 
-  Brush, 
-  Eraser, 
-  MousePointer2, 
-  Type, 
-  Square, 
-  Circle, 
-  Ruler, 
-  Search, 
-  Move,
-  RotateCcw
-} from "lucide-react";
+import { Undo2, Redo2, Trash2, Brush, Eraser, MousePointer2, Square, Search, Move, RotateCcw } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cn } from "@/lib/utils";
 
@@ -35,22 +21,15 @@ import {
   BRUSH_HARDNESS
 } from "@/types/segmentation";
 
-// Memoized tool configuration
-const TOOL_CONFIG: Record<DrawingTool, { icon: React.ComponentType<any>; label: string; shortcut?: string }> = {
+// Simplified tool configuration
+const TOOL_CONFIG: Record<DrawingTool, { icon: React.ComponentType<any>; label: string }> = {
   select: { icon: MousePointer2, label: 'Select' },
-  brush: { icon: Brush, label: 'Brush', shortcut: 'Brush' },
-  eraser: { icon: Eraser, label: 'Eraser', shortcut: 'Eraser' },
+  brush: { icon: Brush, label: 'Brush' },
+  eraser: { icon: Eraser, label: 'Eraser' },
   rectangle: { icon: Square, label: 'Bounding Box' },
   zoom: { icon: Search, label: 'Zoom' },
   pan: { icon: Move, label: 'Pan' },
 } as const;
-
-// Memoized tool grid layout
-const TOOL_GRID_LAYOUT: DrawingTool[][] = [
-  ['select', 'brush', 'eraser'],
-  ['rectangle'],
-  ['zoom', 'pan']
-];
 
 export function DrawingPanel({
   tool,
@@ -95,22 +74,21 @@ export function DrawingPanel({
     }
   }, [setHardness]);
 
-  // Keyboard shortcut handler
+  // Optimized keyboard shortcut handler with cleanup
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
-        if (canUndo) {
-          e.preventDefault();
-          handleUndo();
-        }
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") {
-        if (canRedo) {
-          e.preventDefault();
-          handleRedo();
-        }
+      // Only handle if no modifier keys except Ctrl/Cmd
+      if (e.altKey || e.shiftKey) return;
+      
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && canUndo) {
+        e.preventDefault();
+        handleUndo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y" && canRedo) {
+        e.preventDefault();
+        handleRedo();
       }
     };
+    
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [canUndo, canRedo, handleUndo, handleRedo]);
@@ -159,19 +137,19 @@ export function DrawingPanel({
         </ToggleGroup>
       </div>
       
-      {/* Tool Selection with Grid Layout */}
+      {/* Tool Selection */}
       <div>
         <h3 className="text-sm font-medium text-foreground mb-3">Tool Selection</h3>
         <div className="grid grid-cols-3 gap-2">
-          {TOOL_GRID_LAYOUT.flat().map((toolKey) => {
+          {DRAWING_TOOLS.map((toolKey) => {
             const config = TOOL_CONFIG[toolKey];
             const IconComponent = config.icon;
             
             return (
               <button
                 key={toolKey}
-                onClick={() => setTool(toolKey)}
-                aria-label={`${config.label}${config.shortcut ? ` (${config.shortcut})` : ''}`}
+                onClick={() => handleToolChange(toolKey)}
+                aria-label={config.label}
                 className={cn(
                   "h-16 flex flex-col items-center justify-center rounded-lg",
                   "border border-border transition-all",
@@ -291,7 +269,7 @@ export function DrawingPanel({
               type="button"
               variant="outline"
               className="w-full mt-4 flex items-center justify-center text-sm font-medium"
-              onClick={() => onReset ? onReset() : setZoomLevel?.(1)}
+              onClick={onReset}
               aria-label="Reset zoom"
             >
               <RotateCcw className="w-5 h-5 mr-2" />

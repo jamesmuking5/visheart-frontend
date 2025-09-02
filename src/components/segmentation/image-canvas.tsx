@@ -2,15 +2,18 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import { Stage, Layer, Line, Image as KonvaImage, Rect } from "react-konva";
-import { Play, Loader2 } from "lucide-react";
+import { Play, Loader2, RotateCcw } from "lucide-react";
 import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown } from "lucide-react";
 import type { KonvaEventObject } from "konva/lib/Node";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { decodeSegmentationMasks } from "@/lib/decode-RLE";
 import { cn } from "@/lib/utils";
+import { useMaskRendering } from "@/hooks/useMaskRendering";
 
 // Import shared types and constants
 import type { ImageCanvasProps, AnatomicalLabel } from "@/types/segmentation";
@@ -156,7 +159,9 @@ const NavigationControls = memo(({
       </div>
     </div>
     {/* Keyboard shortcut hint */}
-    <div className="mt-3 text-xs text-muted-foreground text-center py-1 bg-muted/20 rounded">← → frames • ↑ ↓ slices</div>
+    <div className="mt-3 text-xs text-muted-foreground text-center py-1 bg-muted/20 rounded">
+      ← → frames • ↑ ↓ slices • + - zoom
+    </div>
   </div>
 ));
 
@@ -212,11 +217,14 @@ export function ImageCanvas({
   // Container pan (move whole stage by dragging the wrapper) — preferred for
   // Debug-like behavior: panning moves the viewer instead of moving image coordinates inside the canvas.
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const canvasAreaRef = useRef<HTMLDivElement | null>(null);
+  const infoBarRef = useRef<HTMLDivElement | null>(null);
   const isContainerPanning = useRef(false);
   const lastContainerPoint = useRef<{ x: number; y: number } | null>(null);
   const [isCtrlPressed, setIsCtrlPressed] = useState(false);
-  // Local state mirror for panning to trigger rerenders for cursor updates
   const [isPanningState, setIsPanningState] = useState(false);
+  const [isZoomKeyPressed, setIsZoomKeyPressed] = useState(false);
+  const [isResetKeyPressed, setIsResetKeyPressed] = useState(false);
 
   const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -251,20 +259,43 @@ export function ImageCanvas({
     }
   }, [isCtrlPressed, tool]);
 
-  // Track Ctrl key state so user can hold Ctrl to pan
+  // Track key states for visual feedback (Ctrl for pan, +/- for zoom, R for reset)
   useEffect(() => {
     const onKeyDown = (ev: KeyboardEvent) => {
+      // Track Ctrl key for pan feedback
       if (ev.key === 'Control' || ev.ctrlKey) {
         if (!isCtrlPressed) setIsCtrlPressed(true);
       }
+      // Track zoom keys for zoom feedback
+      if (ev.key === '+' || ev.key === '=' || ev.key === '-' || ev.key === '_') {
+        if (!isZoomKeyPressed) setIsZoomKeyPressed(true);
+      }
+      // Track reset key for reset feedback
+      if (ev.key === 'r' || ev.key === 'R') {
+        if (!isResetKeyPressed) setIsResetKeyPressed(true);
+      }
     };
+
     const onKeyUp = (ev: KeyboardEvent) => {
+      // Release Ctrl key
       if (ev.key === 'Control' || !ev.ctrlKey) {
         if (isCtrlPressed) setIsCtrlPressed(false);
       }
+      // Release zoom keys
+      if (ev.key === '+' || ev.key === '=' || ev.key === '-' || ev.key === '_') {
+        if (isZoomKeyPressed) setIsZoomKeyPressed(false);
+      }
+      // Release reset key
+      if (ev.key === 'r' || ev.key === 'R') {
+        if (isResetKeyPressed) setIsResetKeyPressed(false);
+      }
     };
+
     const onWindowBlur = () => {
+      // Reset all key states on window blur
       if (isCtrlPressed) setIsCtrlPressed(false);
+      if (isZoomKeyPressed) setIsZoomKeyPressed(false);
+      if (isResetKeyPressed) setIsResetKeyPressed(false);
     };
 
     window.addEventListener('keydown', onKeyDown);
@@ -275,7 +306,7 @@ export function ImageCanvas({
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('blur', onWindowBlur);
     };
-  }, [isCtrlPressed]);
+  }, [isCtrlPressed, isZoomKeyPressed, isResetKeyPressed]);
 
   // Keep the container cursor in sync whenever ctrl/tool/panning state changes
   useEffect(() => {
@@ -302,13 +333,13 @@ export function ImageCanvas({
 
   // Update container size when container ref is available
   useEffect(() => {
-    if (containerRef.current) {
+    if (canvasAreaRef.current && infoBarRef.current) {
       const updateSize = () => {
-        if (containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect();
+        if (canvasAreaRef.current && infoBarRef.current) {
+          const canvasRect = canvasAreaRef.current.getBoundingClientRect();
           setContainerSize({
-            width: rect.width,
-            height: rect.height
+            width: canvasRect.width,
+            height: canvasRect.height
           });
         }
       };
@@ -318,7 +349,7 @@ export function ImageCanvas({
 
       // Set up ResizeObserver for responsive updates
       const resizeObserver = new ResizeObserver(updateSize);
-      resizeObserver.observe(containerRef.current);
+      resizeObserver.observe(canvasAreaRef.current);
 
       return () => {
         resizeObserver.disconnect();
@@ -340,7 +371,7 @@ export function ImageCanvas({
     totalSlices: projectData.dimensions?.slices || 1,
   }), [projectData.dimensions]);
 
-  // Keyboard shortcut handling for frame/slice navigation
+  // Keyboard shortcut handling for frame/slice navigation and zoom
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Only trigger if not focused on input/textarea/select
@@ -359,11 +390,63 @@ export function ImageCanvas({
       } else if (event.key === "ArrowDown") {
         event.preventDefault();
         if (currentSlice < totalSlices - 1) onSliceChange(currentSlice + 1);
+      } else if (event.key === "+" || event.key === "=") {
+        event.preventDefault();
+        // Zoom in
+        const currentScale = stageScale || 1;
+        const newScale = Math.min(5, currentScale * 1.2);
+        setStageScale(newScale);
+        const stage = stageRef.current?.getStage?.();
+        if (stage) {
+          stage.scale({ x: newScale, y: newScale });
+          stage.batchDraw();
+          if (setZoomLevel) {
+            setZoomLevel(newScale);
+          }
+        }
+      } else if (event.key === "-" || event.key === "_") {
+        event.preventDefault();
+        // Zoom out
+        const currentScale = stageScale || 1;
+        const newScale = Math.max(0.1, currentScale * 0.8);
+        setStageScale(newScale);
+        const stage = stageRef.current?.getStage?.();
+        if (stage) {
+          stage.scale({ x: newScale, y: newScale });
+          stage.batchDraw();
+          if (setZoomLevel) {
+            setZoomLevel(newScale);
+          }
+        }
+      } else if (event.key === "r" || event.key === "R") {
+        event.preventDefault();
+        // Reset zoom and position
+        const stage = stageRef.current?.getStage?.();
+        if (!stage) return;
+
+        // Reset zoom to 1
+        const newScale = 1;
+        stage.scale({ x: newScale, y: newScale });
+        setStageScale(newScale);
+
+        // Center the canvas using actual image dimensions for proper positioning
+        const logicalW = width || 1000;
+        const logicalH = height || 550;
+        const offsetX = Math.max(0, ((containerSize.width || 1000) - logicalW * newScale) / 2);
+        const offsetY = Math.max(0, ((containerSize.height || 550) - logicalH * newScale) / 2);
+        stage.position({ x: offsetX, y: offsetY });
+        setStagePosition({ x: offsetX, y: offsetY });
+        stage.batchDraw();
+
+        // Update zoom level prop
+        if (setZoomLevel) {
+          setZoomLevel(1);
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentFrame, currentSlice, totalFrames, totalSlices, onFrameChange, onSliceChange]);
+  }, [currentFrame, currentSlice, totalFrames, totalSlices, onFrameChange, onSliceChange, stageScale, setZoomLevel, width, height, containerSize.width, containerSize.height]);
 
   // Sync selected label and visibleLabelSet when tool changes or active label changes
   useEffect(() => {
@@ -397,8 +480,8 @@ export function ImageCanvas({
     stage.scale({ x: newScale, y: newScale });
     setStageScale(newScale);
 
-    const logicalW = width || containerSize.width || 1000;
-    const logicalH = height || containerSize.height || 550;
+    const logicalW = width || 1000;
+    const logicalH = height || 550;
 
     // Center the logical image inside the larger display canvas
     const offsetX = Math.max(0, ((containerSize.width || 1000) - logicalW * newScale) / 2);
@@ -419,11 +502,11 @@ export function ImageCanvas({
       stage.scale({ x: newScale, y: newScale });
       setStageScale(newScale);
 
-      // Center the canvas
-      const logicalW = width || displayWidth || 1000;
-      const logicalH = height || displayHeight || 550;
-      const offsetX = Math.max(0, ((displayWidth || 1000) - logicalW * newScale) / 2);
-      const offsetY = Math.max(0, ((displayHeight || 550) - logicalH * newScale) / 2);
+      // Center the canvas using actual image dimensions for proper positioning
+      const logicalW = width || 1000;
+      const logicalH = height || 550;
+      const offsetX = Math.max(0, ((containerSize.width || 1000) - logicalW * newScale) / 2);
+      const offsetY = Math.max(0, ((containerSize.height || 550) - logicalH * newScale) / 2);
       stage.position({ x: offsetX, y: offsetY });
       setStagePosition({ x: offsetX, y: offsetY });
       stage.batchDraw();
@@ -433,7 +516,7 @@ export function ImageCanvas({
         setZoomLevel(1);
       }
     }
-  }, [resetTrigger, width, height, displayWidth, displayHeight, setZoomLevel]); 
+  }, [resetTrigger, width, height, containerSize.width, containerSize.height, setZoomLevel]); 
   
   // Clear bounding box when frame/slice changes to prevent confusion
   useEffect(() => {
@@ -924,99 +1007,24 @@ export function ImageCanvas({
     }
   }, [projectData.projectId, finalBoundingBox, tarCacheReady, getMRIImageFilename, decodedMasks, onMaskUpdate, projectData.dimensions, currentFrame, currentSlice]);
 
-  // Direct mask rendering - create ImageData directly from decodedMasks for each label
-  // Render active mask last so it appears on top
-  const allMaskElements = useMemo(() => {
-    const maskElements: Array<{ label: string; image: HTMLImageElement; color: string }> = [];
-    
-    // Helper function to create mask element for a given label
-    const createMaskElement = (label: string, color: string) => {
-      if (!visibleMasks.has(label as AnatomicalLabel)) return null; // Only show visible masks
-      
-      if (tool === "rectangle" && !visibleLabelSet.has(label as AnatomicalLabel)) return null;
-      if (tool !== "rectangle" && !visibleMasks.has(label as AnatomicalLabel)) return null;
+  // Use optimized mask rendering hook
+  const { processedMasks } = useMaskRendering({
+    decodedMasks,
+    currentFrame,
+    currentSlice,
+    visibleMasks,
+    activeLabel,
+    tool,
+    visibleLabelSet,
+    width,
+    height,
+    opacity
+  });
 
-      const editableMaskKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
-      const maskData = decodedMasks[editableMaskKey];
-      
-      if (!maskData || maskData.every((val: number) => val === 0)) {
-        return null;
-      }
-      
-      const maskWidth = projectData.dimensions?.width || width;
-      const maskHeight = projectData.dimensions?.height || height;
-
-      // Direct conversion: mask data to canvas
-      const canvas = document.createElement("canvas");
-      canvas.width = maskWidth;
-      canvas.height = maskHeight;
-      const ctx = canvas.getContext("2d")!;
-
-      const imageData = ctx.createImageData(maskWidth, maskHeight);
-            const [r, g, b] = [
-              parseInt(color.slice(1, 3), 16),
-              parseInt(color.slice(3, 5), 16),
-              parseInt(color.slice(5, 7), 16)
-            ];
-            
-            const data = imageData.data;
-      
-      // Simple 1:1 pixel mapping: direct array index to canvas pixel mapping
-      for (let i = 0; i < maskData.length && i < (maskWidth * maskHeight); i++) {
-        if (maskData[i] > 0) {
-          const pixelIndex = i * 4;
-          data[pixelIndex] = r;       // Red
-          data[pixelIndex + 1] = g;   // Green
-          data[pixelIndex + 2] = b;   // Blue
-          data[pixelIndex + 3] = Math.round(255 * opacity); // Alpha
-        }
-      }
-      
-      ctx.putImageData(imageData, 0, 0);
-      
-      const img = new window.Image();
-      img.src = canvas.toDataURL();
-      
-      return {
-        label,
-        image: img,
-        color
-      };
-    };
-    
-    // Render all mask layers for the current frame/slice.
-    // If tool is 'rectangle', only show the mask for the selected label
-    if (tool === "rectangle") {
-      Object.entries(LABEL_COLORS).forEach(([label, color]) => {
-        if (visibleLabelSet.has(label as AnatomicalLabel)) {
-          const maskElement = createMaskElement(label, color);
-          if (maskElement) {
-            maskElements.push(maskElement);
-          }
-        }
-      });
-    } else {
-      // Otherwise, show all masks as before
-      Object.entries(LABEL_COLORS).forEach(([label, color]) => {
-        if (label !== activeLabel) {
-          const maskElement = createMaskElement(label, color);
-          if (maskElement) {
-            maskElements.push(maskElement);
-          }
-        }
-      });
-      // Render the active mask last so it appears on top of other masks
-      if (LABEL_COLORS[activeLabel]) {
-        const activeMaskElement = createMaskElement(activeLabel, LABEL_COLORS[activeLabel]);
-        if (activeMaskElement) {
-          maskElements.push(activeMaskElement);
-        }
-      }
-    }
-
-    console.log(`[ImageCanvas] Total mask elements found: ${maskElements.length}, active mask "${activeLabel}" rendered last`);
-    return maskElements;
-  }, [decodedMasks, currentFrame, currentSlice, width, height, opacity, visibleMasks, activeLabel, tool, visibleLabelSet]);
+  // Debug logging for optimization verification (development only)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[ImageCanvas] Using optimized mask rendering hook - found ${processedMasks.length} processed masks`);
+  }
 
   return (
     <div className="flex flex-col items-center w-full h-full">
@@ -1036,24 +1044,58 @@ export function ImageCanvas({
     onMouseDown={handleContainerMouseDown}
     onMouseMove={handleContainerMouseMove}
     onMouseUp={handleContainerMouseUp}
-    className="w-full max-w-7xl h-[80vh] min-h-[400px] max-h-[700px] bg-background rounded-lg overflow-hidden relative mx-auto border"
+    className="w-full max-w-7xl h-[80vh] min-h-[400px] max-h-[700px] bg-background rounded-lg overflow-hidden relative mx-auto border flex flex-col"
   >
         {/* Top info bar (frame/slice + zoom) */}
-        <div className="flex justify-between items-center p-2 text-xs text-muted-foreground border-b bg-muted/30 z-10 relative">
+        <div 
+          ref={infoBarRef}
+          className="flex justify-between items-center p-2 text-xs text-muted-foreground border-b bg-muted/30 z-10 flex-shrink-0"
+        >
           <div className="text-sm text-muted-foreground">Frame {currentFrame + 1} • Slice {currentSlice + 1}</div>
           <div className="text-sm text-muted-foreground">{Math.round((stageScale || 1) * 100)}% zoom</div>
         </div>
 
         {/* Ctrl / Pan hint badge */}
         <div className="absolute left-4 bottom-4 z-40">
-          <div className={cn(
-            "px-2 py-1 rounded-md text-xs font-medium shadow",
-            isPanningState ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-          )}>
-            {isPanningState ? 'Panning — release mouse' : (tool === 'pan' ? 'Pan mode' : (isCtrlPressed ? 'Hold Ctrl to pan (click+drag)' : 'Hold Ctrl to pan'))}
-          </div>
+          <Badge
+            variant={isPanningState ? "default" : "secondary"}
+            className={cn( "px-2 py-1 text-xs font-medium shadow", )}
+          >
+            {isPanningState ? "Panning — release mouse" : tool === "pan" ? "Pan mode" : isCtrlPressed ? "Hold Ctrl to pan (click+drag)" : "Hold Ctrl to pan"}
+          </Badge>
         </div>
-        
+
+        {/* Keyboard shortcuts hint badges */}
+        <div className="absolute right-4 bottom-4 z-40 flex flex-row gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant={isZoomKeyPressed ? "default" : "secondary"}
+                className="px-2 py-1 text-xs font-medium shadow cursor-help"
+              >
+                + - to zoom
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>Press + to zoom in or - to zoom out</p>
+            </TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant={isResetKeyPressed ? "default" : "secondary"}
+                className="px-2 py-1 text-xs font-medium shadow cursor-help"
+              >
+                <RotateCcw className="w-3 h-3 mr-1" />
+                R to reset
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              <p>Press R to reset zoom and position</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
         {/* Only show loading spinner on initial load or when there's no current image */}
         {imageStatus === "loading" && isInitialLoad && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted/50 z-10">
@@ -1075,7 +1117,10 @@ export function ImageCanvas({
           </div>
         )}
 
-        <div className="flex items-center justify-center" style={{ width:'100%', height: '100%' }}>
+        <div 
+          ref={canvasAreaRef}
+          className="flex-1 relative w-full"
+        >
           <Stage
             ref={stageRef}
             width={containerSize.width}
@@ -1096,7 +1141,7 @@ export function ImageCanvas({
             )}
             
             {/* Display all anatomical labels */}
-            {allMaskElements.map((maskElement) => (
+            {processedMasks.map((maskElement) => (
               <KonvaImage
                 key={`mask-${maskElement.label}`}
                 image={maskElement.image}
