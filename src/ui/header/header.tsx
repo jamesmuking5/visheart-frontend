@@ -11,7 +11,7 @@ import visheartLogo from "@/../public/visheart_logo.svg";
 import { useAuth } from "@/context/auth-context";
 import { AuthenticatedUserView } from "@/components/AuthenticatedUserView";
 import { cn } from "@/lib/utils";
-import { Menu, X, User, FileText, Info } from "lucide-react";
+import { Menu, X, User, FileText, Info, Download, Shield, Users } from "lucide-react";
 
 // Constants for menu items to avoid recreation on each render
 const MOBILE_MENU_ITEMS = [
@@ -227,9 +227,15 @@ const HomeDropDown = React.memo(function HomeDropDown() {
         <div className="w-[400px] p-6">
           <ul className="flex flex-col space-y-3">
             <ListItem href="/doc" title="Documentation" icon={FileText} badge="Updated" className="min-h-20">
-              Complete guide on using VisHeart&apos;s features, tools, and best practices for cardiac imaging.
+              A work in progress guide on using VisHeart&apos;s features, tools, and best practices for cardiac imaging.
             </ListItem>
-            <ListItem href="/about" title="About Us" icon={Info} className="min-h-20">
+            <ListItem href="/sample" title="Sample NIfTI" icon={Download} className="min-h-16">
+              Download sample cardiac imaging files for testing.
+            </ListItem>
+            <ListItem href="/policy" title="Privacy Policy" icon={Shield} className="min-h-16">
+              Review our privacy policy and terms of service.
+            </ListItem>
+            <ListItem href="/about" title="About Us" icon={Users} className="min-h-20">
               Meet the VisHeart team and learn about our mission to advance cardiac imaging technology.
             </ListItem>
           </ul>
