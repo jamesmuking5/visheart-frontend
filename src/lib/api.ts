@@ -607,4 +607,12 @@ export const sampleNiftiApi = {
   },
 };
 
+// AWS Analytics
+export const analyticsApi = {
+  getS3Usage: async () => {
+    const response = await api.get("/s3-usage");
+    return response.data;
+  }
+};
+
 export default api;
