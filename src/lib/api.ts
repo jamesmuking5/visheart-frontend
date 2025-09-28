@@ -1,4 +1,5 @@
 import axios from "axios";
+import { CpuMetrics } from "@/types/system-monitor";
 
 // Create a pre-configured instance of axios.
 // This is a best practice for managing API calls in a structured way.
@@ -612,6 +613,20 @@ export const analyticsApi = {
   getS3Usage: async () => {
     const response = await api.get("/s3-usage");
     return response.data;
+  },
+
+  /**
+   * Get CPU utilization metrics for the current EC2 instance
+   * @returns Promise<CpuMetrics | null> - CPU utilization data with timestamps and values
+   */
+  getCpuMetrics: async (): Promise<CpuMetrics | null> => {
+    try {
+      const response = await api.get("/metrics/cpu-utilization");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch CPU metrics:", error);
+      return null;
+    }
   }
 };
 

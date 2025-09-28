@@ -47,7 +47,7 @@ const adminNavigation: NavigationItem[] = [
     href: "/admin/analytics",
     icon: BarChart3,
     description: "View system analytics and reports",
-    status: "coming-soon",
+    status: "active",
   },
   {
     title: "Database Management",

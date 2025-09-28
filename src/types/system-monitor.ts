@@ -99,3 +99,8 @@ export interface GpuConnectionTestResponse {
   reachable?: boolean;
   error?: string;
 }
+
+export interface CpuMetrics {
+  timestamps: string[];
+  values: number[];
+}
