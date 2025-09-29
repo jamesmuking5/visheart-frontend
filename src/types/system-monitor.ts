@@ -100,7 +100,10 @@ export interface GpuConnectionTestResponse {
   error?: string;
 }
 
-export interface CpuMetrics {
+export interface MetricData {
   timestamps: string[];
   values: number[];
 }
+
+// Backward compatibility
+export type CpuMetrics = MetricData;
