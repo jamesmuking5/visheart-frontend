@@ -1,5 +1,5 @@
 import axios from "axios";
-import { CpuMetrics } from "@/types/system-monitor";
+import { MetricData } from "@/types/system-monitor";
 
 // Create a pre-configured instance of axios.
 // This is a best practice for managing API calls in a structured way.
@@ -610,21 +610,72 @@ export const sampleNiftiApi = {
 
 // AWS Analytics
 export const analyticsApi = {
-  getS3Usage: async () => {
-    const response = await api.get("/s3-usage");
-    return response.data;
-  },
-
   /**
    * Get CPU utilization metrics for the current EC2 instance
-   * @returns Promise<CpuMetrics | null> - CPU utilization data with timestamps and values
+   * @returns Promise<MetricData | null> - CPU utilization data with timestamps and values
    */
-  getCpuMetrics: async (): Promise<CpuMetrics | null> => {
+  getCpuMetrics: async (): Promise<MetricData | null> => {
     try {
       const response = await api.get("/metrics/cpu-utilization");
       return response.data;
     } catch (error) {
       console.error("Failed to fetch CPU metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get Network In metrics for the current EC2 instance
+   * @returns Promise<MetricData | null> - Network In data with timestamps and values (bytes)
+   */
+  getNetworkInMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/network-in");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch Network In metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get Network Out metrics for the current EC2 instance
+   * @returns Promise<MetricData | null> - Network Out data with timestamps and values (bytes)
+   */
+  getNetworkOutMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/network-out");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch Network Out metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get Disk Read metrics for the current EC2 instance
+   * @returns Promise<MetricData | null> - Disk Read data with timestamps and values (bytes)
+   */
+  getDiskReadMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/disk-read");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch Disk Read metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get Disk Write metrics for the current EC2 instance
+   * @returns Promise<MetricData | null> - Disk Write data with timestamps and values (bytes)
+   */
+  getDiskWriteMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/disk-write");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch Disk Write metrics:", error);
       return null;
     }
   }

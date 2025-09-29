@@ -1,122 +1,154 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import { analyticsApi } from '@/lib/api';
-import { CpuMetrics } from '@/types/system-monitor';
+import { MetricData } from '@/types/system-monitor';
+import { formatBytes, getCpuColorClass } from '@/lib/format-utils';
 
-type Usage = {
-  bucket: string;
-  fileCount: number;
-  totalSize: number;
-};
+interface MetricState {
+  data: MetricData | null;
+  loading: boolean;
+  error: string | null;
+}
 
 export default function AnalyticsDashboard() {
-  const [usage, setUsage] = useState<Usage[]>([]);
-  const [cpuMetrics, setCpuMetrics] = useState<CpuMetrics | null>(null);
-  const [s3Loading, setS3Loading] = useState(true);
-  const [cpuLoading, setCpuLoading] = useState(true);
-  const [cpuError, setCpuError] = useState<string | null>(null);
+  // Metric states
+  const [cpuMetrics, setCpuMetrics] = useState<MetricState>({ data: null, loading: true, error: null });
+  const [networkInMetrics, setNetworkInMetrics] = useState<MetricState>({ data: null, loading: true, error: null });
+  const [networkOutMetrics, setNetworkOutMetrics] = useState<MetricState>({ data: null, loading: true, error: null });
+  const [diskReadMetrics, setDiskReadMetrics] = useState<MetricState>({ data: null, loading: true, error: null });
+  const [diskWriteMetrics, setDiskWriteMetrics] = useState<MetricState>({ data: null, loading: true, error: null });
+
+  // Helper function to fetch metrics
+  const fetchMetric = async (
+    fetchFunction: () => Promise<MetricData | null>,
+    setState: React.Dispatch<React.SetStateAction<MetricState>>,
+    metricName: string
+  ) => {
+    try {
+      const data = await fetchFunction();
+      if (data) {
+        setState({ data, loading: false, error: null });
+      } else {
+        setState({ data: null, loading: false, error: `Failed to load ${metricName} metrics` });
+      }
+    } catch (error) {
+      setState({ data: null, loading: false, error: `Failed to load ${metricName} metrics` });
+      console.error(`Error fetching ${metricName} metrics:`, error);
+    }
+  };
 
   useEffect(() => {
-    // Fetch S3 usage data
-    analyticsApi.getS3Usage()
-      .then(data => {
-        setUsage(data.usage);
-        setS3Loading(false);
-      })
-      .catch(() => setS3Loading(false));
-
-    // Fetch CPU metrics
-    analyticsApi.getCpuMetrics()
-      .then(data => {
-        if (data) {
-          setCpuMetrics(data);
-          setCpuError(null);
-        } else {
-          setCpuError('Failed to load CPU metrics');
-        }
-        setCpuLoading(false);
-      })
-      .catch(error => {
-        setCpuError('Failed to load CPU metrics');
-        setCpuLoading(false);
-        console.error('Error fetching CPU metrics:', error);
-      });
+    // Fetch all metrics in parallel
+    fetchMetric(analyticsApi.getCpuMetrics, setCpuMetrics, 'CPU');
+    fetchMetric(analyticsApi.getNetworkInMetrics, setNetworkInMetrics, 'Network In');
+    fetchMetric(analyticsApi.getNetworkOutMetrics, setNetworkOutMetrics, 'Network Out');
+    fetchMetric(analyticsApi.getDiskReadMetrics, setDiskReadMetrics, 'Disk Read');
+    fetchMetric(analyticsApi.getDiskWriteMetrics, setDiskWriteMetrics, 'Disk Write');
   }, []);
 
-  return (
-    <div className="p-6 space-y-8">
-      <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
+  // Component for rendering metric table
+  const MetricTable = ({ 
+    title, 
+    metric, 
+    unit, 
+    description 
+  }: { 
+    title: string; 
+    metric: MetricState; 
+    unit: 'percentage' | 'bytes';
+    description: string;
+  }) => (
+    <div>
+      <h2 className="text-xl font-semibold mb-2">{title}</h2>
+      <p className="text-sm text-gray-600 mb-4">{description}</p>
       
-      {/* S3 Usage Analytics Section */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">S3 Usage Analytics</h2>
-        {s3Loading ? (
-          <div>Loading S3 usage...</div>
-        ) : (
-          <table className="w-full border-collapse border border-gray-300">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="border border-gray-300 px-4 py-2 text-left">Bucket</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">File Count</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">Total Size (bytes)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {usage.map(u => (
-                <tr key={u.bucket}>
-                  <td className="border border-gray-300 px-4 py-2">{u.bucket}</td>
-                  <td className="border border-gray-300 px-4 py-2">{u.fileCount}</td>
-                  <td className="border border-gray-300 px-4 py-2">{u.totalSize?.toLocaleString()}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* CPU Metrics Section */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">EC2 CPU Utilization (Last Hour)</h2>
-        {cpuLoading ? (
-          <div>Loading metrics...</div>
-        ) : cpuError ? (
-          <div className="text-red-600">{cpuError}</div>
-        ) : cpuMetrics && cpuMetrics.timestamps.length > 0 ? (
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              Showing {cpuMetrics.values.length} data points from the last hour (5-minute intervals)
-            </p>
+      {metric.loading ? (
+        <div>Loading metrics...</div>
+      ) : metric.error ? (
+        <div className="text-red-600">{metric.error}</div>
+      ) : metric.data && metric.data.timestamps.length > 0 ? (
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Showing {metric.data?.values.length || 0} data points from the last hour (5-minute intervals)
+          </p>
+          <div className="max-h-96 overflow-y-auto">
             <table className="w-full border-collapse border border-gray-300">
-              <thead>
-                <tr className="bg-gray-100">
+              <thead className="sticky top-0 bg-gray-100">
+                <tr>
                   <th className="border border-gray-300 px-4 py-2 text-left">Timestamp</th>
-                  <th className="border border-gray-300 px-4 py-2 text-left">CPU Utilization (%)</th>
+                  <th className="border border-gray-300 px-4 py-2 text-left">
+                    {unit === 'percentage' ? 'CPU Utilization (%)' : 'Value'}
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {cpuMetrics.timestamps.map((timestamp, index) => (
+                {metric.data?.timestamps.map((timestamp, index) => (
                   <tr key={timestamp}>
                     <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
                       {new Date(timestamp).toLocaleString()}
                     </td>
                     <td className="border border-gray-300 px-4 py-2">
-                      <span className={`font-semibold ${
-                        cpuMetrics.values[index] > 80 ? 'text-red-600' :
-                        cpuMetrics.values[index] > 60 ? 'text-yellow-600' :
-                        'text-green-600'
-                      }`}>
-                        {cpuMetrics.values[index]}%
-                      </span>
+                      {unit === 'percentage' ? (
+                        <span className={`font-semibold ${getCpuColorClass(metric.data?.values[index] || 0)}`}>
+                          {metric.data?.values[index]}%
+                        </span>
+                      ) : (
+                        <span className="font-semibold">
+                          {formatBytes(metric.data?.values[index] || 0)}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        ) : (
-          <div className="text-gray-500">No CPU metrics data available for the last hour.</div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="text-gray-500">No {title.toLowerCase()} data available for the last hour.</div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="p-6 space-y-8">
+      <h1 className="text-2xl font-bold">Analytics Dashboard</h1>
+
+      {/* EC2 Metrics Sections */}
+      <MetricTable 
+        title="EC2 CPU Utilization (Last Hour)" 
+        metric={cpuMetrics} 
+        unit="percentage"
+        description="Average CPU utilization percentage for the EC2 instance"
+      />
+
+      <MetricTable 
+        title="EC2 Network In (Last Hour)" 
+        metric={networkInMetrics} 
+        unit="bytes"
+        description="Total bytes received by the network interface"
+      />
+
+      <MetricTable 
+        title="EC2 Network Out (Last Hour)" 
+        metric={networkOutMetrics} 
+        unit="bytes"
+        description="Total bytes sent by the network interface"
+      />
+
+      <MetricTable 
+        title="EC2 Disk Read (Last Hour)" 
+        metric={diskReadMetrics} 
+        unit="bytes"
+        description="Total bytes read from all EBS volumes attached to the instance"
+      />
+
+      <MetricTable 
+        title="EC2 Disk Write (Last Hour)" 
+        metric={diskWriteMetrics} 
+        unit="bytes"
+        description="Total bytes written to all EBS volumes attached to the instance"
+      />
     </div>
   );
 }
