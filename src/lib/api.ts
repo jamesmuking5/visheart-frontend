@@ -1,5 +1,5 @@
 import axios from "axios";
-import { MetricData } from "@/types/system-monitor";
+import { MetricData, S3Metrics } from "@/types/system-monitor";
 
 // Create a pre-configured instance of axios.
 // This is a best practice for managing API calls in a structured way.
@@ -760,6 +760,122 @@ export const analyticsApi = {
       return response.data;
     } catch (error) {
       console.error("Failed to fetch ECR Frontend Image Count metrics:", error);
+      return null;
+    }
+  },
+
+  // ===== S3 CloudWatch Metrics =====
+
+  /**
+   * Get all S3 metrics for a specific bucket
+   * @param bucketName - S3 bucket name
+   * @returns Promise<S3Metrics | null> - Complete S3 metrics data
+   */
+  getAllS3Metrics: async (bucketName: string): Promise<S3Metrics | null> => {
+    try {
+      if (!bucketName || bucketName.trim() === '') {
+        console.error("Bucket name is required for S3 metrics");
+        return null;
+      }
+      const response = await api.get(`/metrics/s3/${encodeURIComponent(bucketName)}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch S3 metrics for bucket ${bucketName}:`, error);
+      return null;
+    }
+  },
+
+  /**
+   * Get S3 bucket size metrics
+   * @param bucketName - S3 bucket name
+   * @returns Promise<MetricData | null> - Bucket size data with timestamps and values (bytes)
+   */
+  getS3BucketSizeMetrics: async (bucketName: string): Promise<MetricData | null> => {
+    try {
+      if (!bucketName || bucketName.trim() === '') {
+        console.error("Bucket name is required for S3 bucket size metrics");
+        return null;
+      }
+      const response = await api.get(`/metrics/s3/${encodeURIComponent(bucketName)}/bucket-size`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch S3 bucket size metrics for ${bucketName}:`, error);
+      return null;
+    }
+  },
+
+  /**
+   * Get S3 number of objects metrics
+   * @param bucketName - S3 bucket name
+   * @returns Promise<MetricData | null> - Object count data with timestamps and values (count)
+   */
+  getS3ObjectCountMetrics: async (bucketName: string): Promise<MetricData | null> => {
+    try {
+      if (!bucketName || bucketName.trim() === '') {
+        console.error("Bucket name is required for S3 object count metrics");
+        return null;
+      }
+      const response = await api.get(`/metrics/s3/${encodeURIComponent(bucketName)}/object-count`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch S3 object count metrics for ${bucketName}:`, error);
+      return null;
+    }
+  },
+
+  /**
+   * Get S3 all requests metrics
+   * @param bucketName - S3 bucket name
+   * @returns Promise<MetricData | null> - All requests data with timestamps and values (count)
+   */
+  getS3AllRequestsMetrics: async (bucketName: string): Promise<MetricData | null> => {
+    try {
+      if (!bucketName || bucketName.trim() === '') {
+        console.error("Bucket name is required for S3 all requests metrics");
+        return null;
+      }
+      const response = await api.get(`/metrics/s3/${encodeURIComponent(bucketName)}/all-requests`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch S3 all requests metrics for ${bucketName}:`, error);
+      return null;
+    }
+  },
+
+  /**
+   * Get S3 GET requests metrics
+   * @param bucketName - S3 bucket name
+   * @returns Promise<MetricData | null> - GET requests data with timestamps and values (count)
+   */
+  getS3GetRequestsMetrics: async (bucketName: string): Promise<MetricData | null> => {
+    try {
+      if (!bucketName || bucketName.trim() === '') {
+        console.error("Bucket name is required for S3 GET requests metrics");
+        return null;
+      }
+      const response = await api.get(`/metrics/s3/${encodeURIComponent(bucketName)}/get-requests`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch S3 GET requests metrics for ${bucketName}:`, error);
+      return null;
+    }
+  },
+
+  /**
+   * Get S3 PUT requests metrics
+   * @param bucketName - S3 bucket name
+   * @returns Promise<MetricData | null> - PUT requests data with timestamps and values (count)
+   */
+  getS3PutRequestsMetrics: async (bucketName: string): Promise<MetricData | null> => {
+    try {
+      if (!bucketName || bucketName.trim() === '') {
+        console.error("Bucket name is required for S3 PUT requests metrics");
+        return null;
+      }
+      const response = await api.get(`/metrics/s3/${encodeURIComponent(bucketName)}/put-requests`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch S3 PUT requests metrics for ${bucketName}:`, error);
       return null;
     }
   }
