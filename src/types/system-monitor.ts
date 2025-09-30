@@ -105,5 +105,37 @@ export interface MetricData {
   values: number[];
 }
 
+// S3 CloudWatch Metrics Types
+export interface S3Metrics {
+  bucketName: string;
+  bucketSizeBytes: MetricData;
+  numberOfObjects: MetricData;
+  allRequests: MetricData;
+  getRequests: MetricData;
+  putRequests: MetricData;
+}
+
+export interface S3BucketInfo {
+  name: string;
+  region: string;
+  description: string;
+}
+
+export interface RequestMetricsSummary {
+  total: number;
+  get: number;
+  put: number;
+  other: number;
+}
+
+export interface ChartDataPoint {
+  timestamp: string;
+  value?: number;
+  total?: number;
+  get?: number;
+  put?: number;
+  label?: string;
+}
+
 // Backward compatibility
 export type CpuMetrics = MetricData;
