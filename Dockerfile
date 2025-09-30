@@ -1,14 +1,20 @@
 # Stage 1: Dependencies and Build
-FROM node:18-alpine AS deps
+FROM node:20-alpine AS deps
 WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
 
 # Install dependencies based on the preferred package manager
-COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile --prod
 
 # Stage 2: Build the application
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 WORKDIR /app
+
+# Install pnpm
+RUN npm install -g pnpm
 
 # Define build arguments for Next.js environment variables
 ARG NEXT_PUBLIC_API_URL=http://13.250.97.20:5000
@@ -23,13 +29,13 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Install all dependencies (including dev dependencies for build)
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 # Build the Next.js application
-RUN npm run build
+RUN pnpm run build
 
 # Stage 3: Production image
-FROM node:18-alpine AS runner
+FROM node:20-alpine AS runner
 WORKDIR /app
 
 # Create a non-root user for security
