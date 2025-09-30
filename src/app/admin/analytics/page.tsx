@@ -17,6 +17,14 @@ export default function AnalyticsDashboard() {
   const [networkOutMetrics, setNetworkOutMetrics] = useState<MetricState>({ data: null, loading: true, error: null });
   const [diskReadMetrics, setDiskReadMetrics] = useState<MetricState>({ data: null, loading: true, error: null });
   const [diskWriteMetrics, setDiskWriteMetrics] = useState<MetricState>({ data: null, loading: true, error: null });
+  
+  // ECR metrics for both repositories
+  const [ecrSizeMetrics, setEcrSizeMetrics] = useState<MetricState>({ data: null, loading: true, error: null });
+  const [ecrImageCountMetrics, setEcrImageCountMetrics] = useState<MetricState>({ data: null, loading: true, error: null });
+  const [ecrBackendSizeMetrics, setEcrBackendSizeMetrics] = useState<MetricState>({ data: null, loading: true, error: null });
+  const [ecrBackendImageCountMetrics, setEcrBackendImageCountMetrics] = useState<MetricState>({ data: null, loading: true, error: null });
+  const [ecrFrontendSizeMetrics, setEcrFrontendSizeMetrics] = useState<MetricState>({ data: null, loading: true, error: null });
+  const [ecrFrontendImageCountMetrics, setEcrFrontendImageCountMetrics] = useState<MetricState>({ data: null, loading: true, error: null });
 
   // Helper function to fetch metrics
   const fetchMetric = async (
@@ -44,6 +52,16 @@ export default function AnalyticsDashboard() {
     fetchMetric(analyticsApi.getNetworkOutMetrics, setNetworkOutMetrics, 'Network Out');
     fetchMetric(analyticsApi.getDiskReadMetrics, setDiskReadMetrics, 'Disk Read');
     fetchMetric(analyticsApi.getDiskWriteMetrics, setDiskWriteMetrics, 'Disk Write');
+    
+    // Legacy ECR metrics (backend repository)
+    fetchMetric(analyticsApi.getEcrRepositorySizeMetrics, setEcrSizeMetrics, 'ECR Repository Size');
+    fetchMetric(analyticsApi.getEcrImageCountMetrics, setEcrImageCountMetrics, 'ECR Image Count');
+    
+    // Separate ECR metrics for backend and frontend repositories
+    fetchMetric(analyticsApi.getEcrBackendRepositorySizeMetrics, setEcrBackendSizeMetrics, 'ECR Backend Repository Size');
+    fetchMetric(analyticsApi.getEcrBackendImageCountMetrics, setEcrBackendImageCountMetrics, 'ECR Backend Image Count');
+    fetchMetric(analyticsApi.getEcrFrontendRepositorySizeMetrics, setEcrFrontendSizeMetrics, 'ECR Frontend Repository Size');
+    fetchMetric(analyticsApi.getEcrFrontendImageCountMetrics, setEcrFrontendImageCountMetrics, 'ECR Frontend Image Count');
   }, []);
 
   // Component for rendering metric table
@@ -55,7 +73,7 @@ export default function AnalyticsDashboard() {
   }: { 
     title: string; 
     metric: MetricState; 
-    unit: 'percentage' | 'bytes';
+    unit: 'percentage' | 'bytes' | 'count';
     description: string;
   }) => (
     <div>
@@ -69,7 +87,7 @@ export default function AnalyticsDashboard() {
       ) : metric.data && metric.data.timestamps.length > 0 ? (
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            Showing {metric.data?.values.length || 0} data points from the last hour (5-minute intervals)
+            Showing {metric.data?.values.length || 0} data points from the last {unit === 'percentage' || unit === 'bytes' ? 'hour (5-minute intervals)' : 'week (daily intervals)'}
           </p>
           <div className="max-h-96 overflow-y-auto">
             <table className="w-full border-collapse border border-gray-300">
@@ -77,7 +95,8 @@ export default function AnalyticsDashboard() {
                 <tr>
                   <th className="border border-gray-300 px-4 py-2 text-left">Timestamp</th>
                   <th className="border border-gray-300 px-4 py-2 text-left">
-                    {unit === 'percentage' ? 'CPU Utilization (%)' : 'Value'}
+                    {unit === 'percentage' ? 'CPU Utilization (%)' : 
+                     unit === 'count' ? 'Count' : 'Value'}
                   </th>
                 </tr>
               </thead>
@@ -91,6 +110,10 @@ export default function AnalyticsDashboard() {
                       {unit === 'percentage' ? (
                         <span className={`font-semibold ${getCpuColorClass(metric.data?.values[index] || 0)}`}>
                           {metric.data?.values[index]}%
+                        </span>
+                      ) : unit === 'count' ? (
+                        <span className="font-semibold">
+                          {metric.data?.values[index]?.toLocaleString() || 0}
                         </span>
                       ) : (
                         <span className="font-semibold">
@@ -148,6 +171,50 @@ export default function AnalyticsDashboard() {
         metric={diskWriteMetrics} 
         unit="bytes"
         description="Total bytes written to all EBS volumes attached to the instance"
+      />
+
+      <MetricTable 
+        title="ECR Repository Size - Legacy (Last Week)" 
+        metric={ecrSizeMetrics} 
+        unit="bytes"
+        description="Total size of all images in the ECR repository (legacy endpoint)"
+      />
+
+      <MetricTable 
+        title="ECR Image Count - Legacy (Last Week)" 
+        metric={ecrImageCountMetrics} 
+        unit="count"
+        description="Total number of images in the ECR repository (legacy endpoint)"
+      />
+
+      {/* Backend Repository Metrics */}
+      <MetricTable 
+        title="ECR Backend Repository Size (Last Week)" 
+        metric={ecrBackendSizeMetrics} 
+        unit="bytes"
+        description="Total size of all images in the backend ECR repository"
+      />
+
+      <MetricTable 
+        title="ECR Backend Image Count (Last Week)" 
+        metric={ecrBackendImageCountMetrics} 
+        unit="count"
+        description="Total number of images in the backend ECR repository"
+      />
+
+      {/* Frontend Repository Metrics */}
+      <MetricTable 
+        title="ECR Frontend Repository Size (Last Week)" 
+        metric={ecrFrontendSizeMetrics} 
+        unit="bytes"
+        description="Total size of all images in the frontend ECR repository"
+      />
+
+      <MetricTable 
+        title="ECR Frontend Image Count (Last Week)" 
+        metric={ecrFrontendImageCountMetrics} 
+        unit="count"
+        description="Total number of images in the frontend ECR repository"
       />
     </div>
   );

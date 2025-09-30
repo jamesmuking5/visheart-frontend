@@ -678,6 +678,90 @@ export const analyticsApi = {
       console.error("Failed to fetch Disk Write metrics:", error);
       return null;
     }
+  },
+
+  /**
+   * Get ECR Repository Size metrics (legacy - backend repository)
+   * @returns Promise<MetricData | null> - ECR Repository Size data with timestamps and values (bytes)
+   */
+  getEcrRepositorySizeMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/ecr/repository-size");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ECR Repository Size metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ECR Image Count metrics (legacy - backend repository)
+   * @returns Promise<MetricData | null> - ECR Image Count data with timestamps and values (count)
+   */
+  getEcrImageCountMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/ecr/image-count");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ECR Image Count metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ECR Backend Repository Size metrics
+   * @returns Promise<MetricData | null> - ECR Backend Repository Size data with timestamps and values (bytes)
+   */
+  getEcrBackendRepositorySizeMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/ecr/backend/repository-size");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ECR Backend Repository Size metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ECR Backend Image Count metrics
+   * @returns Promise<MetricData | null> - ECR Backend Image Count data with timestamps and values (count)
+   */
+  getEcrBackendImageCountMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/ecr/backend/image-count");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ECR Backend Image Count metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ECR Frontend Repository Size metrics
+   * @returns Promise<MetricData | null> - ECR Frontend Repository Size data with timestamps and values (bytes)
+   */
+  getEcrFrontendRepositorySizeMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/ecr/frontend/repository-size");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ECR Frontend Repository Size metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ECR Frontend Image Count metrics
+   * @returns Promise<MetricData | null> - ECR Frontend Image Count data with timestamps and values (count)
+   */
+  getEcrFrontendImageCountMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/ecr/frontend/image-count");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ECR Frontend Image Count metrics:", error);
+      return null;
+    }
   }
 };
 
