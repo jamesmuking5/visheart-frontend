@@ -1,113 +1,246 @@
-# VisHeart Frontend - AI Coding Instructions
+﻿# VisHeart Frontend - AI Coding Instructions
 
 ## Architecture Overview
-This is a **Next.js 15 medical imaging frontend** using App Router that provides cardiac segmentation visualization and management. The system integrates with:
-- **Backend API** (`Cardiac_Segmentation_FYP_Server`) - Session-based auth, project/file management, AI segmentation
-- **Session-based authentication** via cookies (not JWT) - requires `withCredentials: true` on all API calls
-- **Real-time segmentation tools** using Konva.js for manual cardiac image annotation
-- **Role-based access control** - Guest < User < Admin hierarchy
+Next.js 15 App Router medical imaging frontend for cardiac segmentation. **Session-based authentication** (cookies, not JWT) requires `withCredentials: true` on all axios calls.
 
-## Core Technologies & Patterns
+**Integration Points:**
+- Backend API (`Cardiac_Segmentation_FYP_Server`) on port 3001 - file uploads, user management, segmentation coordination
+- GPU Server (FastAPI) - AI inference accessed **only through backend proxy** (frontend never calls GPU directly)
+- Role hierarchy: `guest` < `user` < `admin` (affects routing and feature access)
 
-### UI/Styling Stack
-- **Tailwind CSS v4** with custom CSS variables in `globals.css`
-- **Shadcn/ui components** in `src/components/ui/` - pre-built, customizable components
-- **Radix UI primitives** - accessible headless components
-- **Theme system** with light/dark modes via `next-themes`
-- **Framer Motion + GSAP** for complex animations (especially in hero sections)
+## Critical Patterns & Non-Standard Conventions
 
-### Authentication & State Management
-- **Context-based auth** in `src/context/auth-context.tsx` - provides `{ user, loading, login, logout }`
-- **Session cookies** - all API calls use `withCredentials: true` in axios config
-- **Role-based components**: `ProtectedRoute`, `RoleGuard`, `AdminOnly` for access control
-- **User roles**: `guest`, `user`, `admin` - affects navigation and feature access
-
-### API Integration Patterns
-- **Centralized API client** in `src/lib/api.ts` with axios instance
-- **Environment config**: `NEXT_PUBLIC_API_URL` points to backend server (default port 5000)
-- **Service modules**: `authApi`, `projectApi`, `adminApi` with consistent error handling
-- **File uploads**: Use FormData with `multipart/form-data` headers
-
-## Project Structure Conventions
-
-### Route Organization
-```
-src/app/
-├── (auth)/           # Auth-specific routes  
-├── dashboard/        # User project management
-├── admin/           # Admin-only features (user mgmt, system monitor)
-├── cardiac-segmentation/  # Manual segmentation tools
-├── about/, doc/     # Static content pages
-└── layout.tsx       # Global layout with Header/Footer
-```
-
-### Component Architecture
-- **Page components** in `src/app/*/page.tsx` - use `"use client"` for interactivity
-- **Reusable components** in `src/components/` with clear naming (e.g., `segmentation-tool.tsx`)
-- **UI primitives** in `src/components/ui/` - generated via shadcn/ui CLI
-- **Layout components** in `src/ui/` (header, footer, theme toggle)
-
-### Key Patterns
-- **Dynamic imports** for heavy components (see segmentation page): `dynamic(() => import(), { ssr: false })`
-- **Client components** marked with `"use client"` directive when using hooks/interactivity
-- **CSS-in-JS alternative**: Use `cn()` utility from `src/lib/utils.ts` for conditional classes
-
-## Development Commands
-```bash
-pnpm dev             # Development server on port 5001 with Turbopack
-pnpm build           # Production build
-pnpm start           # Production server
-pnpm lint            # ESLint check
-```
-
-## Essential Dependencies
-- **Canvas/Graphics**: `react-konva`, `konva` for segmentation tools
-- **3D Visualization**: `three`, `@react-three/fiber`, `@react-three/drei` for heart models
-- **Forms**: `react-hook-form` + `@hookform/resolvers` with Zod validation
-- **Notifications**: `sonner` for toast messages
-- **Icons**: `lucide-react` for consistent iconography
-
-## Common Development Patterns
-
-### API Error Handling
+### Authentication Flow (Session-Based, NOT JWT)
 ```typescript
-// Always wrap API calls in try/catch with consistent error structure
+// src/context/auth-context.tsx provides global auth state
+const { user, loading, login, logout, checkAuthStatus } = useAuth();
+
+// All API calls MUST include credentials (configured in src/lib/api.ts)
+withCredentials: true  // Essential for session cookies
+```
+
+**Auto-guest login**: If no session exists, frontend doesn't auto-create guests. Use `ProtectedRoute` to control access:
+```tsx
+<ProtectedRoute allowedRoles={["user", "admin"]} redirectTo="/login">
+  <UserContent />
+</ProtectedRoute>
+```
+
+### Role-Based Access Components (Declarative Pattern)
+```tsx
+// Route-level protection (redirects) - src/components/ProtectedRoute.tsx
+<ProtectedRoute allowedRoles={["admin"]} redirectTo="/dashboard">
+
+// Component-level visibility (hides/shows) - src/components/RoleGuard.tsx
+<ShowForAdmin fallback={<div>Access denied</div>}>
+  <AdminPanel />
+</ShowForAdmin>
+
+<ShowForRegisteredUser>  // Excludes guests
+<ShowForGuests>          // Guest-only content
+<RegistrationOnly redirectTo="/dashboard">  // Login/register pages only
+```
+
+### Custom Hooks Architecture (Centralized Data Fetching)
+```typescript
+// src/lib/dashboard-hooks.ts - Standard pattern for dashboard data
+const { projects, isLoading, refresh } = useUserProjects();
+const { gpuStatus, isLoading, refresh } = useGpuStatus();
+const { recentJobs, isLoading, refresh } = useUserJobs();
+
+// src/hooks/useProjectSegmentationStatus.ts - Batch API pattern (NON-STANDARD)
+const { statuses } = useProjectSegmentationStatus(projects);
+// Returns: Record<projectId, { hasMasks, loading, error }>
+// Single batch API call checks segmentation status for ALL projects efficiently
+```
+
+**Pattern**: All hooks return `{ data, isLoading, refresh }` for consistency. Use `refresh()` for manual updates.
+
+### API Response Standard (Backend Contract)
+```typescript
+// All backend endpoints return this shape
+interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data?: T;  // OR direct properties like 'projects', 'jobs', etc.
+}
+
+// Error handling pattern
 try {
   const response = await projectApi.getProjects();
-  // Handle response.data
-} catch (error) {
-  // Backend returns { success: false, message: string }
-  console.error(error.response?.data?.message || 'Unknown error');
+  if (!response.success) throw new Error(response.message);
+  // Use response.data OR response.projects (varies by endpoint)
+} catch (error: any) {
+  toast.error(error.response?.data?.message || 'Operation failed');
 }
 ```
 
-### Role-Based Rendering
+### Dynamic Imports for Heavy Components (REQUIRED)
+```typescript
+// Required for Konva.js canvas and 3D visualization (SSR issues)
+const ImageCanvas = dynamic(
+  () => import("@/components/segmentation/image-canvas").then((mod) => mod.ImageCanvas),
+  { ssr: false }
+);
+```
+
+**When to use**: Canvas libraries (`konva`, `react-konva`), Three.js components, heavy animation libraries
+
+## UI/Styling System
+
+### Tailwind CSS v4 + Shadcn/ui
+- **Theme variables** in `src/app/globals.css` with `@theme inline` directive mapping CSS custom properties
+- **Color system**: Uses OKLCH color space for light/dark modes (see `:root` and `.dark` in `globals.css`)
+- **Utility function**: `cn()` from `src/lib/utils.ts` for conditional class merging
 ```tsx
-// Use role guards for conditional features
-<AdminOnly fallback={<div>Access denied</div>}>
-  <AdminPanel />
-</AdminOnly>
-
-// Or check user role directly
-const { user } = useAuth();
-if (user?.role === 'admin') {
-  // Admin-specific logic
-}
+import { cn } from "@/lib/utils";
+<div className={cn("base-class", isActive && "active-class")} />
 ```
 
-### Segmentation Tools Integration
-- **Konva.js canvas** for manual annotation with brush/eraser tools
-- **Undo/redo functionality** built into segmentation components
-- **Image preprocessing** handled by backend, frontend receives processed URLs
+### Shadcn/ui Components
+- **Location**: `src/components/ui/` (Form, Button, Dialog, Input, etc.)
+- **Installation**: `pnpm dlx shadcn@latest add <component>` (see `components.json`)
+- **Customization**: Direct file editing encouraged - these are NOT npm packages
+- **Icons**: Use `lucide-react` for consistency
 
-## Environment Configuration
-- **`NEXT_PUBLIC_API_URL`** - Backend API base URL (typically `http://localhost:5000`)
-- **Development**: Backend runs on port 5000, frontend on 5001
-- **Production**: Configure CORS and session domains between frontend/backend
+### Forms Pattern (react-hook-form + Zod)
+```tsx
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 
-## Common Gotchas
-- **Authentication state**: Always check `loading` before rendering auth-dependent UI
-- **Image paths**: Use `/public` directory, reference as `/filename.ext` in components
-- **Konva SSR**: Disable SSR for canvas-heavy components with `dynamic(..., { ssr: false })`
-- **Tailwind classes**: Use `cn()` utility for conditional styling instead of string concatenation
-- **Admin routes**: Wrap in `<AdminOnly>` component, don't rely on client-side route protection alone
+const schema = z.object({ name: z.string().min(1) });
+const form = useForm<z.infer<typeof schema>>({
+  resolver: zodResolver(schema),
+  defaultValues: { name: "" }
+});
+
+// Use with Shadcn Form components (see src/app/profile/page.tsx)
+<Form {...form}>
+  <FormField name="name" render={({ field }) => <Input {...field} />} />
+</Form>
+```
+
+### Notifications (Sonner Toasts)
+```typescript
+import { toast } from "sonner";
+
+toast.success("Project created successfully");
+toast.error("Failed to upload file");
+toast.loading("Processing segmentation...");
+```
+
+**Setup**: `<Toaster richColors />` already in `src/app/layout.tsx`
+
+## Project Structure Specifics
+
+### App Router Organization
+```
+src/app/
+ layout.tsx           # Root layout: ThemeProvider + AuthProvider + Header/Footer
+ page.tsx             # Landing page (public)
+ dashboard/           # User project management (auth required)
+ project/[projectId]/ # Dynamic project routes with segmentation sub-pages
+ admin/               # Admin-only: user-management/, system-monitor/
+ login/, register/    # Authentication pages (RegistrationOnly guard)
+ profile/             # User settings (auth required)
+ about/, doc/, policy/  # Static content pages
+```
+
+### Key Files Reference
+- **API client**: `src/lib/api.ts` (632 lines) - `authApi`, `projectApi`, `segmentationApi`, `adminApi`, `statusApi` modules
+- **Auth context**: `src/context/auth-context.tsx` - Global auth state with auto-check on mount
+- **Dashboard hooks**: `src/lib/dashboard-hooks.ts` - Data fetching hooks for dashboard UI
+- **Types**: `src/types/dashboard.ts` - `Project`, `Job`, `UserStats`, `SystemStats` interfaces
+
+## Development Workflow
+
+### Commands
+```bash
+pnpm dev    # Dev server on port 5001 (configured in package.json)
+pnpm build  # Production build (removes console.* statements)
+pnpm lint   # ESLint check (disabled during builds in next.config.ts)
+```
+
+### Environment Variables
+```bash
+# Required in .env.local
+NEXT_PUBLIC_API_URL=http://localhost:3001  # Backend API base URL
+NEXT_PUBLIC_APP_NAME=VisHeart
+NEXT_PUBLIC_APP_VERSION=0.1.0
+```
+
+### Build Configuration Gotchas
+**`next.config.ts` webpack overrides:**
+- Konva.js requires `canvas: false` fallback for browser builds
+- `transpilePackages: ["konva", "react-konva"]` for ESM compatibility
+- Console statements removed in production (`compiler.removeConsole`)
+
+## Medical Imaging Specific Patterns
+
+### NIfTI File Handling
+- **Backend processes** NIfTI  JPEG frame extraction (Python scripts)
+- **Frontend displays** JPEG frames via Konva.js canvas (`src/components/segmentation/image-canvas.tsx`)
+- **Dimensions**: Projects store `{ width, height, depth, slices, frames }` metadata
+- **Affine matrix**: 4x4 transformation matrix for medical coordinate systems (optional field)
+
+### Segmentation Canvas (Konva.js)
+```tsx
+// Heavy component - always use dynamic import
+const ImageCanvas = dynamic(() => import("@/components/segmentation/image-canvas").then(m => m.ImageCanvas), { ssr: false });
+
+<ImageCanvas
+  currentFrame={frameIndex}
+  sliceIndex={sliceIndex}
+  projectId={projectId}
+  canvasWidth={1000}
+  canvasHeight={550}
+  // ... other props
+/>
+```
+
+**Features**: Brush/eraser tools, zoom/pan, undo/redo, mask overlay rendering
+
+### Project States & Job Tracking
+```typescript
+// Job statuses from backend
+type JobStatus = "pending" | "processing" | "completed" | "failed";
+
+// Segmentation status check (batch API for efficiency)
+const { statuses } = useProjectSegmentationStatus(projects);
+// statuses[projectId].hasMasks  boolean indicating if AI segmentation exists
+```
+
+## Common Pitfalls & Solutions
+
+### Double-Redirect Issue
+**Problem**: `ProtectedRoute` + navigation guards can cause redirect loops
+**Solution**: Use `autoRedirect={false}` prop when manual control needed, check `loading` state before conditional rendering
+
+### Session Cookie Issues
+**Symptom**: API returns 401 despite login
+**Check**: Ensure `withCredentials: true` in axios config (`src/lib/api.ts` line 13)
+
+### Konva Canvas SSR Errors
+**Symptom**: "window is not defined" or canvas rendering errors
+**Solution**: Always use `dynamic(() => import(...), { ssr: false })` for Konva components
+
+### Theme Hydration Mismatch
+**Symptom**: Flash of unstyled content or theme mismatch warnings
+**Solution**: `suppressHydrationWarning` on `<html>` and `<body>` tags (already implemented in `layout.tsx`)
+
+## Integration with Backend
+
+### File Upload Flow
+1. Frontend: `<input type="file">`  FormData with NIfTI file
+2. POST to backend `/project/upload` with `multipart/form-data`
+3. Backend: S3 upload  Python metadata extraction  MongoDB save
+4. Frontend: Poll project list or use refresh callback
+
+### Segmentation Request Flow
+1. User triggers segmentation via dashboard/project page
+2. Frontend: POST to backend `/segmentation/start` with `projectId`
+3. Backend: Creates Job  calls GPU server  webhook callback on completion
+4. Frontend: Poll job status or refresh dashboard to see results
+
+**GPU Server**: Frontend NEVER calls GPU directly - all inference proxied through backend with JWT auth managed server-side
