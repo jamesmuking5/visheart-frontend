@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Layers, Brush, BarChart2, History, LayoutGrid, Settings, Save, Undo2, Redo2, Trash2, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Brush, History, Save, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Import shared types and constants
@@ -14,12 +14,8 @@ import { useMaskStats } from '@/hooks/useMaskStats';
 
 // Navigation configuration with proper typing
 const NAV_ITEMS = [
-  { key: 'masks', icon: Layers, label: 'Masks' },
-  { key: 'brush', icon: Brush, label: 'Brush' },
-  { key: 'stats', icon: BarChart2, label: 'Stats' },
+  { key: 'tools', icon: Brush, label: 'Tools & Masks' },
   { key: 'history', icon: History, label: 'History' },
-  { key: 'compare', icon: LayoutGrid, label: 'Compare' },
-  { key: 'settings', icon: Settings, label: 'Settings' },
 ] as const;
 
 type TabKey = typeof NAV_ITEMS[number]['key'];
@@ -164,6 +160,194 @@ const MasksPanel = React.memo(({
 });
 
 MasksPanel.displayName = 'MasksPanel';
+
+// Consolidated Tools & Masks Panel Component
+const ToolsAndMasksPanel = React.memo(({
+  decodedMasks,
+  currentFrame,
+  currentSlice,
+  tool,
+  setTool,
+  brushSize,
+  setBrushSize,
+  opacity,
+  setOpacity,
+  hardness,
+  setHardness,
+  activeLabel,
+  setActiveLabel,
+  visibleMasks,
+  setVisibleMasks,
+  handleUndo,
+  handleRedo,
+  handleClear,
+  canUndo,
+  canRedo,
+  canClear,
+  zoomLevel,
+  setZoomLevel,
+  onReset,
+}: {
+  decodedMasks: Record<string, Uint8Array>;
+  currentFrame: number;
+  currentSlice: number;
+  tool: import("@/types/segmentation").DrawingTool;
+  setTool: (tool: import("@/types/segmentation").DrawingTool) => void;
+  brushSize: number;
+  setBrushSize: (size: number) => void;
+  opacity: number;
+  setOpacity: (opacity: number) => void;
+  hardness: import("@/types/segmentation").BrushHardness;
+  setHardness: (h: import("@/types/segmentation").BrushHardness) => void;
+  activeLabel: AnatomicalLabel;
+  setActiveLabel: (label: AnatomicalLabel) => void;
+  visibleMasks: Set<AnatomicalLabel>;
+  setVisibleMasks: (masks: Set<AnatomicalLabel>) => void;
+  handleUndo: () => void;
+  handleRedo: () => void;
+  handleClear: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  canClear: boolean;
+  zoomLevel?: number;
+  setZoomLevel?: (level: number) => void;
+  onReset?: () => void;
+}) => {
+  // Memoized current masks calculation
+  const currentMasks = useMemo(() => {
+    const maskMap: Record<string, [string, Uint8Array]> = {};
+
+    Object.entries(decodedMasks).forEach(([key, maskData]) => {
+      if (
+        key.startsWith("editable_") && 
+        key.includes(`_frame_${currentFrame}_slice_${currentSlice}_`)
+      ) {
+        const label = key.split("_").pop() || "unknown";
+        maskMap[label] = [key, maskData];
+      }
+    });
+
+    return Object.values(maskMap);
+  }, [decodedMasks, currentFrame, currentSlice]);
+
+  const toggleMaskVisibility = useCallback((label: AnatomicalLabel) => {
+    const newVisibleMasks = new Set(visibleMasks);
+    if (newVisibleMasks.has(label)) {
+      newVisibleMasks.delete(label);
+    } else {
+      newVisibleMasks.add(label);
+    }
+    setVisibleMasks(newVisibleMasks);
+  }, [visibleMasks, setVisibleMasks]);
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-lg font-semibold text-foreground">Tools & Masks</h2>
+      
+      {/* Embedded DrawingPanel Content */}
+      <DrawingPanel
+        tool={tool}
+        setTool={setTool}
+        brushSize={brushSize}
+        setBrushSize={setBrushSize}
+        opacity={opacity}
+        setOpacity={setOpacity}
+        hardness={hardness}
+        setHardness={setHardness}
+        activeLabel={activeLabel}
+        setActiveLabel={setActiveLabel}
+        handleUndo={handleUndo}
+        handleRedo={handleRedo}
+        handleClear={handleClear}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        canClear={canClear}
+        zoomLevel={zoomLevel}
+        setZoomLevel={setZoomLevel}
+        onReset={onReset}
+      />
+
+      {/* Available Masks Section */}
+      <div className="space-y-4 pt-4 border-t border-border">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-foreground">Available Masks</h3>
+          <div className="text-xs text-muted-foreground">
+            Frame {currentFrame + 1}, Slice {currentSlice + 1}
+          </div>
+        </div>
+        
+        {currentMasks.length > 0 ? (
+          <div className="space-y-2">
+            {currentMasks.map(([maskKey, maskData]) => {
+              const label = maskKey.split('_').pop() || 'unknown';
+              const anatomicalLabel = label as AnatomicalLabel;
+              const color = LABEL_COLORS[anatomicalLabel] || '#gray';
+              const labelName = LABEL_NAMES[anatomicalLabel] || label.toUpperCase();
+              const filledPixels = maskData.filter(pixel => pixel > 0).length;
+              const isActive = activeLabel === label;
+              const isVisible = visibleMasks.has(anatomicalLabel);
+
+              return (
+                <div 
+                  key={maskKey} 
+                  className={cn(
+                    "p-3 rounded-lg border flex items-center gap-3 transition-all cursor-pointer",
+                    isActive ? "bg-primary/10 border-primary/30" : "bg-background border-border hover:bg-muted/50"
+                  )}
+                  onClick={() => setActiveLabel(anatomicalLabel)}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Select ${labelName} as active mask`}
+                >
+                  {/* Radio button for active mask */}
+                  <span
+                    className={cn(
+                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                      isActive 
+                        ? "border-primary bg-primary" 
+                        : "border-muted-foreground"
+                    )}
+                    aria-hidden="true"
+                  >
+                    {isActive && <div className="w-2 h-2 bg-primary-foreground rounded-full" />}
+                  </span>
+
+                  {/* Mask info */}
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{labelName}</div>
+                    <div className="text-xs text-muted-foreground">{filledPixels.toLocaleString()} pixels</div>
+                  </div>
+
+                  {/* Mask color indicator */}
+                  <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                  
+                  {/* Eye icon for visibility toggle */}
+                  <button
+                    onClick={e => { e.stopPropagation(); toggleMaskVisibility(anatomicalLabel); }}
+                    className={cn(
+                      "p-1 rounded hover:bg-muted",
+                      isVisible ? "text-foreground" : "text-muted-foreground"
+                    )}
+                    aria-label={`${isVisible ? 'Hide' : 'Show'} ${labelName} mask`}
+                    tabIndex={0}
+                  >
+                    {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground text-sm py-8">
+            No masks found for current frame/slice
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
+ToolsAndMasksPanel.displayName = 'ToolsAndMasksPanel';
 
 // Stats Panel Component with optimized custom hook
 const StatsPanel = React.memo(({
@@ -392,7 +576,7 @@ export function SegmentationSidebar({
   setZoomLevel,
   onReset,
 }: SegmentationSidebarProps) {
-  const [activeTab, setActiveTab] = useState('brush');
+  const [activeTab, setActiveTab] = useState<TabKey>('tools');
 
   // Memoized tab change handler
   const handleTabChange = useCallback((tabKey: TabKey) => {
@@ -451,20 +635,11 @@ export function SegmentationSidebar({
 
       {/* Sidebar Content with proper error boundaries */}
       <div className="flex-1 flex flex-col p-4 overflow-y-auto">
-        {activeTab === 'masks' && (
-          <MasksPanel
+        {activeTab === 'tools' && (
+          <ToolsAndMasksPanel
             decodedMasks={decodedMasks}
             currentFrame={currentFrame}
             currentSlice={currentSlice}
-            activeLabel={activeLabel}
-            setActiveLabel={setActiveLabel}
-            visibleMasks={visibleMasks}
-            setVisibleMasks={setVisibleMasks}
-          />
-        )}
-
-        {activeTab === 'brush' && (
-          <DrawingPanel
             tool={tool}
             setTool={setTool}
             brushSize={brushSize}
@@ -475,6 +650,8 @@ export function SegmentationSidebar({
             setHardness={setHardness}
             activeLabel={activeLabel}
             setActiveLabel={setActiveLabel}
+            visibleMasks={visibleMasks}
+            setVisibleMasks={setVisibleMasks}
             handleUndo={handleUndo}
             handleRedo={handleRedo}
             handleClear={handleClear}
@@ -484,15 +661,6 @@ export function SegmentationSidebar({
             zoomLevel={zoomLevel}
             setZoomLevel={setZoomLevel}
             onReset={onReset}
-          />
-        )}
-
-        {activeTab === 'stats' && (
-          <StatsPanel
-            decodedMasks={decodedMasks}
-            currentFrame={currentFrame}
-            currentSlice={currentSlice}
-            projectData={projectData}
           />
         )}
 
@@ -508,16 +676,6 @@ export function SegmentationSidebar({
             historyData={historyData}
           />
         )}
-
-        {activeTab === 'compare' && (
-          <ComparePanel
-            decodedMasks={decodedMasks}
-            currentFrame={currentFrame}
-            currentSlice={currentSlice}
-          />
-        )}
-
-        {activeTab === 'settings' && <SettingsPanel />}
       </div>
     </div>
   );
