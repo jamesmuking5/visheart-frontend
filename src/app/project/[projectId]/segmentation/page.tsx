@@ -74,7 +74,6 @@ export default function SegmentationResultsPage() {
   const [tool, setTool] = useState<DrawingTool>("brush");
   const [brushSize, setBrushSize] = useState<number>(10);
   const [opacity, setOpacity] = useState<number>(1);
-  const [hardness, setHardness] = useState<"soft" | "medium" | "hard">("hard");
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [currentFrame, setCurrentFrame] = useState(0);
@@ -402,7 +401,6 @@ export default function SegmentationResultsPage() {
             tool={tool}
             brushSize={brushSize}
             opacity={opacity}
-            hardness={hardness}
             zoomLevel={zoomLevel}
             setZoomLevel={setZoomLevel}
             resetTrigger={resetTrigger}
@@ -419,8 +417,6 @@ export default function SegmentationResultsPage() {
             setBrushSize={setBrushSize}
             opacity={opacity}
             setOpacity={setOpacity}
-            hardness={hardness}
-            setHardness={setHardness}
             activeLabel={activeLabel}
             setActiveLabel={setActiveLabel}
             visibleMasks={visibleMasks}
@@ -475,7 +471,6 @@ export default function SegmentationResultsPage() {
                 tool={tool}
                 brushSize={brushSize}
                 opacity={opacity}
-                hardness={hardness}
                 zoomLevel={zoomLevel}
                 setZoomLevel={setZoomLevel}
                 resetTrigger={resetTrigger}
@@ -497,8 +492,6 @@ export default function SegmentationResultsPage() {
                 setBrushSize={setBrushSize}
                 opacity={opacity}
                 setOpacity={setOpacity}
-                hardness={hardness}
-                setHardness={setHardness}
                 activeLabel={activeLabel}
                 setActiveLabel={setActiveLabel}
                 visibleMasks={visibleMasks}

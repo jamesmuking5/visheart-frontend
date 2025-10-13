@@ -4,19 +4,16 @@ import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Undo2, Redo2, Trash2, Brush, Eraser, MousePointer2, Square, Search, Move, RotateCcw } from "lucide-react";
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 
 // Import shared types and constants
 import type { 
   DrawingPanelProps, 
-  DrawingTool,
-  BrushHardness 
+  DrawingTool
 } from "@/types/segmentation";
 import { 
-  DRAWING_TOOLS,
-  BRUSH_HARDNESS
+  DRAWING_TOOLS
 } from "@/types/segmentation";
 
 // Simplified tool configuration
@@ -36,8 +33,6 @@ export function DrawingPanel({
   setBrushSize,
   opacity,
   setOpacity,
-  hardness,
-  setHardness,
   activeLabel,
   setActiveLabel,
   handleUndo,
@@ -57,13 +52,6 @@ export function DrawingPanel({
       setTool(value as DrawingTool);
     }
   }, [setTool]);
-
-  // Memoized hardness handler
-  const handleHardnessChange = React.useCallback((value: string) => {
-    if (value && BRUSH_HARDNESS.includes(value as BrushHardness)) {
-      setHardness(value as BrushHardness);
-    }
-  }, [setHardness]);
 
   // Optimized keyboard shortcut handler with cleanup
   useEffect(() => {
@@ -89,7 +77,7 @@ export function DrawingPanel({
       {/* Tool Selection */}
       <div>
         <h3 className="text-sm font-medium text-foreground mb-3">Tool Selection</h3>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-6 gap-2">
           {DRAWING_TOOLS.map((toolKey) => {
             const config = TOOL_CONFIG[toolKey];
             const IconComponent = config.icon;
@@ -122,74 +110,47 @@ export function DrawingPanel({
         <div>
           <h3 className="text-sm font-medium text-foreground mb-3">Brush Settings</h3>
           <div className="bg-muted rounded-lg border p-4 space-y-4">
-            {/* Size */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-foreground">
-                  Brush Size
-                </label>
-                <span className="text-xs text-muted-foreground">
-                  {brushSize}px
-                </span>
+            {/* Size and Opacity in one row */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Size */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Size
+                  </label>
+                  <span className="text-xs text-muted-foreground">
+                    {brushSize}px
+                  </span>
+                </div>
+                <Slider
+                  value={[brushSize]}
+                  onValueChange={(v: number[]) => setBrushSize(v[0])}
+                  min={1}
+                  max={50}
+                  step={1}
+                  className="[&>span:first-child]:border [&>span:first-child]:border-border"
+                />
               </div>
-              <Slider
-                value={[brushSize]}
-                onValueChange={(v: number[]) => setBrushSize(v[0])}
-                min={1}
-                max={50}
-                step={1}
-                className="[&>span:first-child]:border [&>span:first-child]:border-border"
-              />
-            </div>
 
-            {/* Opacity */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-foreground">
-                  Opacity
-                </label>
-                <span className="text-xs text-muted-foreground">
-                  {Math.round(opacity * 100)}%
-                </span>
+              {/* Opacity */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Opacity
+                  </label>
+                  <span className="text-xs text-muted-foreground">
+                    {Math.round(opacity * 100)}%
+                  </span>
+                </div>
+                <Slider
+                  value={[opacity * 100]}
+                  onValueChange={(v: number[]) => setOpacity(v[0] / 100)}
+                  min={10}
+                  max={100}
+                  step={1}
+                  className="[&>span:first-child]:border [&>span:first-child]:border-border"
+                />
               </div>
-              <Slider
-                value={[opacity * 100]}
-                onValueChange={(v: number[]) => setOpacity(v[0] / 100)}
-                min={10}
-                max={100}
-                step={1}
-                className="[&>span:first-child]:border [&>span:first-child]:border-border"
-              />
-            </div>
-
-            {/* Hardness */}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
-                Brush Hardness
-              </label>
-              <ToggleGroup
-                type="single"
-                value={hardness}
-                onValueChange={handleHardnessChange}
-                className="flex rounded-lg border border-border overflow-hidden w-full"
-                aria-label="Brush Hardness"
-              >
-                {BRUSH_HARDNESS.map((level) => (
-                  <ToggleGroupItem
-                    key={level}
-                    value={level}
-                    className={cn(
-                      "flex-1 py-2 text-xs font-medium transition-colors",
-                      "bg-transparent hover:bg-primary/20",
-                      "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground",
-                      "data-[state=off]:text-foreground border-0",
-                      "focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring"
-                    )}
-                  >
-                    {level.charAt(0).toUpperCase() + level.slice(1)}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
             </div>
           </div>
         </div>

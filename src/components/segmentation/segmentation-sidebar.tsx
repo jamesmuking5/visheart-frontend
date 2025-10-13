@@ -31,8 +31,6 @@ const ToolsAndMasksPanel = React.memo(({
   setBrushSize,
   opacity,
   setOpacity,
-  hardness,
-  setHardness,
   activeLabel,
   setActiveLabel,
   visibleMasks,
@@ -56,8 +54,6 @@ const ToolsAndMasksPanel = React.memo(({
   setBrushSize: (size: number) => void;
   opacity: number;
   setOpacity: (opacity: number) => void;
-  hardness: import("@/types/segmentation").BrushHardness;
-  setHardness: (h: import("@/types/segmentation").BrushHardness) => void;
   activeLabel: AnatomicalLabel;
   setActiveLabel: (label: AnatomicalLabel) => void;
   visibleMasks: Set<AnatomicalLabel>;
@@ -204,8 +200,6 @@ const ToolsAndMasksPanel = React.memo(({
         setBrushSize={setBrushSize}
         opacity={opacity}
         setOpacity={setOpacity}
-        hardness={hardness}
-        setHardness={setHardness}
         activeLabel={activeLabel}
         setActiveLabel={setActiveLabel}
         handleUndo={handleUndo}
@@ -420,8 +414,6 @@ export function SegmentationSidebar({
   setBrushSize,
   opacity,
   setOpacity,
-  hardness,
-  setHardness,
   activeLabel,
   setActiveLabel,
   visibleMasks,
@@ -521,8 +513,6 @@ export function SegmentationSidebar({
             setBrushSize={setBrushSize}
             opacity={opacity}
             setOpacity={setOpacity}
-            hardness={hardness}
-            setHardness={setHardness}
             activeLabel={activeLabel}
             setActiveLabel={setActiveLabel}
             visibleMasks={visibleMasks}

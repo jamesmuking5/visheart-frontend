@@ -20,7 +20,6 @@ import type { ImageCanvasProps, AnatomicalLabel } from "@/types/segmentation";
 import { 
   LABEL_COLORS, 
   LABEL_NAMES,
-  HARDNESS_TO_BLUR, 
   PERFORMANCE_CONSTANTS 
 } from "@/types/segmentation";
 
@@ -184,7 +183,6 @@ export function ImageCanvas({
   tool,
   brushSize,
   opacity,
-  hardness,
   zoomLevel = 1,
   setZoomLevel,
   resetTrigger,
@@ -1158,7 +1156,6 @@ export function ImageCanvas({
                 stroke={tool === "eraser" ? "#000" : LABEL_COLORS[activeLabel]}
                 strokeWidth={brushSize}
                 opacity={0.8}
-                shadowBlur={HARDNESS_TO_BLUR[hardness]}
                 tension={0.5}
                 lineCap="round"
                 lineJoin="round"

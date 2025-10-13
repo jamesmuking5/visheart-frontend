@@ -24,9 +24,6 @@ export const DRAWING_TOOLS = [
 ] as const;
 export type DrawingTool = typeof DRAWING_TOOLS[number];
 
-export const BRUSH_HARDNESS = ['soft', 'medium', 'hard'] as const;
-export type BrushHardness = typeof BRUSH_HARDNESS[number];
-
 // History entry interface with proper typing
 export interface HistoryEntry {
   id: string;
@@ -52,8 +49,6 @@ export interface DrawingPanelProps {
   setBrushSize: (size: number) => void;
   opacity: number;
   setOpacity: (opacity: number) => void;
-  hardness: BrushHardness;
-  setHardness: (h: BrushHardness) => void;
   activeLabel: AnatomicalLabel;
   setActiveLabel: (label: AnatomicalLabel) => void;
   handleUndo: () => void;
@@ -90,7 +85,6 @@ export interface ImageCanvasProps {
   tool: DrawingTool;
   brushSize: number;
   opacity: number;
-  hardness: BrushHardness;
   // Zoom level (1.0 = 100%)
   zoomLevel?: number;
   setZoomLevel?: (level: number) => void;
@@ -117,8 +111,6 @@ export interface SegmentationSidebarProps {
   setBrushSize: (size: number) => void;
   opacity: number;
   setOpacity: (opacity: number) => void;
-  hardness: BrushHardness;
-  setHardness: (h: BrushHardness) => void;
   activeLabel: AnatomicalLabel;
   setActiveLabel: (label: AnatomicalLabel) => void;
   visibleMasks: Set<AnatomicalLabel>;
@@ -149,11 +141,6 @@ export interface SegmentationSidebarProps {
   setZoomLevel?: (level: number) => void;
   onReset?: () => void;
 }
-export const HARDNESS_TO_BLUR: Record<BrushHardness, number> = {
-  soft: 15,
-  medium: 7,
-  hard: 0,
-} as const;
 
 export const PERFORMANCE_CONSTANTS = {
   MAX_HISTORY_ENTRIES: 50,
@@ -169,10 +156,6 @@ export const isValidAnatomicalLabel = (label: string): label is AnatomicalLabel 
 
 export const isValidDrawingTool = (tool: string): tool is DrawingTool => {
   return DRAWING_TOOLS.includes(tool as DrawingTool);
-};
-
-export const isValidBrushHardness = (hardness: string): hardness is BrushHardness => {
-  return BRUSH_HARDNESS.includes(hardness as BrushHardness);
 };
 
 // Centralized key generation to avoid duplication
