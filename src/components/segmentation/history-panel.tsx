@@ -134,7 +134,7 @@ export function HistoryPanel({
         <h3 className="text-sm font-medium text-foreground">Recent Actions</h3>
         
         {processedHistory.length > 0 ? (
-          <ScrollArea className="space-y-2 max-h-58 pr-2">
+          <ScrollArea className="h-[400px] pr-4">
             <div className="space-y-2">
             {processedHistory.map((entry: HistoryEntry, index: number) => {
               const isCurrentStep = (historyData.length - 1 - index) === currentHistoryStep;

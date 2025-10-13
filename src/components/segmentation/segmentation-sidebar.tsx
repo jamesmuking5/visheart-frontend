@@ -20,147 +20,6 @@ const NAV_ITEMS = [
 
 type TabKey = typeof NAV_ITEMS[number]['key'];
 
-// Masks Panel Component with proper typing
-const MasksPanel = React.memo(({
-  decodedMasks,
-  currentFrame,
-  currentSlice,
-  activeLabel,
-  setActiveLabel,
-  visibleMasks,
-  setVisibleMasks
-}: {
-  decodedMasks: Record<string, Uint8Array>;
-  currentFrame: number;
-  currentSlice: number;
-  activeLabel: AnatomicalLabel;
-  setActiveLabel: (label: AnatomicalLabel) => void;
-  visibleMasks: Set<AnatomicalLabel>;
-  setVisibleMasks: (masks: Set<AnatomicalLabel>) => void;
-}) => {
-  // Memoized current masks calculation
-  const currentMasks = useMemo(() => {
-    const maskMap: Record<string, [string, Uint8Array]> = {};
-
-    Object.entries(decodedMasks).forEach(([key, maskData]) => {
-      if (
-        key.startsWith("editable_") && 
-        key.includes(`_frame_${currentFrame}_slice_${currentSlice}_`)
-      ) {
-        const label = key.split("_").pop() || "unknown";
-        maskMap[label] = [key, maskData];
-      }
-    });
-
-    return Object.values(maskMap);
-  }, [decodedMasks, currentFrame, currentSlice]);
-
-  // Memoized label click handler
-  const handleLabelClick = useCallback((label: string) => {
-    if (label in LABEL_COLORS) {
-      setActiveLabel(label as AnatomicalLabel);
-    }
-  }, [setActiveLabel]);
-
-  const toggleMaskVisibility = useCallback((label: AnatomicalLabel) => {
-    const newVisibleMasks = new Set(visibleMasks);
-    if (newVisibleMasks.has(label)) {
-      newVisibleMasks.delete(label);
-    } else {
-      newVisibleMasks.add(label);
-    }
-    setVisibleMasks(newVisibleMasks);
-  }, [visibleMasks, setVisibleMasks]);
-
-  return (
-    <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-foreground">Segmentation Masks</h2>
-      
-      {/* Current Frame/Slice Info */}
-      <div className="p-3 bg-muted rounded-lg">
-        <div className="text-sm text-muted-foreground mb-2">
-          Frame {currentFrame + 1}, Slice {currentSlice + 1}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {currentMasks.length} mask(s) available
-        </div>
-      </div>
-
-      {/* Available Masks */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-foreground">Available Masks</h3>
-        {currentMasks.length > 0 ? (
-          currentMasks.map(([maskKey, maskData]) => {
-            const label = maskKey.split('_').pop() || 'unknown';
-            const anatomicalLabel = label as AnatomicalLabel;
-            const color = LABEL_COLORS[anatomicalLabel] || '#gray';
-            const labelName = LABEL_NAMES[anatomicalLabel] || label.toUpperCase();
-            const filledPixels = maskData.filter(pixel => pixel > 0).length;
-            const isActive = activeLabel === label;
-            const isVisible = visibleMasks.has(anatomicalLabel);
-
-            return (
-              <div 
-                key={maskKey} 
-                className={cn(
-                  "p-3 rounded-lg border flex items-center gap-3 transition-all cursor-pointer",
-                  isActive ? "bg-primary/10 border-primary/30" : "bg-background border-border hover:bg-muted/50"
-                )}
-                onClick={() => handleLabelClick(label)} 
-                tabIndex={0}
-                role="button"
-                aria-label={`Select ${labelName} as active mask`}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleLabelClick(label); }}
-              >
-                {/* Radio button for active mask */}
-                <span
-                  className={cn(
-                    "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                    isActive 
-                      ? "border-primary bg-primary" 
-                      : "border-muted-foreground"
-                  )}
-                  aria-hidden="true"
-                >
-                  {isActive && <div className="w-2 h-2 bg-primary-foreground rounded-full" />}
-                </span>
-
-                {/* Mask info */}
-                <div className="flex-1">
-                  <div className="font-medium text-sm">{labelName}</div>
-                  <div className="text-xs text-muted-foreground">{filledPixels.toLocaleString()} pixels</div>
-                </div>
-
-                {/* Mask color indicator */}
-                <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                
-                {/* Eye icon for visibility toggle */}
-                <button
-                  onClick={e => { e.stopPropagation(); toggleMaskVisibility(anatomicalLabel); }}
-                  className={cn(
-                    "p-1 rounded hover:bg-muted",
-                    isVisible ? "text-foreground" : "text-muted-foreground"
-                  )}
-                  aria-label={`${isVisible ? 'Hide' : 'Show'} ${labelName} mask`}
-                  tabIndex={0}
-                >
-                  {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </div>
-            );
-          })
-        ) : (
-          <div className="text-center text-muted-foreground text-sm py-8">
-            No masks found for current frame/slice
-          </div>
-        )}
-      </div>
-    </div>
-  );
-});
-
-MasksPanel.displayName = 'MasksPanel';
-
 // Consolidated Tools & Masks Panel Component
 const ToolsAndMasksPanel = React.memo(({
   decodedMasks,
@@ -244,37 +103,18 @@ const ToolsAndMasksPanel = React.memo(({
     <div className="space-y-6">
       <h2 className="text-lg font-semibold text-foreground">Tools & Masks</h2>
       
-      {/* Embedded DrawingPanel Content */}
-      <DrawingPanel
-        tool={tool}
-        setTool={setTool}
-        brushSize={brushSize}
-        setBrushSize={setBrushSize}
-        opacity={opacity}
-        setOpacity={setOpacity}
-        hardness={hardness}
-        setHardness={setHardness}
-        activeLabel={activeLabel}
-        setActiveLabel={setActiveLabel}
-        handleUndo={handleUndo}
-        handleRedo={handleRedo}
-        handleClear={handleClear}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        canClear={canClear}
-        zoomLevel={zoomLevel}
-        setZoomLevel={setZoomLevel}
-        onReset={onReset}
-      />
-
-      {/* Available Masks Section */}
-      <div className="space-y-4 pt-4 border-t border-border">
+      {/* Available Masks Section - Moved to top, replaces Active Label selector */}
+      <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium text-foreground">Available Masks</h3>
+          <h3 className="text-sm font-medium text-foreground">Active Label & Masks</h3>
           <div className="text-xs text-muted-foreground">
             Frame {currentFrame + 1}, Slice {currentSlice + 1}
           </div>
         </div>
+        
+        <p className="text-xs text-muted-foreground">
+          Select a label to edit. The active label determines which mask you&apos;re drawing on.
+        </p>
         
         {currentMasks.length > 0 ? (
           <div className="space-y-2">
@@ -343,6 +183,29 @@ const ToolsAndMasksPanel = React.memo(({
           </div>
         )}
       </div>
+
+      {/* Drawing Tools - DrawingPanel without Active Label selector */}
+      <DrawingPanel
+        tool={tool}
+        setTool={setTool}
+        brushSize={brushSize}
+        setBrushSize={setBrushSize}
+        opacity={opacity}
+        setOpacity={setOpacity}
+        hardness={hardness}
+        setHardness={setHardness}
+        activeLabel={activeLabel}
+        setActiveLabel={setActiveLabel}
+        handleUndo={handleUndo}
+        handleRedo={handleRedo}
+        handleClear={handleClear}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        canClear={canClear}
+        zoomLevel={zoomLevel}
+        setZoomLevel={setZoomLevel}
+        onReset={onReset}
+      />
     </div>
   );
 });

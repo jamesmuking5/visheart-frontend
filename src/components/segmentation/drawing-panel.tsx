@@ -10,19 +10,16 @@ import { cn } from "@/lib/utils";
 // Import shared types and constants
 import type { 
   DrawingPanelProps, 
-  AnatomicalLabel,
   DrawingTool,
   BrushHardness 
 } from "@/types/segmentation";
 import { 
-  LABEL_COLORS, 
-  LABEL_NAMES,
   DRAWING_TOOLS,
   BRUSH_HARDNESS
 } from "@/types/segmentation";
 
 // Simplified tool configuration
-const TOOL_CONFIG: Record<DrawingTool, { icon: React.ComponentType<any>; label: string }> = {
+const TOOL_CONFIG: Record<DrawingTool, { icon: React.ComponentType<{className?: string}>; label: string }> = {
   select: { icon: MousePointer2, label: 'Select' },
   brush: { icon: Brush, label: 'Brush' },
   eraser: { icon: Eraser, label: 'Eraser' },
@@ -52,13 +49,6 @@ export function DrawingPanel({
   setZoomLevel = () => {},
   onReset,
 }: DrawingPanelProps) {
-
-  // Memoized label selection handler
-  const handleLabelChange = React.useCallback((value: string) => {
-    if (value && value in LABEL_COLORS) {
-      setActiveLabel(value as AnatomicalLabel);
-    }
-  }, [setActiveLabel]);
 
   // Memoized tool selection handler
   const handleToolChange = React.useCallback((value: string) => {
@@ -95,48 +85,6 @@ export function DrawingPanel({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-foreground">Drawing Tools</h2>
-      
-      {/* Label Selection */}
-      <div>
-        <h3 className="text-sm font-medium text-foreground mb-3">Active Label</h3>
-        <ToggleGroup
-          type="single"
-          value={activeLabel}
-          onValueChange={handleLabelChange}
-          aria-label="Anatomical Label"
-          className="flex rounded-lg border border-border overflow-hidden w-full"
-        >
-          {Object.entries(LABEL_COLORS).map(([key, color]) => (
-            <ToggleGroupItem
-              key={key}
-              value={key}
-              aria-label={LABEL_NAMES[key as AnatomicalLabel]}
-              variant="outline" 
-              className={cn(
-                "flex-1 flex items-center justify-center px-4 py-2",
-                "font-semibold transition-colors",
-                "data-[state=on]:bg-opacity-20 data-[state=on]:border-current",
-                "border-r border-border last:border-r-0",
-                "focus:z-10"
-              )}
-              style={{ 
-                color: activeLabel === key ? color : undefined,
-                backgroundColor: activeLabel === key ? `${color}20` : undefined,
-                borderColor: activeLabel === key ? color : undefined,
-               borderLeftWidth: 1, borderRightWidth: 1
-              }}
-            >
-              <span 
-                className="w-3 h-3 rounded-full mr-2 flex-shrink-0" 
-                style={{ backgroundColor: color }} 
-              />
-              {key.toUpperCase()}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </div>
-      
       {/* Tool Selection */}
       <div>
         <h3 className="text-sm font-medium text-foreground mb-3">Tool Selection</h3>
