@@ -45,7 +45,7 @@ const NavigationControls = memo(({
   onFrameChange: (frame: number) => void;
   onSliceChange: (slice: number) => void;
 }) => (
-  <div className="w-full max-w-6xl mb-4 p-4 bg-muted rounded-lg shadow-md">
+  <div className="w-full mb-4 p-4 bg-muted rounded-lg shadow-md">
     <div className="grid grid-cols-2 gap-8">
       {/* Frame Controls */}
       <div className="space-y-2">
@@ -1044,7 +1044,7 @@ export function ImageCanvas({
     onMouseDown={handleContainerMouseDown}
     onMouseMove={handleContainerMouseMove}
     onMouseUp={handleContainerMouseUp}
-    className="w-full max-w-7xl h-[80vh] min-h-[400px] max-h-[700px] bg-background rounded-lg overflow-hidden relative mx-auto border flex flex-col"
+    className="w-full h-[80vh] min-h-[400px] max-h-[700px] bg-background rounded-lg overflow-hidden relative mx-auto border flex flex-col"
   >
         {/* Top info bar (frame/slice + zoom) */}
         <div 

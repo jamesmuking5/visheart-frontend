@@ -16,6 +16,7 @@ import type { AnatomicalLabel, HistoryEntry, DrawingTool } from "@/types/segment
 import { generateMaskKey } from "@/types/segmentation";
 import { useProject } from "@/context/ProjectContext";
 import { useSegmentationHistory } from "@/hooks/useSegmentationHistory";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 const ImageCanvas = dynamic(() => import("@/components/segmentation/image-canvas").then((mod) => mod.ImageCanvas), {
   ssr: false,
@@ -115,13 +116,16 @@ export default function SegmentationResultsPage() {
       const oldMask = oldMasks[editableMaskKey];
       const newMask = newMasks[editableMaskKey];
 
-      if (!oldMask || !newMask) return undefined;
+      // If newMask doesn't exist, no changes to track
+      if (!newMask) return undefined;
 
+      // Treat missing oldMask as an empty mask (all zeros) to properly track initial drawing
       let added = 0;
       let removed = 0;
 
-      for (let i = 0; i < Math.max(oldMask.length, newMask.length); i++) {
-        const oldPixel = oldMask[i] || 0;
+      const maskLength = newMask.length;
+      for (let i = 0; i < maskLength; i++) {
+        const oldPixel = oldMask ? oldMask[i] || 0 : 0;
         const newPixel = newMask[i] || 0;
 
         if (oldPixel === 0 && newPixel > 0) added++;
@@ -139,7 +143,16 @@ export default function SegmentationResultsPage() {
       if (!decodedMasks) return;
 
       const maskChanges = calculateMaskChanges(decodedMasks, newMasks, activeLabel);
-      const newEntry = createHistoryEntry(actionType, description || `${actionType} action on ${activeLabel.toUpperCase()}`, newMasks, maskChanges, activeLabel);
+      
+      // CRITICAL: Snapshot the CURRENT state (before change) so undo can restore to it
+      // This allows undoing back to the initial empty state
+      const newEntry = createHistoryEntry(
+        actionType, 
+        description || `${actionType} action on ${activeLabel.toUpperCase()}`, 
+        decodedMasks, // Capture state BEFORE change, not after!
+        maskChanges, 
+        activeLabel
+      );
 
       // Add to history using our custom hook
       addToHistory(newEntry);
@@ -173,6 +186,15 @@ export default function SegmentationResultsPage() {
     const currentFrameSlicePrefix = `editable_frame_${currentFrame}_slice_${currentSlice}_`;
     const mergedMasks = { ...decodedMasks };
 
+    // Step 1: Remove current frame/slice masks that don't exist in snapshot (deleted masks)
+    for (const key of Object.keys(mergedMasks)) {
+      if (key.startsWith(currentFrameSlicePrefix) && !(key in entry.masksSnapshot)) {
+        delete mergedMasks[key];
+        console.log(`[Segmentation] Removed mask ${key} (not in snapshot)`);
+      }
+    }
+
+    // Step 2: Add/update masks from snapshot
     for (const [key, maskData] of Object.entries(entry.masksSnapshot)) {
       if (key.startsWith(currentFrameSlicePrefix) && maskData) {
         try {
@@ -361,76 +383,152 @@ export default function SegmentationResultsPage() {
   }
 
   return (
-    <div className="h-full w-full bg-background ">
-      <div className="w-full h-full p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6">
-        <main className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
+    <div className="h-full w-full bg-background">
+      {/* Mobile: Stack vertically */}
+      <div className="lg:hidden w-full h-full p-4 flex flex-col gap-4">
+        <div className="flex-1 relative bg-muted/40 rounded-xl border shadow-sm p-4 flex items-center justify-center overflow-hidden">
+          <ImageCanvas
+            projectData={projectData}
+            decodedMasks={safeDecodedMasks}
+            onMaskUpdate={updateMasksWithHistory}
+            currentFrame={currentFrame}
+            currentSlice={currentSlice}
+            onFrameChange={setCurrentFrame}
+            onSliceChange={setCurrentSlice}
+            width={canvasDimensions.width}
+            height={canvasDimensions.height}
+            activeLabel={activeLabel}
+            visibleMasks={visibleMasks}
+            tool={tool}
+            brushSize={brushSize}
+            opacity={opacity}
+            hardness={hardness}
+            zoomLevel={zoomLevel}
+            setZoomLevel={setZoomLevel}
+            resetTrigger={resetTrigger}
+          />
+        </div>
+        
+        <div className="w-full bg-background rounded-xl border shadow-sm">
+          <SegmentationSidebar
+            projectData={projectData}
+            decodedMasks={safeDecodedMasks}
+            tool={tool}
+            setTool={setTool}
+            brushSize={brushSize}
+            setBrushSize={setBrushSize}
+            opacity={opacity}
+            setOpacity={setOpacity}
+            hardness={hardness}
+            setHardness={setHardness}
+            activeLabel={activeLabel}
+            setActiveLabel={setActiveLabel}
+            visibleMasks={visibleMasks}
+            setVisibleMasks={setVisibleMasks}
+            handleUndo={handleUndo}
+            handleRedo={handleRedo}
+            handleClear={handleClear}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            canClear={canClear}
+            hasUnsavedChanges={hasUnsavedChanges}
+            isSaving={isSaving}
+            onSave={handleSave}
+            currentFrame={currentFrame}
+            currentSlice={currentSlice}
+            totalFrames={projectData.dimensions?.frames || 1}
+            totalSlices={projectData.dimensions?.slices || 1}
+            historyData={currentHistory}
+            currentHistoryStep={currentHistoryStep}
+            onHistoryStepChange={handleHistoryStepChangeWithMasks}
+            onHistoryClear={handleHistoryClear}
+            onHistoryExport={handleHistoryExport}
+            onHistoryCheckpoint={handleHistoryCheckpoint}
+            zoomLevel={zoomLevel}
+            setZoomLevel={setZoomLevel}
+            onReset={handleReset}
+          />
+        </div>
+      </div>
 
-          <div className="flex-1 relative bg-muted/40 rounded-xl border shadow-sm p-4 flex items-center justify-center">
-            <ImageCanvas
-              projectData={projectData}
-              decodedMasks={safeDecodedMasks}
-              onMaskUpdate={updateMasksWithHistory}
-              currentFrame={currentFrame}
-              currentSlice={currentSlice}
-              onFrameChange={setCurrentFrame}
-              onSliceChange={setCurrentSlice}
-              width={canvasDimensions.width}
-              height={canvasDimensions.height}
-              activeLabel={activeLabel}
-              visibleMasks={visibleMasks}
-              tool={tool}
-              brushSize={brushSize}
-              opacity={opacity}
-              hardness={hardness}
-              zoomLevel={zoomLevel}
-              setZoomLevel={setZoomLevel}
-              resetTrigger={resetTrigger}
-            />
-          </div>
-        </main>
+      {/* Desktop: Resizable panels */}
+      <div className="hidden lg:block w-full h-full p-6">
+        <ResizablePanelGroup 
+          direction="horizontal" 
+          className="h-full w-full rounded-xl border shadow-sm"
+        >
+          {/* Canvas Panel */}
+          <ResizablePanel defaultSize={70} minSize={40}>
+            <div className="h-full w-full relative bg-muted/40 rounded-l-xl p-4 flex items-center justify-center">
+              <ImageCanvas
+                projectData={projectData}
+                decodedMasks={safeDecodedMasks}
+                onMaskUpdate={updateMasksWithHistory}
+                currentFrame={currentFrame}
+                currentSlice={currentSlice}
+                onFrameChange={setCurrentFrame}
+                onSliceChange={setCurrentSlice}
+                width={canvasDimensions.width}
+                height={canvasDimensions.height}
+                activeLabel={activeLabel}
+                visibleMasks={visibleMasks}
+                tool={tool}
+                brushSize={brushSize}
+                opacity={opacity}
+                hardness={hardness}
+                zoomLevel={zoomLevel}
+                setZoomLevel={setZoomLevel}
+                resetTrigger={resetTrigger}
+              />
+            </div>
+          </ResizablePanel>
 
-        <aside className="w-full lg:w-80 flex-none">
-          <div className="bg-background rounded-xl border shadow-sm h-full">
-            <SegmentationSidebar
-              projectData={projectData}
-              decodedMasks={safeDecodedMasks}
-              tool={tool}
-              setTool={setTool}
-              brushSize={brushSize}
-              setBrushSize={setBrushSize}
-              opacity={opacity}
-              setOpacity={setOpacity}
-              hardness={hardness}
-              setHardness={setHardness}
-              activeLabel={activeLabel}
-              setActiveLabel={setActiveLabel}
-              visibleMasks={visibleMasks}
-              setVisibleMasks={setVisibleMasks}
-              handleUndo={handleUndo}
-              handleRedo={handleRedo}
-              handleClear={handleClear}
-              canUndo={canUndo}
-              canRedo={canRedo}
-              canClear={canClear}
-              hasUnsavedChanges={hasUnsavedChanges}
-              isSaving={isSaving}
-              onSave={handleSave}
-              currentFrame={currentFrame}
-              currentSlice={currentSlice}
-              totalFrames={projectData.dimensions?.frames || 1}
-              totalSlices={projectData.dimensions?.slices || 1}
-              historyData={currentHistory}
-              currentHistoryStep={currentHistoryStep}
-              onHistoryStepChange={handleHistoryStepChangeWithMasks}
-              onHistoryClear={handleHistoryClear}
-              onHistoryExport={handleHistoryExport}
-              onHistoryCheckpoint={handleHistoryCheckpoint}
-              zoomLevel={zoomLevel}
-              setZoomLevel={setZoomLevel}
-              onReset={handleReset}
-            />
-          </div>
-        </aside>
+          <ResizableHandle withHandle />
+
+          {/* Sidebar Panel */}
+          <ResizablePanel defaultSize={30} minSize={20} maxSize={40}>
+            <div className="h-full w-full bg-background">
+              <SegmentationSidebar
+                projectData={projectData}
+                decodedMasks={safeDecodedMasks}
+                tool={tool}
+                setTool={setTool}
+                brushSize={brushSize}
+                setBrushSize={setBrushSize}
+                opacity={opacity}
+                setOpacity={setOpacity}
+                hardness={hardness}
+                setHardness={setHardness}
+                activeLabel={activeLabel}
+                setActiveLabel={setActiveLabel}
+                visibleMasks={visibleMasks}
+                setVisibleMasks={setVisibleMasks}
+                handleUndo={handleUndo}
+                handleRedo={handleRedo}
+                handleClear={handleClear}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                canClear={canClear}
+                hasUnsavedChanges={hasUnsavedChanges}
+                isSaving={isSaving}
+                onSave={handleSave}
+                currentFrame={currentFrame}
+                currentSlice={currentSlice}
+                totalFrames={projectData.dimensions?.frames || 1}
+                totalSlices={projectData.dimensions?.slices || 1}
+                historyData={currentHistory}
+                currentHistoryStep={currentHistoryStep}
+                onHistoryStepChange={handleHistoryStepChangeWithMasks}
+                onHistoryClear={handleHistoryClear}
+                onHistoryExport={handleHistoryExport}
+                onHistoryCheckpoint={handleHistoryCheckpoint}
+                zoomLevel={zoomLevel}
+                setZoomLevel={setZoomLevel}
+                onReset={handleReset}
+              />
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );

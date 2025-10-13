@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 
 // Import shared types and constants
 import type { SegmentationSidebarProps, AnatomicalLabel } from "@/types/segmentation";
-import { LABEL_COLORS, LABEL_NAMES } from "@/types/segmentation";
+import { LABEL_COLORS, LABEL_NAMES, ANATOMICAL_LABELS } from "@/types/segmentation";
 import { DrawingPanel } from './drawing-panel';
 import { HistoryPanel } from './history-panel';
 import { useMaskStats } from '@/hooks/useMaskStats';
@@ -72,9 +72,10 @@ const ToolsAndMasksPanel = React.memo(({
   setZoomLevel?: (level: number) => void;
   onReset?: () => void;
 }) => {
-  // Memoized current masks calculation
+  // Memoized current masks calculation - ALWAYS show all labels in consistent order
   const currentMasks = useMemo(() => {
-    const maskMap: Record<string, [string, Uint8Array]> = {};
+    // Build map of existing masks for current frame/slice
+    const maskMap: Record<string, [string, Uint8Array | null]> = {};
 
     Object.entries(decodedMasks).forEach(([key, maskData]) => {
       if (
@@ -86,7 +87,16 @@ const ToolsAndMasksPanel = React.memo(({
       }
     });
 
-    return Object.values(maskMap);
+    // Return ALL labels in consistent order (even if mask doesn't exist yet)
+    return ANATOMICAL_LABELS.map(label => {
+      const existing = maskMap[label];
+      if (existing) {
+        return existing; // [maskKey, maskData]
+      }
+      // Return placeholder for non-existent mask
+      const placeholderKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
+      return [placeholderKey, null] as [string, Uint8Array | null];
+    });
   }, [decodedMasks, currentFrame, currentSlice]);
 
   const toggleMaskVisibility = useCallback((label: AnatomicalLabel) => {
@@ -116,72 +126,74 @@ const ToolsAndMasksPanel = React.memo(({
           Select a label to edit. The active label determines which mask you&apos;re drawing on.
         </p>
         
-        {currentMasks.length > 0 ? (
-          <div className="space-y-2">
-            {currentMasks.map(([maskKey, maskData]) => {
-              const label = maskKey.split('_').pop() || 'unknown';
-              const anatomicalLabel = label as AnatomicalLabel;
-              const color = LABEL_COLORS[anatomicalLabel] || '#gray';
-              const labelName = LABEL_NAMES[anatomicalLabel] || label.toUpperCase();
-              const filledPixels = maskData.filter(pixel => pixel > 0).length;
-              const isActive = activeLabel === label;
-              const isVisible = visibleMasks.has(anatomicalLabel);
+        <div className="space-y-2">
+          {currentMasks.map(([maskKey, maskData]) => {
+            const label = maskKey.split('_').pop() || 'unknown';
+            const anatomicalLabel = label as AnatomicalLabel;
+            const color = LABEL_COLORS[anatomicalLabel] || '#gray';
+            const labelName = LABEL_NAMES[anatomicalLabel] || label.toUpperCase();
+            
+            // Handle null maskData (mask doesn't exist yet)
+            const filledPixels = maskData ? maskData.filter(pixel => pixel > 0).length : 0;
+            const maskExists = maskData !== null;
+            
+            const isActive = activeLabel === label;
+            const isVisible = visibleMasks.has(anatomicalLabel);
 
-              return (
-                <div 
-                  key={maskKey} 
+            return (
+              <div 
+                key={maskKey} 
+                className={cn(
+                  "p-3 rounded-lg border flex items-center gap-3 transition-all cursor-pointer",
+                  isActive ? "bg-primary/10 border-primary/30" : "bg-background border-border hover:bg-muted/50",
+                  !maskExists && "opacity-70"
+                )}
+                onClick={() => setActiveLabel(anatomicalLabel)}
+                tabIndex={0}
+                role="button"
+                aria-label={`Select ${labelName} as active mask`}
+              >
+                {/* Radio button for active mask */}
+                <span
                   className={cn(
-                    "p-3 rounded-lg border flex items-center gap-3 transition-all cursor-pointer",
-                    isActive ? "bg-primary/10 border-primary/30" : "bg-background border-border hover:bg-muted/50"
+                    "w-4 h-4 rounded-full border-2 flex items-center justify-center",
+                    isActive 
+                      ? "border-primary bg-primary" 
+                      : "border-muted-foreground"
                   )}
-                  onClick={() => setActiveLabel(anatomicalLabel)}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Select ${labelName} as active mask`}
+                  aria-hidden="true"
                 >
-                  {/* Radio button for active mask */}
-                  <span
-                    className={cn(
-                      "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                      isActive 
-                        ? "border-primary bg-primary" 
-                        : "border-muted-foreground"
-                    )}
-                    aria-hidden="true"
-                  >
-                    {isActive && <div className="w-2 h-2 bg-primary-foreground rounded-full" />}
-                  </span>
+                  {isActive && <div className="w-2 h-2 bg-primary-foreground rounded-full" />}
+                </span>
 
-                  {/* Mask info */}
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">{labelName}</div>
-                    <div className="text-xs text-muted-foreground">{filledPixels.toLocaleString()} pixels</div>
+                {/* Mask info */}
+                <div className="flex-1">
+                  <div className="font-medium text-sm flex items-center gap-2">
+                    {labelName}
+                    {!maskExists && <span className="text-xs text-muted-foreground">(empty)</span>}
                   </div>
-
-                  {/* Mask color indicator */}
-                  <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                  
-                  {/* Eye icon for visibility toggle */}
-                  <button
-                    onClick={e => { e.stopPropagation(); toggleMaskVisibility(anatomicalLabel); }}
-                    className={cn(
-                      "p-1 rounded hover:bg-muted",
-                      isVisible ? "text-foreground" : "text-muted-foreground"
-                    )}
-                    aria-label={`${isVisible ? 'Hide' : 'Show'} ${labelName} mask`}
-                    tabIndex={0}
-                  >
-                    {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  </button>
+                  <div className="text-xs text-muted-foreground">{filledPixels.toLocaleString()} pixels</div>
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center text-muted-foreground text-sm py-8">
-            No masks found for current frame/slice
-          </div>
-        )}
+
+                {/* Mask color indicator */}
+                <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                
+                {/* Eye icon for visibility toggle */}
+                <button
+                  onClick={e => { e.stopPropagation(); toggleMaskVisibility(anatomicalLabel); }}
+                  className={cn(
+                    "p-1 rounded hover:bg-muted",
+                    isVisible ? "text-foreground" : "text-muted-foreground"
+                  )}
+                  aria-label={`${isVisible ? 'Hide' : 'Show'} ${labelName} mask`}
+                  tabIndex={0}
+                >
+                  {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Drawing Tools - DrawingPanel without Active Label selector */}
@@ -454,9 +466,9 @@ export function SegmentationSidebar({
   }), [hasUnsavedChanges, isSaving]);
 
   return (
-    <div className="flex flex-col h-full bg-[var(--sidebar)] rounded-xl border border-[var(--sidebar-border)] shadow-sm">
+    <div className="flex flex-col h-full bg-[var(--sidebar)] rounded-r-xl border border-[var(--sidebar-border)] shadow-sm">
       {/* Top Navigation Bar with proper accessibility */}
-      <div className="flex items-center justify-center gap-3 px-2 py-2 border-b border-[var(--sidebar-border)] bg-[var(--sidebar-primary)] rounded-t-xl">
+      <div className="flex items-center justify-center gap-3 px-2 py-2 border-b border-[var(--sidebar-border)] bg-[var(--sidebar-primary)] rounded-tr-xl">
         {NAV_ITEMS.map(({ key, icon: Icon, label }) => (
           <button
             key={key}

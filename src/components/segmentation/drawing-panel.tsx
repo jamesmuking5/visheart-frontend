@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Undo2, Redo2, Trash2, Brush, Eraser, MousePointer2, Square, Search, Move, RotateCcw } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 
 // Import shared types and constants
@@ -257,62 +258,75 @@ export function DrawingPanel({
         </div>
       )}
 
-      {/* Actions */}
-      <div className="pt-4 border-t border-border">
-        <h3 className="text-sm font-medium text-foreground mb-3">Actions</h3>
-        <div className="space-y-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleUndo}
-            disabled={!canUndo}
-            className="w-full justify-start text-xs"
-            aria-label="Undo last action (Ctrl+Z)"
-          >
-            <Undo2 className="w-4 h-4 mr-2" />
-            Undo
-            <span className="text-xs text-muted-foreground ml-auto">Ctrl+Z</span>
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRedo}
-            disabled={!canRedo}
-            className="w-full justify-start text-xs"
-            aria-label="Redo last action (Ctrl+Y)"
-          >
-            <Redo2 className="w-4 h-4 mr-2" />
-            Redo
-            <span className="text-xs text-muted-foreground ml-auto">Ctrl+Y</span>
-          </Button>
-          
-          <Button
-            variant="destructive"
-            onClick={handleClear}
-            disabled={!canClear}
-            className="w-full justify-start text-xs"
-            aria-label="Clear current mask (Delete)"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Clear Current Mask
-            <span className="text-xs text-muted-foreground ml-auto">Del</span>
-          </Button>
-        </div>
-      </div>
-      
-      {/* Tool Tips Info Section */}
-      <div className="p-3 bg-muted rounded-lg border">
-        <h3 className="text-sm font-medium text-foreground mb-2">Tool Tips</h3>
-        <div className="text-xs text-muted-foreground space-y-1">
-          <div>• <strong>Select:</strong> Move and select objects</div>
-          <div>• <strong>Brush:</strong> Paint segmentation masks</div>
-          <div>• <strong>Eraser:</strong> Remove mask pixels</div>
-          <div>• <strong>Bounding Box:</strong> Draw bounding box for AI-powered manual segmentation</div>
-          <div>• <strong>Zoom:</strong> Enlarge the image</div>
-          <div>• <strong>Pan:</strong> Navigate the canvas</div>
-        </div>
-      </div>
+      {/* Collapsible Sections using Accordion */}
+      <Accordion type="multiple" defaultValue={["actions"]} className="w-full">
+        {/* Actions - Open by default */}
+        <AccordionItem value="actions" className="border-none">
+          <AccordionTrigger className="py-3 hover:no-underline">
+            <h3 className="text-sm font-medium text-foreground">Actions</h3>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleUndo}
+                disabled={!canUndo}
+                className="w-full justify-start text-xs"
+                aria-label="Undo last action (Ctrl+Z)"
+              >
+                <Undo2 className="w-4 h-4 mr-2" />
+                Undo
+                <span className="text-xs text-muted-foreground ml-auto">Ctrl+Z</span>
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRedo}
+                disabled={!canRedo}
+                className="w-full justify-start text-xs"
+                aria-label="Redo last action (Ctrl+Y)"
+              >
+                <Redo2 className="w-4 h-4 mr-2" />
+                Redo
+                <span className="text-xs text-muted-foreground ml-auto">Ctrl+Y</span>
+              </Button>
+              
+              <Button
+                variant="destructive"
+                onClick={handleClear}
+                disabled={!canClear}
+                className="w-full justify-start text-xs"
+                aria-label="Clear current mask (Delete)"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Clear Current Mask
+                <span className="text-xs text-muted-foreground ml-auto">Del</span>
+              </Button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Tool Tips - Collapsed by default */}
+        <AccordionItem value="tooltips" className="border-none">
+          <AccordionTrigger className="py-3 hover:no-underline">
+            <h3 className="text-sm font-medium text-foreground">Tool Tips</h3>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="p-3 bg-muted rounded-lg border">
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div>• <strong>Select:</strong> Move and select objects</div>
+                <div>• <strong>Brush:</strong> Paint segmentation masks</div>
+                <div>• <strong>Eraser:</strong> Remove mask pixels</div>
+                <div>• <strong>Bounding Box:</strong> Draw bounding box for AI-powered manual segmentation</div>
+                <div>• <strong>Zoom:</strong> Enlarge the image</div>
+                <div>• <strong>Pan:</strong> Navigate the canvas</div>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }
