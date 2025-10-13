@@ -109,7 +109,7 @@ const ToolsAndMasksPanel = React.memo(({
     <div className="space-y-6">
       <h2 className="text-lg font-semibold text-foreground">Tools & Masks</h2>
       
-      {/* Available Masks Section - Moved to top, replaces Active Label selector */}
+      {/* Available Masks Section - Clean 3-column grid layout */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium text-foreground">Active Label & Masks</h3>
@@ -118,11 +118,7 @@ const ToolsAndMasksPanel = React.memo(({
           </div>
         </div>
         
-        <p className="text-xs text-muted-foreground">
-          Select a label to edit. The active label determines which mask you&apos;re drawing on.
-        </p>
-        
-        <div className="space-y-2">
+        <div className="grid grid-cols-3 gap-2">
           {currentMasks.map(([maskKey, maskData]) => {
             const label = maskKey.split('_').pop() || 'unknown';
             const anatomicalLabel = label as AnatomicalLabel;
@@ -137,54 +133,52 @@ const ToolsAndMasksPanel = React.memo(({
             const isVisible = visibleMasks.has(anatomicalLabel);
 
             return (
-              <div 
-                key={maskKey} 
-                className={cn(
-                  "p-3 rounded-lg border flex items-center gap-3 transition-all cursor-pointer",
-                  isActive ? "bg-primary/10 border-primary/30" : "bg-background border-border hover:bg-muted/50",
-                  !maskExists && "opacity-70"
-                )}
-                onClick={() => setActiveLabel(anatomicalLabel)}
-                tabIndex={0}
-                role="button"
-                aria-label={`Select ${labelName} as active mask`}
-              >
-                {/* Radio button for active mask */}
-                <span
-                  className={cn(
-                    "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                    isActive 
-                      ? "border-primary bg-primary" 
-                      : "border-muted-foreground"
-                  )}
-                  aria-hidden="true"
-                >
-                  {isActive && <div className="w-2 h-2 bg-primary-foreground rounded-full" />}
-                </span>
-
-                {/* Mask info */}
-                <div className="flex-1">
-                  <div className="font-medium text-sm flex items-center gap-2">
-                    {labelName}
-                    {!maskExists && <span className="text-xs text-muted-foreground">(empty)</span>}
-                  </div>
-                  <div className="text-xs text-muted-foreground">{filledPixels.toLocaleString()} pixels</div>
-                </div>
-
-                {/* Mask color indicator */}
-                <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                
-                {/* Eye icon for visibility toggle */}
+              <div key={maskKey} className="flex flex-col gap-1.5">
+                {/* Main selection button */}
                 <button
-                  onClick={e => { e.stopPropagation(); toggleMaskVisibility(anatomicalLabel); }}
+                  onClick={() => setActiveLabel(anatomicalLabel)}
                   className={cn(
-                    "p-1 rounded hover:bg-muted",
-                    isVisible ? "text-foreground" : "text-muted-foreground"
+                    "w-full p-2.5 rounded-lg border-2 transition-all flex flex-col items-center gap-2",
+                    "hover:border-primary/50 hover:shadow-sm",
+                    isActive 
+                      ? "border-primary bg-primary/5 shadow-sm" 
+                      : "border-border bg-background",
+                    !maskExists && "opacity-60"
+                  )}
+                  aria-label={`Select ${labelName} as active mask`}
+                >
+                  {/* Color indicator dot */}
+                  <div 
+                    className={cn(
+                      "w-4 h-4 rounded-full flex-shrink-0 ring-2 ring-offset-1 transition-all",
+                      isActive ? "ring-primary/30 scale-110" : "ring-transparent"
+                    )}
+                    style={{ backgroundColor: color }}
+                  />
+                  
+                  {/* Label name */}
+                  <div className="font-medium text-xs leading-none text-center">
+                    {labelName}
+                  </div>
+                  
+                  {/* Pixel count */}
+                  <div className="text-[10px] text-muted-foreground text-center">
+                    {maskExists ? `${filledPixels.toLocaleString()}px` : 'Empty'}
+                  </div>
+                </button>
+                
+                {/* Visibility toggle button */}
+                <button
+                  onClick={() => toggleMaskVisibility(anatomicalLabel)}
+                  className={cn(
+                    "w-full py-1.5 rounded-md transition-all flex items-center justify-center",
+                    isVisible 
+                      ? "text-foreground hover:bg-muted/50 bg-muted/30" 
+                      : "text-muted-foreground hover:bg-muted/50"
                   )}
                   aria-label={`${isVisible ? 'Hide' : 'Show'} ${labelName} mask`}
-                  tabIndex={0}
                 >
-                  {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  {isVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                 </button>
               </div>
             );
