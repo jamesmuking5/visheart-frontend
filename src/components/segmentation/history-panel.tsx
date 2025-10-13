@@ -108,7 +108,6 @@ export function HistoryPanel({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-foreground">Edit History</h2>
       
       {/* Current Session Info with enhanced layout */}
       <div className="p-3 bg-muted rounded-lg border">

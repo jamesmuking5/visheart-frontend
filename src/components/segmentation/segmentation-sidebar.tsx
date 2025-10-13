@@ -107,8 +107,6 @@ const ToolsAndMasksPanel = React.memo(({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-foreground">Tools & Masks</h2>
-      
       {/* Available Masks Section - Clean 3-column grid layout */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
@@ -453,13 +451,13 @@ export function SegmentationSidebar({
 
   return (
     <div className="flex flex-col h-full bg-[var(--sidebar)] rounded-r-xl border border-[var(--sidebar-border)] shadow-sm">
-      {/* Top Navigation Bar with proper accessibility */}
-      <div className="flex items-center justify-center gap-3 px-2 py-2 border-b border-[var(--sidebar-border)] bg-[var(--sidebar-primary)] rounded-tr-xl">
+      {/* Top Navigation Bar - Compact horizontal layout */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--sidebar-border)] bg-[var(--sidebar-primary)] rounded-tr-xl">
         {NAV_ITEMS.map(({ key, icon: Icon, label }) => (
           <button
             key={key}
             className={cn(
-              "flex items-center justify-center p-2 rounded-lg transition-all hover:scale-105",
+              "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all flex-1",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               activeTab === key
                 ? "bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)] shadow-sm"
@@ -467,10 +465,10 @@ export function SegmentationSidebar({
             )}
             onClick={() => handleTabChange(key)}
             aria-label={`Switch to ${label} tab`}
-            title={label}
             type="button"
           >
-            <Icon className="w-5 h-5" />
+            <Icon className="w-4 h-4 flex-shrink-0" />
+            <span className="text-xs font-medium">{label}</span>
           </button>
         ))}
       </div>
