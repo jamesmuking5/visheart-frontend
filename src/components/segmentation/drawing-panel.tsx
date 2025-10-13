@@ -189,34 +189,40 @@ export function DrawingPanel({
         </div>
       )}
 
-      {/* Rectangle/Bounding Box Settings - Only show for rectangle tool */}
+      {/* Rectangle/Bounding Box Guide - Only show for rectangle tool */}
       {tool === 'rectangle' && (
-        <div>
-          <h3 className="text-sm font-medium text-foreground mb-3">Bounding Box Settings</h3>
-          <div className="bg-muted rounded-lg border p-4 space-y-4">
-            <div className="text-sm text-muted-foreground">
-              Draw a rectangle to define the region of interest for manual segmentation.
-            </div>
-            
-            <div className="space-y-2">
-              <div className="text-xs text-muted-foreground">
-                <strong>Instructions:</strong>
-                <ol className="list-decimal list-inside mt-1 space-y-1">
-                  <li>Select your desired anatomical label above before drawing</li>
-                  <li>Click and drag to draw a bounding box around the area you want to segment</li>
-                  <li>The box will appear as a red dashed outline while drawing</li>
-                  <li>Release the mouse to finalize - the box will turn green</li>
-                  <li>Segmentation will start automatically using the selected anatomical label</li>
-                  <li>Wait for the AI to process the region and return the segmentation mask</li>
-                </ol>
+        <Accordion type="multiple" className="w-full">
+          <AccordionItem value="bounding-box-guide" className="border-none">
+            <AccordionTrigger className="py-2 hover:no-underline">
+              <h3 className="text-sm font-medium text-foreground">Bounding Box Guide</h3>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="bg-muted rounded-lg border p-4 space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  Draw a rectangle to define the region of interest for manual segmentation.
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="text-xs text-muted-foreground">
+                    <strong>Instructions:</strong>
+                    <ol className="list-decimal list-inside mt-1 space-y-1">
+                      <li>Select your desired anatomical label above before drawing</li>
+                      <li>Click and drag to draw a bounding box around the area you want to segment</li>
+                      <li>The box will appear as a red dashed outline while drawing</li>
+                      <li>Release the mouse to finalize - the box will turn green</li>
+                      <li>Segmentation will start automatically using the selected anatomical label</li>
+                      <li>Wait for the AI to process the region and return the segmentation mask</li>
+                    </ol>
+                  </div>
+                  
+                  <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-2 rounded border-l-2 border-blue-400">
+                    <strong>Note:</strong> The bounding box coordinates will be sent to the AI segmentation model to process only the selected region.
+                  </div>
+                </div>
               </div>
-              
-              <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-2 rounded border-l-2 border-blue-400">
-                <strong>Note:</strong> The bounding box coordinates will be sent to the AI segmentation model to process only the selected region.
-              </div>
-            </div>
-          </div>
-        </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       )}
 
       {/* Collapsible Sections using Accordion */}
@@ -283,6 +289,7 @@ export function DrawingPanel({
                 <div>• <strong>Bounding Box:</strong> Draw bounding box for AI-powered manual segmentation</div>
                 <div>• <strong>Zoom:</strong> Enlarge the image</div>
                 <div>• <strong>Pan:</strong> Navigate the canvas</div>
+                <div>• <strong>Keyboard Shortcuts: ← → frames ↑ ↓ slices + - zoom</strong></div>
               </div>
             </div>
           </AccordionContent>

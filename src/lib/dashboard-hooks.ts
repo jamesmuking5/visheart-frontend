@@ -150,10 +150,11 @@ export function useUserStats(projects: Project[], recentJobs: Job[]) {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
 
   useEffect(() => {
-    if (projects.length > 0 || recentJobs.length > 0) {
-      const completedSegmentations = recentJobs.filter(
-        (job) => job.status === "completed",
-      ).length;
+    const fetchStats = async () => {
+      if (projects.length === 0 && recentJobs.length === 0) {
+        return;
+      }
+
       const pendingJobsCount = recentJobs.filter(
         (job) => job.status === "pending",
       ).length;
@@ -162,13 +163,35 @@ export function useUserStats(projects: Project[], recentJobs: Job[]) {
         0,
       );
 
+      // Count completed segmentations by checking actual mask data
+      let completedSegmentations = 0;
+      if (projects.length > 0) {
+        try {
+          const projectIds = projects.map((p) => p.projectId);
+          const response = await segmentationApi.batchSegmentationStatus(projectIds);
+          
+          if (response.success && response.statuses) {
+            // Count projects that have segmentation masks
+            completedSegmentations = Object.values(response.statuses as Record<string, { hasMasks: boolean; maskCount: number }>).filter(
+              (status) => status.hasMasks
+            ).length;
+          }
+        } catch (error) {
+          console.error("Error fetching segmentation status for stats:", error);
+          // Fallback: count as 0 if API call fails
+          completedSegmentations = 0;
+        }
+      }
+
       setUserStats({
         projectCount: projects.length,
         totalFileSize,
         completedSegmentations,
         pendingJobs: pendingJobsCount,
       });
-    }
+    };
+
+    fetchStats();
   }, [projects, recentJobs]);
 
   return userStats;

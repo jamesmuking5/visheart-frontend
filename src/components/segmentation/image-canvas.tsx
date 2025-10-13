@@ -157,10 +157,6 @@ const NavigationControls = memo(({
         />
       </div>
     </div>
-    {/* Keyboard shortcut hint */}
-    <div className="mt-3 text-xs text-muted-foreground text-center py-1 bg-muted/20 rounded">
-      ← → frames • ↑ ↓ slices • + - zoom
-    </div>
   </div>
 ));
 
@@ -1042,7 +1038,7 @@ export function ImageCanvas({
     onMouseDown={handleContainerMouseDown}
     onMouseMove={handleContainerMouseMove}
     onMouseUp={handleContainerMouseUp}
-    className="w-full h-[80vh] min-h-[400px] max-h-[700px] bg-background rounded-lg overflow-hidden relative mx-auto border flex flex-col"
+    className="w-full h-[70vh] min-h-[400px] max-h-[700px] bg-background rounded-lg overflow-hidden relative mx-auto border flex flex-col"
   >
         {/* Top info bar (frame/slice + zoom) */}
         <div 

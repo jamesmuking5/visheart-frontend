@@ -624,7 +624,6 @@ export default function DashboardPage() {
                       <TableHead className="hidden sm:table-cell">Size</TableHead>
                       <TableHead className="hidden md:table-cell">Type</TableHead>
                       <TableHead className="hidden lg:table-cell">Dimensions</TableHead>
-                      <TableHead className="hidden lg:table-cell">Affine Matrix</TableHead>
                       <TableHead className="hidden md:table-cell">Created</TableHead>
                       <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
@@ -675,17 +674,6 @@ export default function DashboardPage() {
                               return dimensionStringRepresentation;
                             })()}
                           </span>
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell">
-                          {project.affineMatrix && project.affineMatrix.length > 0 ? (
-                            <Badge variant="outline" className="text-xs">
-                              4×4 Available
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="text-xs text-muted-foreground">
-                              Not Available
-                            </Badge>
-                          )}
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{new Date(project.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
