@@ -211,7 +211,7 @@ export function ImageCanvas({
   // Refs for performance
   const stageRef = useRef<any>(null);
   const isDrawing = useRef(false);
-  const [stageScale, setStageScale] = useState<number>(Math.min(Math.max(zoomLevel || 1, 0.1), 5));
+  const [stageScale, setStageScale] = useState<number>(Math.min(Math.max(zoomLevel || 1, 0.1), 10));
   const [stagePosition, setStagePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Container pan (move whole stage by dragging the wrapper) — preferred for
@@ -394,7 +394,7 @@ export function ImageCanvas({
         event.preventDefault();
         // Zoom in
         const currentScale = stageScale || 1;
-        const newScale = Math.min(5, currentScale * 1.2);
+        const newScale = Math.min(10, currentScale * 1.2);
         setStageScale(newScale);
         const stage = stageRef.current?.getStage?.();
         if (stage) {
@@ -456,7 +456,7 @@ export function ImageCanvas({
     }
     
     if (typeof zoomLevel === 'number') {
-      const clamped = Math.min(Math.max(zoomLevel, 0.1), 5);
+      const clamped = Math.min(Math.max(zoomLevel, 0.1), 10);
       const applied = clamped; // do not multiply by baseFitScale
       setStageScale(applied);
       const stage = stageRef.current;
@@ -475,7 +475,7 @@ export function ImageCanvas({
     const stage = stageRef.current?.getStage?.();
     if (!stage) return;
 
-    const zoom = typeof zoomLevel === 'number' ? Math.min(Math.max(zoomLevel, 0.1), 5) : 1;
+    const zoom = typeof zoomLevel === 'number' ? Math.min(Math.max(zoomLevel, 0.1), 10) : 1;
     const newScale = zoom; // keep image at original size when zoom === 1
     stage.scale({ x: newScale, y: newScale });
     setStageScale(newScale);
@@ -680,7 +680,7 @@ export function ImageCanvas({
     };
 
     const scaleBy = e.evt.deltaY > 0 ? 0.9 : 1.1;
-    const newScale = Math.max(0.1, Math.min(5, oldScale * scaleBy));
+    const newScale = Math.max(0.1, Math.min(10, oldScale * scaleBy));
 
     // Smooth zoom animation using requestAnimationFrame
     let animationFrame: number;
