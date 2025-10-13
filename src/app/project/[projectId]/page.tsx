@@ -221,7 +221,7 @@ export default function ProjectPage() {
 
   return (
     <div className="min-h-screen bg-background p-4 lg:p-8 ">
-      <div className="container mx-auto space-y-8">
+      <div className="w-full space-y-8">
         {/* Header Section */}
         <div className="flex items-center justify-between">
           <div>

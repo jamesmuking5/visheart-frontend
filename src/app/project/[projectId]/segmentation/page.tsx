@@ -362,7 +362,7 @@ export default function SegmentationResultsPage() {
 
   return (
     <div className="h-full w-full bg-background ">
-      <div className="container mx-auto h-full p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6">
+      <div className="w-full h-full p-4 lg:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6">
         <main className="flex-1 flex flex-col gap-4 lg:gap-6 overflow-hidden">
 
           <div className="flex-1 relative bg-muted/40 rounded-xl border shadow-sm p-4 flex items-center justify-center">

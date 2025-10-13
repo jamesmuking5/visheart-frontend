@@ -12,9 +12,9 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
     <ProtectedRoute allowedRoles={["guest", "user", "admin"]}>
       {projectId && (
         <ProjectProvider projectId={projectId}>
-          <div className="min-h-screen bg-background">
+          <div className="min-h-screen w-full bg-background">
             <ProjectDashboardBar />
-            <div className="container min-w-full">{children}</div>
+            <div className="w-full">{children}</div>
           </div>
         </ProjectProvider>
       )}
