@@ -20,7 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Icons
-import { Play, Eye, Edit, Save, X, RefreshCw, FileText, Database, CheckCircle, XCircle, Clock, AlertCircle, Image as ImageIcon, Activity, Layers } from "lucide-react";
+import { Play, Eye, Edit, Save, X, RefreshCw, FileText, Database, CheckCircle, XCircle, Clock, AlertCircle, Image as ImageIcon, Activity, Layers, Sparkles } from "lucide-react";
 
 // Custom components
 import { NoProjectFound } from "@/components/project/NoProjectFound";
@@ -29,6 +29,7 @@ import { LoadingProject } from "@/components/project/LoadingProject";
 import { ShowForUser, ShowForRegisteredUser } from "@/components/RoleGuard";
 import { AffineMatrixDisplay } from "@/components/ui/AffineMatrixDisplay";
 import { ReconstructionDebugCard } from "@/components/debug/ReconstructionDebugCard";
+import { ReconstructionConfigDialog, ReconstructionConfig } from "@/components/reconstruction/ReconstructionConfigDialog";
 
 // Types
 import * as ProjectTypes from "@/types/project";
@@ -36,7 +37,7 @@ import * as ProjectTypes from "@/types/project";
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
-  const { loading, projectData, error, hasMasks, undecodedMasks, jobs, jobsError, refreshMasks } = useProject();
+  const { loading, projectData, error, hasMasks, undecodedMasks, jobs, jobsError, refreshMasks, hasReconstructions, refreshReconstructions } = useProject();
 
   // Local state for editing
   const [isEditing, setIsEditing] = useState(false);
@@ -48,6 +49,11 @@ export default function ProjectPage() {
   // Segmentation state
   const [isStartingSegmentation, setIsStartingSegmentation] = useState(false);
   const [segmentationError, setSegmentationError] = useState<string | null>(null);
+
+  // Reconstruction state
+  const [showReconstructionDialog, setShowReconstructionDialog] = useState(false);
+  const [isStartingReconstruction, setIsStartingReconstruction] = useState(false);
+  const [reconstructionError, setReconstructionError] = useState<string | null>(null);
 
   // Local project data (for optimistic updates after editing)
   const [localProjectName, setLocalProjectName] = useState<string | null>(null);
@@ -191,6 +197,49 @@ export default function ProjectPage() {
       setSegmentationError((error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to start segmentation");
     } finally {
       setIsStartingSegmentation(false);
+    }
+  };
+
+  // Handle start reconstruction
+  const handleStartReconstruction = async (config: ReconstructionConfig) => {
+    console.log("[Project] Starting 4D reconstruction with config:", config);
+    setIsStartingReconstruction(true);
+    setReconstructionError(null);
+
+    try {
+      const reconstructionApi = await import("@/lib/api").then(m => m.reconstructionApi);
+      
+      await reconstructionApi.startReconstruction(projectId, {
+        reconstructionName: `4D Cardiac Reconstruction - ${projectData.name}`,
+        reconstructionDescription: "Generated via configuration wizard",
+        export_format: config.exportFormat, // Pass user's format choice to backend
+        parameters: {
+          num_iterations: config.numIterations,
+          resolution: config.resolution,
+          process_all_frames: true,
+        },
+      });
+
+      console.log("[Project] ✅ Reconstruction job started successfully");
+      
+      // Close dialog
+      setShowReconstructionDialog(false);
+      
+      // Refresh reconstructions to check status
+      await refreshReconstructions();
+      
+      // Show success message or reload page
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error: unknown) {
+      console.error("[Project] ❌ Error starting reconstruction:", error);
+      setReconstructionError(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 
+        "Failed to start 4D reconstruction. Please try again."
+      );
+    } finally {
+      setIsStartingReconstruction(false);
     }
   };
 
@@ -507,6 +556,26 @@ export default function ProjectPage() {
                         <Badge variant="default">{maskStats.saved}</Badge>
                       </div>
                     </div>
+
+                    {/* Show Start Reconstruction button if no reconstructions exist */}
+                    {!hasReconstructions && (
+                      <div className="pt-2">
+                        <Button
+                          onClick={() => setShowReconstructionDialog(true)}
+                          className="w-full"
+                          variant="default"
+                        >
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Start 4D Reconstruction
+                        </Button>
+                        {reconstructionError && (
+                          <Alert variant="destructive" className="mt-2">
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>{reconstructionError}</AlertDescription>
+                          </Alert>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-8 space-y-3">
@@ -601,6 +670,14 @@ export default function ProjectPage() {
           </div>
         </div>
       </div>
+
+      {/* Reconstruction Configuration Dialog */}
+      <ReconstructionConfigDialog
+        open={showReconstructionDialog}
+        onOpenChange={setShowReconstructionDialog}
+        onStart={handleStartReconstruction}
+        isLoading={isStartingReconstruction}
+      />
     </div>
   );
 }

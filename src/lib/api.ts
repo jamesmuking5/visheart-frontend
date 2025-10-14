@@ -417,6 +417,7 @@ export const reconstructionApi = {
       reconstructionName?: string;
       reconstructionDescription?: string;
       ed_frame?: number;
+      export_format?: 'obj' | 'glb'; // User's choice for mesh export format
       parameters?: {
         num_iterations?: number;
         resolution?: number;
