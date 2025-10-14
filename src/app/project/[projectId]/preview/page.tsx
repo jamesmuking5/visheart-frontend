@@ -2,6 +2,7 @@
 
 import { useParams } from "next/navigation";
 import { useProject } from "@/context/ProjectContext";
+import { useEffect } from "react";
 
 // Custom components
 import { NoProjectFound } from "@/components/project/NoProjectFound";
@@ -12,6 +13,19 @@ import { DebugMRIViewer } from "@/components/project/DebugMRIViewer";
 export default function PreviewPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const { loading, projectData, error } = useProject();
+
+  // Update page title dynamically
+  useEffect(() => {
+    if (projectData?.name) {
+      document.title = `VisHeart | ${projectData.name} - Image Preview`;
+    } else {
+      document.title = "VisHeart | Image Preview";
+    }
+    
+    return () => {
+      document.title = "VisHeart";
+    };
+  }, [projectData?.name]);
 
   // Missing projectId handling
   if (!projectId) return <NoProjectFound message="Project ID is missing." />;

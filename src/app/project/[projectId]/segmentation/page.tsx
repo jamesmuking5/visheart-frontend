@@ -48,6 +48,19 @@ export default function SegmentationResultsPage() {
     getReconstructionGLB,
   } = useProject();
 
+  // Update page title dynamically
+  useEffect(() => {
+    if (projectData?.name) {
+      document.title = `VisHeart | ${projectData.name} - Segmentation`;
+    } else {
+      document.title = "VisHeart | Segmentation Editor";
+    }
+    
+    return () => {
+      document.title = "VisHeart";
+    };
+  }, [projectData?.name]);
+
   // Segmentation-specific state (not duplicated in context)
   const [masksInitialized, setMasksInitialized] = useState(false);
   const [localDecodedMasks, setLocalDecodedMasks] = useState<Record<string, Uint8Array> | null>(null);

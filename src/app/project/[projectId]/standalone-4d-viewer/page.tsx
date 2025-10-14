@@ -36,6 +36,19 @@ export default function Standalone4DViewerPage() {
     reconstructionMetadata,
   } = useProject();
 
+  // Update page title dynamically
+  useEffect(() => {
+    if (projectData?.name) {
+      document.title = `VisHeart | ${projectData.name} - 4D Viewer`;
+    } else {
+      document.title = "VisHeart | 4D Reconstruction Viewer";
+    }
+    
+    return () => {
+      document.title = "VisHeart";
+    };
+  }, [projectData?.name]);
+
   // Viewer state
   const [currentFrame, setCurrentFrame] = useState(0);
   const [reconstructionModelUrl, setReconstructionModelUrl] = useState<string | null>(null);

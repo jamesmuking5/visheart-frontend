@@ -310,7 +310,10 @@ export function ProjectDashboardBar() {
                       <span className="text-sm font-semibold">{reconstructionFrameCount} frames</span>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {reconstructionCacheReady ? "Cached" : reconstructionCacheError ? "Cache error" : "Loading..."}
+                      {reconstructionMetadata?.metadata?.edFrameIndex !== undefined 
+                        ? `ED Frame: ${reconstructionMetadata.metadata.edFrameIndex} • ${reconstructionCacheReady ? "Cached" : reconstructionCacheError ? "Cache error" : "Loading..."}`
+                        : reconstructionCacheReady ? "Cached" : reconstructionCacheError ? "Cache error" : "Loading..."
+                      }
                     </div>
                   </>
                 ) : (

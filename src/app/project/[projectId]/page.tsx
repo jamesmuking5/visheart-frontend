@@ -49,6 +49,7 @@ import { LoadingProject } from "@/components/project/LoadingProject";
 import { ShowForUser, ShowForRegisteredUser } from "@/components/RoleGuard";
 import { AffineMatrixDisplay } from "@/components/ui/AffineMatrixDisplay";
 import { ReconstructionConfigDialog, ReconstructionConfig } from "@/components/reconstruction/ReconstructionConfigDialog";
+import { DebugMRIViewer } from "@/components/project/DebugMRIViewer";
 
 // Types
 import * as ProjectTypes from "@/types/project";
@@ -57,6 +58,19 @@ export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
   const { loading, projectData, error, hasMasks, undecodedMasks, jobs, jobsError, refreshMasks, hasReconstructions, reconstructionMetadata, refreshReconstructions } = useProject();
+
+  // Update page title dynamically
+  useEffect(() => {
+    if (projectData?.name) {
+      document.title = `VisHeart | ${projectData.name}`;
+    } else {
+      document.title = "VisHeart | Project";
+    }
+    
+    return () => {
+      document.title = "VisHeart";
+    };
+  }, [projectData?.name]);
 
   // Local state for editing
   const [isEditing, setIsEditing] = useState(false);
