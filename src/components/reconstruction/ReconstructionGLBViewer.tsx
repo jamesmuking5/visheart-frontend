@@ -116,9 +116,9 @@ export function ReconstructionGLBViewer({
       
       <Canvas 
         camera={{ 
-          position: [0, 0, 5], 
-          fov: 50,
-          near: 0.1,
+          position: [70, 20, -75], 
+          fov: 90,
+          near: 0.5,
           far: 1000
         }} 
         style={{ width: "100%", height: "100%" }} 
