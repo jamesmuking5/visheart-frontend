@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Brush, History, Save, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -496,16 +497,24 @@ export function SegmentationSidebar({
 
           {/* Reset Masks Button - Right */}
           {onRevert && (
-            <Button 
-              onClick={onRevert}
-              disabled={isSaving}
-              className="transition-colors text-xs px-3"
-              variant="outline"
-              aria-label="Reset all edits to original AI-generated segmentation"
-              title="Reset to AI Segmentation"
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={onRevert}
+                    disabled={isSaving}
+                    className="transition-colors text-xs px-3"
+                    variant="outline"
+                    aria-label="Reset all edits to original AI-generated segmentation"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Reset to AI Segmentation</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
         </div>
       </div>
