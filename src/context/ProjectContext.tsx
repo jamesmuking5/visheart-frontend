@@ -1,9 +1,10 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, useRef, ReactNode, useCallback, useMemo } from "react";
-import { projectApi, segmentationApi } from "@/lib/api";
+import { projectApi, segmentationApi, reconstructionApi } from "@/lib/api";
 import { decodeSegmentationMasks } from "@/lib/decode-RLE";
 import { tarImageCache } from "@/lib/tar-image-cache";
+import { reconstructionCache } from "@/lib/reconstruction-cache";
 import * as ProjectTypes from "@/types/project";
 import { LoadingStage } from "@/types/project";
 
@@ -26,7 +27,7 @@ interface ProjectContextType {
   // Status flags
   maskFetchDone: boolean;
 
-  // NEW: Tar cache management
+  // NEW: Tar cache management (MRI images)
   tarCacheReady: boolean;
   tarCacheError: string | null;
   getMRIImage: (frame: number, slice: number) => Promise<string | null>;
@@ -35,6 +36,17 @@ interface ProjectContextType {
   getAvailableFramesAndSlices: () => Promise<{ frames: number[]; slices: number[] }>;
   fetchAndExtractProjectImages: () => Promise<{ success: boolean; extractedImages: number; totalImages: number; errors: string[] }>;
   clearProjectCache: () => Promise<void>;
+  
+  // NEW: Reconstruction cache management (4D GLB models)
+  hasReconstructions: boolean;
+  reconstructionMetadata: any | null; // eslint-disable-line @typescript-eslint/no-explicit-any
+  reconstructionCacheReady: boolean;
+  reconstructionCacheError: string | null;
+  getReconstructionGLB: (frame: number) => Promise<string | null>;
+  preloadReconstructionModels: () => Promise<void>;
+  fetchAndExtractProjectModels: () => Promise<{ success: boolean; extractedModels: number; totalModels: number; errors: string[] }>;
+  clearReconstructionCache: () => Promise<void>;
+  refreshReconstructions: () => Promise<void>;
   
   // Cache invalidation
   refreshMasks: () => Promise<void>;
@@ -93,6 +105,12 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
   // 4. Tar cache state - NEW
   const [tarCacheReady, setTarCacheReady] = useState<boolean>(false);
   const [tarCacheError, setTarCacheError] = useState<string | null>(null);
+
+  // 5. Reconstruction cache state - NEW
+  const [hasReconstructions, setHasReconstructions] = useState<boolean>(false);
+  const [reconstructionMetadata, setReconstructionMetadata] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
+  const [reconstructionCacheReady, setReconstructionCacheReady] = useState<boolean>(false);
+  const [reconstructionCacheError, setReconstructionCacheError] = useState<string | null>(null);
 
   // Performance optimization: Use refs to track loading states and prevent race conditions
   const loadingRef = useRef<LoadingStage>("idle");
@@ -196,6 +214,221 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     } catch (error) {
       console.error("[ProjectContext] Failed to clear cache:", error);
       setTarCacheError(`Failed to clear cache: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }, [projectId]);
+
+  // Reconstruction cache methods - NEW
+  const getReconstructionGLB = useCallback(
+    async (frame: number): Promise<string | null> => {
+      if (!projectId || !reconstructionMetadata?.reconstructionId) {
+        console.warn("[ProjectContext] Cannot get GLB: missing projectId or reconstructionId");
+        return null;
+      }
+      try {
+        return await reconstructionCache.getModelURL(projectId, reconstructionMetadata.reconstructionId, frame);
+      } catch (error) {
+        console.error("[ProjectContext] Failed to get reconstruction GLB:", error);
+        return null;
+      }
+    },
+    [projectId, reconstructionMetadata],
+  );
+
+  const preloadReconstructionModels = useCallback(async (): Promise<void> => {
+    if (!projectId || !reconstructionMetadata?.reconstructionId) {
+      console.warn("[ProjectContext] ⚠️ Cannot preload models: missing projectId or reconstructionId");
+      return;
+    }
+
+    const startTime = performance.now();
+    console.log(`[ProjectContext] 🚀 Starting reconstruction models preload...`);
+    console.log(`[ProjectContext] 📋 Target: Project ${projectId}, Reconstruction ${reconstructionMetadata.reconstructionId}`);
+
+    try {
+      // Create wrapper function that matches expected signature
+      const getPresignedUrl = async (pid: string, rid: string) => {
+        console.log(`[ProjectContext] 🔗 Fetching presigned URL from backend...`);
+        const response = await reconstructionApi.getReconstructionResults(pid);
+        
+        if (!response.success || !response.reconstructions || response.reconstructions.length === 0) {
+          console.error(`[ProjectContext] ❌ Failed to get presigned URL: ${response.message || "No reconstructions found"}`);
+          return {
+            success: false,
+            message: response.message || "No reconstructions found"
+          };
+        }
+        
+        // Find the reconstruction matching the ID
+        // Backend returns 'reconstructionId' not '_id'
+        const reconstruction = response.reconstructions.find((r: any) => r.reconstructionId === rid); // eslint-disable-line @typescript-eslint/no-explicit-any
+        if (!reconstruction || !reconstruction.downloadUrl) {
+          console.error(`[ProjectContext] ❌ Reconstruction not found or missing presigned URL`);
+          console.error(`[ProjectContext] 🔍 Looking for reconstructionId: ${rid}`);
+          console.error(`[ProjectContext] 📋 Available reconstructions:`, response.reconstructions.map((r: any) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
+            id: r.reconstructionId, 
+            name: r.name, 
+            hasDownloadUrl: !!r.downloadUrl 
+          })));
+          return {
+            success: false,
+            message: "Reconstruction not found or no presigned URL available"
+          };
+        }
+
+        console.log(`[ProjectContext] ✅ Presigned URL obtained successfully`);
+        console.log(`[ProjectContext] 🔒 URL will expire in 1 hour from now`);
+        
+        return {
+          success: true,
+          presignedUrl: reconstruction.downloadUrl, // Backend returns 'downloadUrl'
+          expiresAt: Date.now() + 3600000 // 1 hour from now (timestamp in ms)
+        };
+      };
+
+      console.log(`[ProjectContext] 📦 Initiating TAR download and extraction...`);
+      const result = await reconstructionCache.fetchAndExtractProjectModels(
+        projectId,
+        reconstructionMetadata.reconstructionId,
+        getPresignedUrl
+      );
+
+      const elapsedTime = ((performance.now() - startTime) / 1000).toFixed(2);
+
+      if (result.success) {
+        setReconstructionCacheReady(true);
+        setReconstructionCacheError(null);
+        console.log(`[ProjectContext] ✅ Successfully preloaded ${result.extractedModels}/${result.totalModels} GLB models`);
+        console.log(`[ProjectContext] ⚡ Total preload time: ${elapsedTime}s`);
+        console.log(`[ProjectContext] 💾 Models cached in IndexedDB for instant access`);
+        
+        // Get detailed frame mapping info
+        const mappingInfo = await reconstructionCache.getFrameMappingInfo(reconstructionMetadata.reconstructionId);
+        console.log(`[ProjectContext] 📊 Frame Mapping:`, {
+          totalFrames: mappingInfo.totalFrames,
+          sequentialIndices: mappingInfo.sequentialIndices,
+          actualFrameIndices: mappingInfo.actualFrameIndices,
+          filenames: mappingInfo.filenames
+        });
+        
+        // Get debug info from cache
+        const debugInfo = reconstructionCache.getDebugInfo();
+        console.log(`[ProjectContext] � Download stats:`, {
+          tarFileSize: `${(debugInfo.tarFileSize / 1024 / 1024).toFixed(2)} MB`,
+          extractedModels: result.extractedModels,
+          processingTime: `${(debugInfo.processingTime / 1000).toFixed(2)}s`,
+          downloadSuccess: debugInfo.tarFileFetched,
+          extractionSuccess: debugInfo.extractionCompleted
+        });
+      } else {
+        const errorMsg = `Failed to preload models: ${result.errors.join(", ")}`;
+        console.error(`[ProjectContext] ❌ Preload failed after ${elapsedTime}s`);
+        console.error(`[ProjectContext] 💥 Errors:`, result.errors);
+        setReconstructionCacheError(errorMsg);
+      }
+    } catch (error) {
+      const elapsedTime = ((performance.now() - startTime) / 1000).toFixed(2);
+      const errorMessage = error instanceof Error ? error.message : "Unknown preload error";
+      console.error(`[ProjectContext] ❌ Preload reconstruction models error after ${elapsedTime}s:`, error);
+      console.error(`[ProjectContext] 💥 Error details:`, {
+        message: errorMessage,
+        projectId,
+        reconstructionId: reconstructionMetadata.reconstructionId,
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      setReconstructionCacheError(errorMessage);
+    }
+  }, [projectId, reconstructionMetadata]);
+
+  const fetchAndExtractProjectModels = useCallback(async (): Promise<{ success: boolean; extractedModels: number; totalModels: number; errors: string[] }> => {
+    if (!projectId || !reconstructionMetadata?.reconstructionId) {
+      return { success: false, extractedModels: 0, totalModels: 0, errors: ["Missing projectId or reconstructionId"] };
+    }
+
+    try {
+      // Create wrapper function that matches expected signature
+      const getPresignedUrl = async (pid: string, rid: string) => {
+        const response = await reconstructionApi.getReconstructionResults(pid);
+        if (!response.success || !response.reconstructions || response.reconstructions.length === 0) {
+          return {
+            success: false,
+            message: response.message || "No reconstructions found"
+          };
+        }
+        
+        // Backend returns 'reconstructionId' not '_id'
+        const reconstruction = response.reconstructions.find((r: any) => r.reconstructionId === rid); // eslint-disable-line @typescript-eslint/no-explicit-any
+        if (!reconstruction || !reconstruction.downloadUrl) {
+          return {
+            success: false,
+            message: "Reconstruction not found or no presigned URL available"
+          };
+        }
+
+        return {
+          success: true,
+          presignedUrl: reconstruction.downloadUrl, // Backend returns 'downloadUrl'
+          expiresAt: Date.now() + 3600000 // 1 hour from now (timestamp in ms)
+        };
+      };
+
+      const result = await reconstructionCache.fetchAndExtractProjectModels(
+        projectId,
+        reconstructionMetadata.reconstructionId,
+        getPresignedUrl
+      );
+
+      if (result.success) {
+        setReconstructionCacheReady(true);
+        setReconstructionCacheError(null);
+      } else {
+        setReconstructionCacheError(`Model extraction failed: ${result.errors.join(", ")}`);
+      }
+      return result;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown extraction error";
+      setReconstructionCacheError(errorMessage);
+      console.error("[ProjectContext] Extraction error:", error);
+      return { success: false, extractedModels: 0, totalModels: 0, errors: [errorMessage] };
+    }
+  }, [projectId, reconstructionMetadata]);
+
+  const clearReconstructionCache = useCallback(async (): Promise<void> => {
+    if (!projectId) return;
+
+    try {
+      await reconstructionCache.clearProjectModels(projectId);
+      setReconstructionCacheReady(false);
+      setReconstructionCacheError(null);
+      console.log(`[ProjectContext] Cleared reconstruction cache for project ${projectId}`);
+    } catch (error) {
+      console.error("[ProjectContext] Failed to clear reconstruction cache:", error);
+      setReconstructionCacheError(`Failed to clear reconstruction cache: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+  }, [projectId]);
+
+  const refreshReconstructions = useCallback(async (): Promise<void> => {
+    if (!projectId) {
+      console.warn("[ProjectContext] Cannot refresh reconstructions - missing projectId");
+      return;
+    }
+
+    try {
+      console.log("[ProjectContext] Refreshing reconstructions...");
+      const response = await reconstructionApi.getReconstructionResults(projectId);
+
+      if (response.success && response.reconstructions && response.reconstructions.length > 0) {
+        // Use the most recent reconstruction
+        const latestReconstruction = response.reconstructions[0];
+        setReconstructionMetadata(latestReconstruction);
+        setHasReconstructions(true);
+        console.log("[ProjectContext] Reconstructions refreshed successfully");
+      } else {
+        setReconstructionMetadata(null);
+        setHasReconstructions(false);
+        console.log("[ProjectContext] No reconstructions found");
+      }
+    } catch (error) {
+      console.error("[ProjectContext] Failed to refresh reconstructions:", error);
     }
   }, [projectId]);
 
@@ -314,6 +547,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
         // Don't set loading to done here - let final loading state management handle it
         setMaskFetchDone(true);
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectData, projectId, error]);
 
   // 2b. Retry mask decoding when project dimensions become available (fixes race condition)
@@ -452,15 +686,144 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     };
   }, [projectData, projectId, maskFetchDone]);
 
+  // 4b. Fetch reconstruction metadata when project is loaded - NEW
+  useEffect(() => {
+    if (!projectId || !projectData) {
+      setHasReconstructions(false);
+      setReconstructionMetadata(null);
+      return;
+    }
+
+    const fetchReconstructionMetadata = async () => {
+      try {
+        console.log(`[ProjectContext] Fetching reconstruction metadata for project ${projectId}`);
+        const response = await reconstructionApi.getReconstructionResults(projectId);
+
+        if (response.success && response.reconstructions && response.reconstructions.length > 0) {
+          // Use the most recent reconstruction
+          const latestReconstruction = response.reconstructions[0];
+          setReconstructionMetadata(latestReconstruction);
+          setHasReconstructions(true);
+          console.log(`[ProjectContext] Found reconstruction: ${latestReconstruction.reconstructionId}`);
+        } else {
+          setReconstructionMetadata(null);
+          setHasReconstructions(false);
+          console.log("[ProjectContext] No reconstructions found for project");
+        }
+      } catch (error) {
+        console.error("[ProjectContext] Failed to fetch reconstruction metadata:", error);
+        setReconstructionMetadata(null);
+        setHasReconstructions(false);
+      }
+    };
+
+    fetchReconstructionMetadata();
+  }, [projectId, projectData]);
+
+  // 4c. Initialize reconstruction cache when reconstruction metadata is available - NEW
+  useEffect(() => {
+    if (!projectId || !reconstructionMetadata || !reconstructionMetadata.reconstructionId) {
+      setReconstructionCacheReady(false);
+      setReconstructionCacheError(null);
+      return;
+    }
+
+    // Set loading stage to reconstruction-cache
+    setLoading("reconstruction-cache");
+
+    const initializeReconstructionCache = async () => {
+      const startTime = performance.now();
+      try {
+        console.log(`[ProjectContext] 🔷 Starting reconstruction cache initialization for project ${projectId}`);
+        console.log(`[ProjectContext] 📋 Reconstruction ID: ${reconstructionMetadata.reconstructionId}`);
+        console.log(`[ProjectContext] 📦 Reconstruction metadata:`, {
+          id: reconstructionMetadata._id,
+          name: reconstructionMetadata.name,
+          createdAt: reconstructionMetadata.createdAt,
+          frameCount: reconstructionMetadata.frameCount || 'unknown'
+        });
+
+        // Initialize reconstruction cache system
+        console.log(`[ProjectContext] 🔧 Initializing IndexedDB for reconstruction cache...`);
+        await reconstructionCache.init();
+        console.log(`[ProjectContext] ✅ IndexedDB initialized successfully`);
+
+        // Check if models are already cached
+        console.log(`[ProjectContext] 🔍 Checking for cached GLB models...`);
+        const frames = await reconstructionCache.getAvailableFrames(reconstructionMetadata.reconstructionId);
+        
+        if (frames.length > 0) {
+          const elapsedTime = ((performance.now() - startTime) / 1000).toFixed(2);
+          console.log(`[ProjectContext] ✅ Found ${frames.length} cached GLB models in IndexedDB`);
+          
+          // Get detailed frame mapping info for debugging
+          const mappingInfo = await reconstructionCache.getFrameMappingInfo(reconstructionMetadata.reconstructionId);
+          console.log(`[ProjectContext] 📊 Frame Mapping:`, {
+            totalFrames: mappingInfo.totalFrames,
+            sequentialIndices: mappingInfo.sequentialIndices,
+            actualFrameIndices: mappingInfo.actualFrameIndices,
+            filenames: mappingInfo.filenames
+          });
+          console.log(`[ProjectContext] ⚡ Cache check completed in ${elapsedTime}s`);
+          setReconstructionCacheReady(true);
+          setReconstructionCacheError(null);
+        } else {
+          console.log(`[ProjectContext] 📥 No cached models found - starting TAR download and extraction...`);
+          console.log(`[ProjectContext] 🌐 Fetching presigned URL for reconstruction TAR file...`);
+          
+          // Preload models in background
+          await preloadReconstructionModels();
+          
+          const elapsedTime = ((performance.now() - startTime) / 1000).toFixed(2);
+          console.log(`[ProjectContext] ✅ Reconstruction cache initialization completed in ${elapsedTime}s`);
+        }
+      } catch (error) {
+        const elapsedTime = ((performance.now() - startTime) / 1000).toFixed(2);
+        const errorMessage = error instanceof Error ? error.message : "Unknown reconstruction cache error";
+        console.error(`[ProjectContext] ❌ Reconstruction cache initialization failed after ${elapsedTime}s:`, error);
+        console.error(`[ProjectContext] 💥 Error details:`, {
+          message: errorMessage,
+          projectId,
+          reconstructionId: reconstructionMetadata.reconstructionId,
+          stack: error instanceof Error ? error.stack : undefined
+        });
+        setReconstructionCacheError(errorMessage);
+        setReconstructionCacheReady(false);
+      }
+    };
+
+    initializeReconstructionCache();
+
+    // Cleanup function - clear project-specific cache when component unmounts or project changes
+    return () => {
+      console.log(`[ProjectContext] 🧹 Cleaning up reconstruction cache for project ${projectId}`);
+      reconstructionCache.clearProjectModels(projectId).catch((error) => console.warn(`[ProjectContext] ⚠️ Reconstruction cleanup error:`, error));
+    };
+  }, [projectId, reconstructionMetadata, preloadReconstructionModels]);
+
   // 5. Optimized final loading state management - set to done when all components are ready or there's an error
   useEffect(() => {
     // Set to done when:
     // 1. There's an error (project not found, etc.)
-    // 2. OR we have project data, masks are fetched, and tar cache is ready (or has error)
-    if (error || (projectData && maskFetchDone && (tarCacheReady || tarCacheError) && loading !== "done")) {
+    // 2. OR we have project data, masks are fetched, tar cache is ready (or has error)
+    // 3. AND if reconstructions exist, reconstruction cache should be ready or have error
+    const reconstructionCondition = hasReconstructions 
+      ? (reconstructionCacheReady || reconstructionCacheError)
+      : true; // If no reconstructions, don't wait for cache
+
+    if (error || (projectData && maskFetchDone && (tarCacheReady || tarCacheError) && reconstructionCondition && loading !== "done")) {
+      console.log(`[ProjectContext] 🎉 All loading complete - setting stage to "done"`);
+      console.log(`[ProjectContext] 📊 Final status:`, {
+        projectData: !!projectData,
+        maskFetchDone,
+        tarCacheReady,
+        hasReconstructions,
+        reconstructionCacheReady: hasReconstructions ? reconstructionCacheReady : 'N/A',
+        error: error || 'none'
+      });
       setLoading("done");
     }
-  }, [error, projectData, maskFetchDone, tarCacheReady, tarCacheError, loading]);
+  }, [error, projectData, maskFetchDone, tarCacheReady, tarCacheError, hasReconstructions, reconstructionCacheReady, reconstructionCacheError, loading]);
 
   // Cache invalidation function to refresh masks from backend
   const refreshMasks = useCallback(async () => {
@@ -533,7 +896,7 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       segmentationError,
       jobsError,
       maskFetchDone,
-      // NEW: Tar cache properties and methods
+      // NEW: Tar cache properties and methods (MRI images)
       tarCacheReady,
       tarCacheError,
       getMRIImage,
@@ -542,6 +905,17 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       getAvailableFramesAndSlices,
       fetchAndExtractProjectImages,
       clearProjectCache,
+      // NEW: Reconstruction cache properties and methods (4D GLB models)
+      hasReconstructions,
+      reconstructionMetadata,
+      reconstructionCacheReady,
+      reconstructionCacheError,
+      getReconstructionGLB,
+      preloadReconstructionModels,
+      fetchAndExtractProjectModels,
+      clearReconstructionCache,
+      refreshReconstructions,
+      // Cache invalidation
       refreshMasks,
       updateContextMasks,
     }),
@@ -564,6 +938,15 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       getAvailableFramesAndSlices,
       fetchAndExtractProjectImages,
       clearProjectCache,
+      hasReconstructions,
+      reconstructionMetadata,
+      reconstructionCacheReady,
+      reconstructionCacheError,
+      getReconstructionGLB,
+      preloadReconstructionModels,
+      fetchAndExtractProjectModels,
+      clearReconstructionCache,
+      refreshReconstructions,
       refreshMasks,
       updateContextMasks,
     ],

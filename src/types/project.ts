@@ -10,9 +10,10 @@
  * - "mask": Loading segmentation masks for the project from the backend.
  * - "job": Loading job data for the project from the backend.
  * - "tar-cache": Loading and initializing tar cache for MRI images.
+ * - "reconstruction-cache": Loading and initializing reconstruction cache for 4D GLB models.
  * - "done": All loading actions are complete and the page is ready to display content.
  */
-export type LoadingStage = "idle" | "project" | "mask" | "job" | "tar-cache" | "done";
+export type LoadingStage = "idle" | "project" | "mask" | "job" | "tar-cache" | "reconstruction-cache" | "done";
 
 /**
  * Interface representing the structure of project data.

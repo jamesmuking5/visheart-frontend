@@ -28,6 +28,7 @@ import { ErrorProject } from "@/components/project/ErrorProject";
 import { LoadingProject } from "@/components/project/LoadingProject";
 import { ShowForUser, ShowForRegisteredUser } from "@/components/RoleGuard";
 import { AffineMatrixDisplay } from "@/components/ui/AffineMatrixDisplay";
+import { ReconstructionDebugCard } from "@/components/debug/ReconstructionDebugCard";
 
 // Types
 import * as ProjectTypes from "@/types/project";
@@ -592,6 +593,11 @@ export default function ProjectPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* DEBUG: Reconstruction Models Card - TEMPORARY */}
+            <ShowForUser>
+              <ReconstructionDebugCard />
+            </ShowForUser>
           </div>
         </div>
       </div>
