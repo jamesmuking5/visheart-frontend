@@ -67,11 +67,9 @@ function CameraController({ onCameraChange, initialState }: CameraControllerProp
       enableZoom
       enablePan
       enableRotate
-      zoomSpeed={0.5}
-      panSpeed={0.5}
-      rotateSpeed={0.5}
-      enableDamping
-      dampingFactor={0.05}
+      zoomSpeed={1.0}
+      panSpeed={1.0}
+      rotateSpeed={1.0}
       onEnd={handleChangeEnd}
     />
   );
@@ -110,7 +108,7 @@ export function ReconstructionGLBViewer({
   return (
     <div 
       ref={containerRef} 
-      className={"relative rounded-lg border overflow-hidden bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 " + className}
+      className={"relative rounded-lg border overflow-hidden bg-background " + className}
     >
       <div className="absolute top-3 left-3 z-10 px-3 py-1 rounded-md bg-black/70 text-white text-xs font-semibold">
         Frame {frame}
