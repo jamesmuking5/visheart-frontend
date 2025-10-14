@@ -18,8 +18,7 @@ import {
   ChevronDown,
   Layers,
   Box,
-  Image as ImageIcon,
-  Sparkles
+  Image as ImageIcon
 } from "lucide-react";
 import { segmentationApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -95,14 +94,15 @@ export function ProjectDashboardBar() {
   const getProjectStatus = () => {
     if (error) return { status: "error", icon: XCircle, color: "destructive" as const, text: "Error" };
     if (loading !== "done") return { status: "loading", icon: Clock, color: "secondary" as const, text: "Loading" };
-    if (hasMasks && hasReconstructions) return { status: "complete", icon: Sparkles, color: "default" as const, text: "Complete" };
-    if (hasMasks) return { status: "segmented", icon: CheckCircle2, color: "default" as const, text: "Segmented" };
 
     // Check job status
     const runningJobs = jobs?.filter((job) => job.status === "in_progress") || [];
     if (runningJobs.length > 0) return { status: "processing", icon: Activity, color: "secondary" as const, text: "Processing" };
 
-    return { status: "pending", icon: AlertCircle, color: "outline" as const, text: "Pending" };
+    if (!hasMasks) return { status: "pending", icon: AlertCircle, color: "outline" as const, text: "Pending" };
+    
+    // Return multiple statuses when both segmentation and reconstruction exist
+    return { status: "ready", icon: CheckCircle2, color: "default" as const, text: "Ready" };
   };
 
   const statusInfo = getProjectStatus();
@@ -141,12 +141,27 @@ export function ProjectDashboardBar() {
 
                 <Separator orientation="vertical" className="h-10" />
 
-                {/* Overall Status */}
+                {/* Overall Status - Show multiple badges for segmented and reconstructed */}
                 <div className="flex items-center gap-2">
                   <StatusIcon className="h-4 w-4" />
                   <Badge variant={statusInfo.color} className="text-xs">
                     {statusInfo.text}
                   </Badge>
+                  
+                  {/* Additional status badges */}
+                  {hasMasks && (
+                    <Badge variant="default" className="text-xs bg-green-600 hover:bg-green-700">
+                      <Layers className="h-3 w-3 mr-1" />
+                      Segmented
+                    </Badge>
+                  )}
+                  
+                  {hasReconstructions && (
+                    <Badge variant="default" className="text-xs bg-blue-600 hover:bg-blue-700">
+                      <Box className="h-3 w-3 mr-1" />
+                      Reconstructed
+                    </Badge>
+                  )}
                 </div>
               </div>
 
