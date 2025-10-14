@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Box, Download, RefreshCw, AlertCircle, CheckCircle, XCircle, Database } from "lucide-react";
+import { ReconstructionGLBViewer } from "@/components/reconstruction/ReconstructionGLBViewer";
 
 export function ReconstructionDebugCard() {
   const {
@@ -242,6 +243,16 @@ export function ReconstructionDebugCard() {
           </Alert>
         )}
 
+        {/* 3D Viewer */}
+        <div className="space-y-2">
+          <h4 className="font-semibold text-sm">3D Model Viewer:</h4>
+          <ReconstructionGLBViewer
+            modelUrl={modelUrl}
+            frame={selectedFrame}
+            className="w-full h-[400px]"
+          />
+        </div>
+
         {/* Frame Selector */}
         <div className="space-y-2">
           <h4 className="font-semibold text-sm">Load Frame:</h4>
@@ -263,18 +274,13 @@ export function ReconstructionDebugCard() {
           </ScrollArea>
         </div>
 
-        {/* Model URL Display */}
+        {/* Status Indicator */}
         {modelUrl && (
-          <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-green-900 dark:text-green-100">
-                Frame {selectedFrame} Loaded
-              </span>
-              <CheckCircle className="h-4 w-4 text-green-600" />
-            </div>
-            <div className="font-mono text-xs break-all text-green-800 dark:text-green-200">
-              {modelUrl.substring(0, 100)}...
-            </div>
+          <div className="flex items-center justify-center gap-2 p-2 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <span className="text-sm font-semibold text-green-900 dark:text-green-100">
+              Frame {selectedFrame} Loaded Successfully
+            </span>
           </div>
         )}
       </CardContent>
