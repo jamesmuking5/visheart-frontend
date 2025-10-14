@@ -158,10 +158,18 @@ export function useUserStats(projects: Project[], recentJobs: Job[]) {
       const pendingJobsCount = recentJobs.filter(
         (job) => job.status === "pending",
       ).length;
-      const totalFileSize = projects.reduce(
-        (sum, project) => sum + project.filesize,
-        0,
-      );
+      
+      // Calculate total file size including mesh files from reconstructions
+      const totalFileSize = projects.reduce((sum, project) => {
+        let projectTotal = sum + project.filesize;
+        
+        // Add reconstruction mesh file size if available
+        if (project.reconstruction && project.reconstruction.tarFileSize) {
+          projectTotal += project.reconstruction.tarFileSize;
+        }
+        
+        return projectTotal;
+      }, 0);
 
       // Count completed segmentations by checking actual mask data
       let completedSegmentations = 0;
