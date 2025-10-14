@@ -491,10 +491,39 @@ export default function SegmentationResultsPage() {
           direction="horizontal" 
           className="h-full w-full rounded-xl border shadow-sm"
         >
-          {/* Canvas Panel with vertical split for 3D viewer */}
+          {/* Canvas Panel with horizontal split for 3D viewer */}
           <ResizablePanel defaultSize={70} minSize={20}>
-            <ResizablePanelGroup direction="vertical">
-              {/* 2D Canvas (Top) */}
+            <ResizablePanelGroup direction="horizontal">
+              {/* 3D Viewer (Left) - Only show if reconstructions exist */}
+              {hasReconstructions && (
+                <>
+                  <ResizablePanel defaultSize={35} minSize={20} maxSize={70}>
+                    <div className="h-full w-full bg-background p-4">
+                      <div className="h-full w-full flex flex-col">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-sm font-semibold">3D Reconstruction</h3>
+                          {isLoadingModel && (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Loading model...
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-h-0">
+                          <ReconstructionGLBViewer
+                            modelUrl={reconstructionModelUrl}
+                            frame={currentFrame}
+                            className="w-full h-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </ResizablePanel>
+                  <ResizableHandle withHandle />
+                </>
+              )}
+
+              {/* 2D Canvas (Right) */}
               <ResizablePanel defaultSize={hasReconstructions ? 65 : 100} minSize={30}>
                 <div className="h-full w-full relative bg-muted/40 p-4 flex items-center justify-center">
                   <ImageCanvas
@@ -518,35 +547,6 @@ export default function SegmentationResultsPage() {
                   />
                 </div>
               </ResizablePanel>
-
-              {/* 3D Viewer (Bottom) - Only show if reconstructions exist */}
-              {hasReconstructions && (
-                <>
-                  <ResizableHandle withHandle />
-                  <ResizablePanel defaultSize={35} minSize={20} maxSize={70}>
-                    <div className="h-full w-full bg-background p-4">
-                      <div className="h-full w-full flex flex-col">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-semibold">3D Reconstruction</h3>
-                          {isLoadingModel && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              Loading model...
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-h-0">
-                          <ReconstructionGLBViewer
-                            modelUrl={reconstructionModelUrl}
-                            frame={currentFrame}
-                            className="w-full h-full"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </ResizablePanel>
-                </>
-              )}
             </ResizablePanelGroup>
           </ResizablePanel>
 
