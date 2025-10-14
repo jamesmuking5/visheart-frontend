@@ -221,8 +221,24 @@ export function ImageCanvas({
   const [isResetKeyPressed, setIsResetKeyPressed] = useState(false);
 
   const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    // Allow panning either when tool is explicitly 'pan' OR when user holds Ctrl
+    // Allow left-click (0) with pan tool/Ctrl OR right-click (2) for panning
+    const isLeftClick = e.button === 0;
+    const isRightClick = e.button === 2;
+    
+    if (isRightClick) {
+      // Right-click always enables panning
+      isContainerPanning.current = true;
+      setIsPanningState(true);
+      if (containerRef.current) containerRef.current.style.cursor = 'grabbing';
+      lastContainerPoint.current = { x: e.clientX, y: e.clientY };
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    
+    if (!isLeftClick) return;
+    
+    // Left-click: Allow panning when tool is 'pan' OR when user holds Ctrl
     if (tool !== 'pan' && !isCtrlPressed) return;
     isContainerPanning.current = true;
     setIsPanningState(true);
@@ -1038,6 +1054,7 @@ export function ImageCanvas({
     onMouseDown={handleContainerMouseDown}
     onMouseMove={handleContainerMouseMove}
     onMouseUp={handleContainerMouseUp}
+    onContextMenu={(e) => e.preventDefault()}
     className="w-full h-[70vh] min-h-[400px] max-h-[700px] bg-background rounded-lg overflow-hidden relative mx-auto border flex flex-col"
   >
         {/* Top info bar (frame/slice + zoom) */}

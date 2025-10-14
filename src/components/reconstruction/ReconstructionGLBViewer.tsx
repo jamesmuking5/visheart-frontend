@@ -159,7 +159,8 @@ export function ReconstructionGLBViewer({
       
       <div className="absolute bottom-3 right-3 z-10 px-3 py-2 rounded-md bg-black/70 text-white text-xs">
         <p className="font-semibold">Controls:</p>
-        <p>Click+Drag: Rotate</p>
+        <p>Left Click+Drag: Rotate</p>
+        <p>Right Click+Drag: Pan</p>
         <p>Scroll: Zoom</p>
       </div>
     </div>
