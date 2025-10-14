@@ -584,14 +584,14 @@ export class ReconstructionCache {
       console.log(`[ReconstructionCache] 📋 Extracted ${files.length} total files from archive`);
 
       // Filter GLB model files
-      console.log(`[ReconstructionCache] 🔍 Filtering for GLB model files...`);
+      console.log(`[ReconstructionCache] 🔍 Filtering for model files (GLB/OBJ)...`);
       const modelFiles = files.filter((file: UntarFile) => {
         const filename = file.name.toLowerCase();
-        return filename.endsWith('.glb') && !filename.includes('__MACOSX');
+        return (filename.endsWith('.glb') || filename.endsWith('.obj')) && !filename.includes('__MACOSX');
       });
 
       this.debugInfo.totalModelsFound = modelFiles.length;
-      console.log(`[ReconstructionCache] ✅ Found ${modelFiles.length} GLB model files`);
+      console.log(`[ReconstructionCache] ✅ Found ${modelFiles.length} model files (GLB/OBJ)`);
       
       if (modelFiles.length > 0) {
         const filenames = modelFiles.map(f => f.name).slice(0, 5);
@@ -601,7 +601,7 @@ export class ReconstructionCache {
       let storedCount = 0;
       const errors: string[] = [];
 
-      // Process each GLB model file
+      // Process each model file (GLB/OBJ)
       console.log(`[ReconstructionCache] 💾 Starting IndexedDB storage for ${modelFiles.length} models...`);
       const storageStartTime = performance.now();
       
@@ -618,8 +618,12 @@ export class ReconstructionCache {
           const modelId = `${projectId}_${reconstructionId}_f${frameIndex}`;
           const modelSizeMB = (file.buffer.byteLength / 1024 / 1024).toFixed(2);
 
+          // Detect file type from extension and set appropriate MIME type
+          const fileExtension = file.name.toLowerCase().split('.').pop();
+          const mimeType = fileExtension === 'obj' ? 'text/plain' : 'model/gltf-binary';
+
           const blob = new Blob([file.buffer], {
-            type: 'model/gltf-binary' // MIME type for GLB files
+            type: mimeType // MIME type based on file extension
           });
 
           const entry: ModelCacheEntry = {
@@ -656,7 +660,7 @@ export class ReconstructionCache {
 
       const cacheSize = await this.db.getCacheSize();
 
-      console.log(`[ReconstructionCache] ✅ Successfully cached ${storedCount}/${modelFiles.length} GLB models`);
+      console.log(`[ReconstructionCache] ✅ Successfully cached ${storedCount}/${modelFiles.length} model files`);
       console.log(`[ReconstructionCache] ⚡ Storage time: ${storageTime}s`);
       console.log(`[ReconstructionCache] ⚡ Total extraction+storage time: ${totalExtractionTime}s`);
       console.log(`[ReconstructionCache] 📊 Total cache size: ${cacheSize} models across all projects`);
