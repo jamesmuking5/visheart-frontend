@@ -29,6 +29,7 @@ export interface Project {
     projectCount: number;
     totalFileSize: number;
     completedSegmentations: number;
+    completedReconstructions: number;
     pendingJobs: number;
   }
   

@@ -16,10 +16,11 @@ interface EditableProjectCardProps {
   onDelete: (projectId: string, projectName: string) => void;
   onExport: (projectId: string) => void;
   segmentationIndicator?: React.ReactNode;
+  reconstructionIndicator?: React.ReactNode;
   hasMasks?: boolean; // Add mask availability info
 }
 
-export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExport, segmentationIndicator, hasMasks = false }: EditableProjectCardProps) {
+export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExport, segmentationIndicator, reconstructionIndicator, hasMasks = false }: EditableProjectCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editedName, setEditedName] = useState(project.name);
@@ -149,6 +150,7 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
                   </Button>
                 </ShowForRegisteredUser>
                 {segmentationIndicator}
+                {reconstructionIndicator}
               </>
             )}
           </div>

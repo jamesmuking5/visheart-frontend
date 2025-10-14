@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useGpuStatus, useUserProjects, useUserJobs, useUserStats } from "@/lib/dashboard-hooks";
 import { useProjectSegmentationStatus } from "@/hooks/useProjectSegmentationStatus";
+import { useProjectReconstructionStatus } from "@/hooks/useProjectReconstructionStatus";
 import { ShowForUser, ShowForGuest, ShowForRegisteredUser } from "@/components/RoleGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   AlertCircle,
   Brain,
+  Box,
   Download,
   FolderOpen,
   Heart,
@@ -41,6 +43,7 @@ import Link from "next/link";
 import { projectApi, segmentationApi } from "@/lib/api";
 import { FileUploadDialog } from "@/components/upload/FileUploadDialog";
 import { SegmentationIndicator } from "@/components/dashboard/SegmentationIndicator";
+import { ReconstructionIndicator } from "@/components/dashboard/ReconstructionIndicator";
 import { EditableProjectCard } from "@/components/dashboard/EditableProjectCard";
 
 // Helper function to format file size
@@ -96,6 +99,9 @@ export default function DashboardPage() {
 
   // Add segmentation status tracking for projects
   const { statuses: segmentationStatuses, refresh: refreshSegmentationStatuses } = useProjectSegmentationStatus(projects);
+  
+  // Add reconstruction status tracking for projects
+  const { statuses: reconstructionStatuses, refresh: refreshReconstructionStatuses } = useProjectReconstructionStatus(projects);
 
   // State for upload dialog
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -173,8 +179,9 @@ export default function DashboardPage() {
   const refreshDashboard = async () => {
     if (user) {
       await Promise.all([refreshProjects(), refreshJobs(), refreshGpuStatus()]);
-      // Refresh segmentation statuses after projects are refreshed
+      // Refresh segmentation and reconstruction statuses after projects are refreshed
       refreshSegmentationStatuses();
+      refreshReconstructionStatuses();
     }
   };
 
@@ -329,7 +336,7 @@ export default function DashboardPage() {
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
           {/* Stats Cards */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
@@ -343,12 +350,23 @@ export default function DashboardPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Completed</CardTitle>
+                <CardTitle className="text-sm font-medium">Segmentations</CardTitle>
                 <Brain className="text-muted-foreground h-4 w-4" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{userStats?.completedSegmentations || 0}</div>
-                <p className="text-muted-foreground text-xs">Segmentations done</p>
+                <p className="text-muted-foreground text-xs">Completed</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Reconstructions</CardTitle>
+                <Box className="text-muted-foreground h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{userStats?.completedReconstructions || 0}</div>
+                <p className="text-muted-foreground text-xs">4D Models</p>
               </CardContent>
             </Card>
 
@@ -608,6 +626,7 @@ export default function DashboardPage() {
                     onDelete={handleDeleteProject}
                     onExport={handleExportProject}
                     segmentationIndicator={<SegmentationIndicator status={segmentationStatuses[project.projectId]} variant="badge" />}
+                    reconstructionIndicator={<ReconstructionIndicator status={reconstructionStatuses[project.projectId]} variant="badge" />}
                     hasMasks={segmentationStatuses[project.projectId]?.hasMasks || false}
                   />
                 </div>
@@ -657,6 +676,7 @@ export default function DashboardPage() {
                               </Button>
                             </ShowForRegisteredUser>
                             <SegmentationIndicator status={segmentationStatuses[project.projectId]} variant="badge" />
+                            <ReconstructionIndicator status={reconstructionStatuses[project.projectId]} variant="badge" />
                           </div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">{formatFileSize(project.filesize)}</TableCell>

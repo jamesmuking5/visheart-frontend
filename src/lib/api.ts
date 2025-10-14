@@ -408,6 +408,79 @@ export const segmentationApi = {
   },
 };
 
+// Reconstruction functions
+export const reconstructionApi = {
+  // Start 4D reconstruction for a project
+  startReconstruction: async (
+    projectId: string,
+    data: {
+      reconstructionName?: string;
+      reconstructionDescription?: string;
+      ed_frame?: number;
+      parameters?: {
+        num_iterations?: number;
+        resolution?: number;
+        process_all_frames?: boolean;
+        debug_save?: boolean;
+        debug_dir?: string;
+      };
+    }
+  ) => {
+    try {
+      const response = await api.post(
+        `/reconstruction/start-reconstruction/${projectId}`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get reconstruction results for a project
+  getReconstructionResults: async (projectId: string) => {
+    try {
+      const response = await api.get(
+        `/reconstruction/reconstruction-results/${projectId}`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Batch get reconstruction status for multiple projects
+  batchReconstructionStatus: async (projectIds: string[]) => {
+    console.log('[API] Batch reconstruction status check:', { projectIds });
+
+    try {
+      const response = await api.post('/reconstruction/batch-reconstruction-status', {
+        projectIds,
+      });
+
+      console.log('[API] Batch reconstruction status response:', {
+        success: response.data.success,
+        statusCount: Object.keys(response.data.statuses || {}).length
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('[API] Batch reconstruction status error:', error);
+      throw error;
+    }
+  },
+
+  // Get user reconstruction jobs
+  getUserReconstructionJobs: async () => {
+    try {
+      const response = await api.get("/reconstruction/user-check-jobs");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+};
+
 // Define interfaces for the admin-specific responses
 export interface Project {
   _id: string;
