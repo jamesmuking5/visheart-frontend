@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Edit2, Check, X, Loader2, Edit, Download, Trash2, Eye, Brain } from "lucide-react";
+import { Edit2, Check, X, Loader2, Edit, Download, Trash2 } from "lucide-react";
 import { Project } from "@/types/dashboard";
 import { projectApi } from "@/lib/api";
 import { ShowForRegisteredUser } from "@/components/RoleGuard";
@@ -184,6 +183,19 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
             <span className="text-muted-foreground">Created:</span>
             <p className="font-medium">{new Date(project.createdAt).toLocaleDateString()}</p>
           </div>
+          {/* Reconstruction Metadata */}
+          {project.reconstruction && (
+            <>
+              <div>
+                <span className="text-muted-foreground">ED Frame:</span>
+                <p className="font-medium">{project.reconstruction.edFrame}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Mesh Size:</span>
+                <p className="font-medium">{project.reconstruction.tarFileSize ? formatFileSize(project.reconstruction.tarFileSize) : "N/A"}</p>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex gap-2">

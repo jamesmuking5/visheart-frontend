@@ -15,6 +15,11 @@ export interface Project {
     affineMatrix?: number[][];
     createdAt: string;
     updatedAt: string;
+    reconstruction?: {
+      edFrame: number;
+      tarFileSize: number | null;
+      meshFormat: string;
+    } | null;
   }
   
   export interface Job {

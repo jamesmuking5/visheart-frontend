@@ -643,6 +643,7 @@ export default function DashboardPage() {
                       <TableHead className="hidden sm:table-cell">Size</TableHead>
                       <TableHead className="hidden md:table-cell">Type</TableHead>
                       <TableHead className="hidden lg:table-cell">Dimensions</TableHead>
+                      <TableHead className="hidden xl:table-cell">Reconstruction</TableHead>
                       <TableHead className="hidden md:table-cell">Created</TableHead>
                       <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
@@ -694,6 +695,20 @@ export default function DashboardPage() {
                               return dimensionStringRepresentation;
                             })()}
                           </span>
+                        </TableCell>
+                        <TableCell className="hidden xl:table-cell">
+                          {project.reconstruction ? (
+                            <div className="text-sm">
+                              <div className="text-muted-foreground">
+                                ED Frame: <span className="font-medium text-foreground">{project.reconstruction.edFrame}</span>
+                              </div>
+                              <div className="text-muted-foreground">
+                                Mesh: <span className="font-medium text-foreground">{project.reconstruction.tarFileSize ? formatFileSize(project.reconstruction.tarFileSize) : "N/A"}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm">—</span>
+                          )}
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{new Date(project.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">
