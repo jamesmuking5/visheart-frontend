@@ -486,7 +486,7 @@ export default function SegmentationResultsPage() {
       </div>
 
       {/* Desktop: Resizable panels */}
-      <div className="hidden lg:block w-full h-full p-6">
+      <div className="hidden lg:block w-full h-full p-3">
         <ResizablePanelGroup 
           direction="horizontal" 
           className="h-full w-full rounded-xl border shadow-sm"
@@ -497,11 +497,11 @@ export default function SegmentationResultsPage() {
               {/* 3D Viewer (Left) - Only show if reconstructions exist */}
               {hasReconstructions && (
                 <>
-                  <ResizablePanel defaultSize={35} minSize={20} maxSize={70}>
+                  <ResizablePanel defaultSize={35} minSize={0} maxSize={70}>
                     <div className="h-full w-full bg-background p-4">
                       <div className="h-full w-full flex flex-col">
                         <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-semibold">3D Reconstruction</h3>
+                          <h3 className="text-sm font-semibold">3D Reconstruction of Left Ventricle Myocardium</h3>
                           {isLoadingModel && (
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <Loader2 className="h-3 w-3 animate-spin" />
@@ -512,7 +512,7 @@ export default function SegmentationResultsPage() {
                         <div className="flex-1 min-h-0">
                           <ReconstructionGLBViewer
                             modelUrl={reconstructionModelUrl}
-                            frame={currentFrame}
+                            frame={currentFrame+1} // 1-based index for user friendliness
                             className="w-full h-full"
                           />
                         </div>
@@ -524,7 +524,7 @@ export default function SegmentationResultsPage() {
               )}
 
               {/* 2D Canvas (Right) */}
-              <ResizablePanel defaultSize={hasReconstructions ? 65 : 100} minSize={30}>
+              <ResizablePanel defaultSize={hasReconstructions ? 65 : 100} minSize={0}>
                 <div className="h-full w-full relative bg-muted/40 p-4 flex items-center justify-center">
                   <ImageCanvas
                     projectData={projectData}
@@ -553,7 +553,7 @@ export default function SegmentationResultsPage() {
           <ResizableHandle />
 
           {/* Sidebar Panel */}
-          <ResizablePanel defaultSize={30} minSize={20} maxSize={80}>
+          <ResizablePanel defaultSize={30} minSize={0} maxSize={80}>
             <div className="h-full w-full bg-background">
               <SegmentationSidebar
                 projectData={projectData}

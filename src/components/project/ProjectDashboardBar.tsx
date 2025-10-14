@@ -20,7 +20,7 @@ import {
   Box,
   Image as ImageIcon
 } from "lucide-react";
-import { segmentationApi } from "@/lib/api";
+import { segmentationApi, reconstructionApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export function ProjectDashboardBar() {
@@ -61,12 +61,12 @@ export function ProjectDashboardBar() {
 
   if (!projectData) return null;
 
-  // Export function
+  // Export segmentation masks
   const handleExportProject = async () => {
     if (!projectData?.projectId) return;
     
     try {
-      console.log(`[Export] Starting export for project: ${projectData.projectId}`);
+      console.log(`[Export] Starting segmentation export for project: ${projectData.projectId}`);
       const exportResult = await segmentationApi.exportProjectData(projectData.projectId);
       console.log(`[Export] Received export result:`, { 
         blobSize: exportResult.blob.size, 
@@ -84,9 +84,50 @@ export function ProjectDashboardBar() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
-      console.log(`[Export] Successfully downloaded export for project: ${projectData.projectId} as ${exportResult.suggestedFilename}`);
+      console.log(`[Export] Successfully downloaded segmentation export for project: ${projectData.projectId} as ${exportResult.suggestedFilename}`);
     } catch (error) {
-      console.error("Error exporting project:", error);
+      console.error("Error exporting segmentation:", error);
+    }
+  };
+
+  // Export reconstruction meshes (tar file)
+  const handleExportReconstruction = async () => {
+    if (!projectData?.projectId) return;
+    
+    try {
+      console.log(`[Export] Starting reconstruction export for project: ${projectData.projectId}`);
+      
+      // Fetch reconstruction results which includes downloadUrl
+      const result = await reconstructionApi.getReconstructionResults(projectData.projectId);
+      
+      if (!result.success || !result.reconstructions || result.reconstructions.length === 0) {
+        console.warn(`[Export] No reconstructions found for project: ${projectData.projectId}`);
+        alert("No reconstructions available to export.");
+        return;
+      }
+
+      // Get the first reconstruction's download URL
+      const reconstruction = result.reconstructions[0];
+      if (!reconstruction.downloadUrl) {
+        console.warn(`[Export] No download URL available for reconstruction`);
+        alert("Reconstruction export is not available.");
+        return;
+      }
+
+      console.log(`[Export] Downloading reconstruction from presigned URL`);
+      
+      // Download the file directly from the presigned URL
+      const a = document.createElement("a");
+      a.href = reconstruction.downloadUrl;
+      a.download = reconstruction.metadata?.filename || `reconstruction_${projectData.projectId}.tar`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      console.log(`[Export] Successfully initiated reconstruction download for project: ${projectData.projectId}`);
+    } catch (error) {
+      console.error("Error exporting reconstruction:", error);
+      alert("Failed to export reconstruction. Please try again.");
     }
   };
 
@@ -167,15 +208,30 @@ export function ProjectDashboardBar() {
 
               {/* Right - Action Buttons */}
               <div className="flex items-center gap-2">
+                {/* Export Segmentation Masks */}
                 <Button 
                   variant="outline" 
                   size="sm" 
                   className="h-8 text-xs" 
                   disabled={!hasMasks}
                   onClick={handleExportProject}
+                  title={hasMasks ? "Export segmentation masks as NIfTI" : "No segmentation masks available"}
                 >
                   <Download className="h-3 w-3 mr-1.5" />
-                  Export
+                  Export Masks
+                </Button>
+
+                {/* Export Reconstruction Meshes */}
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 text-xs" 
+                  disabled={!hasReconstructions}
+                  onClick={handleExportReconstruction}
+                  title={hasReconstructions ? "Export 4D reconstruction meshes as tar archive" : "No reconstructions available"}
+                >
+                  <Box className="h-3 w-3 mr-1.5" />
+                  Export 3D
                 </Button>
 
                 {/* Collapse button */}

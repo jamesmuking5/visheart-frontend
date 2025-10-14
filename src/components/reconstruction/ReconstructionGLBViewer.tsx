@@ -110,7 +110,7 @@ export function ReconstructionGLBViewer({
       ref={containerRef} 
       className={"relative rounded-lg border overflow-hidden bg-background " + className}
     >
-      <div className="absolute top-3 left-3 z-10 px-3 py-1 rounded-md bg-black/70 text-white text-xs font-semibold">
+      <div className="absolute top-3 left-3 z-10 px-3 py-2 rounded-md bg-black/70 text-white text-xs font-semibold">
         Frame {frame}
       </div>
       
@@ -157,7 +157,7 @@ export function ReconstructionGLBViewer({
         </Suspense>
       </Canvas>
       
-      <div className="absolute bottom-3 right-3 z-10 px-3 py-2 rounded-md bg-black/70 text-white text-xs">
+      <div className="absolute top-3 right-3 z-10 px-3 py-2 rounded-md bg-black/70 text-white text-xs">
         <p className="font-semibold">Controls:</p>
         <p>Left Click+Drag: Rotate</p>
         <p>Right Click+Drag: Pan</p>
