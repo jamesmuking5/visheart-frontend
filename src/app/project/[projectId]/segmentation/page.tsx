@@ -17,6 +17,7 @@ import { generateMaskKey } from "@/types/segmentation";
 import { useProject } from "@/context/ProjectContext";
 import { useSegmentationHistory } from "@/hooks/useSegmentationHistory";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { ReconstructionGLBViewer } from "@/components/reconstruction/ReconstructionGLBViewer";
 
 const ImageCanvas = dynamic(() => import("@/components/segmentation/image-canvas").then((mod) => mod.ImageCanvas), {
   ssr: false,
@@ -42,6 +43,9 @@ export default function SegmentationResultsPage() {
     tarCacheReady,
     tarCacheError,
     updateContextMasks,
+    hasReconstructions,
+    reconstructionCacheReady,
+    getReconstructionGLB,
   } = useProject();
 
   // Segmentation-specific state (not duplicated in context)
@@ -80,6 +84,40 @@ export default function SegmentationResultsPage() {
   const [currentSlice, setCurrentSlice] = useState(0);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [resetTrigger, setResetTrigger] = useState<number>(0);
+
+  // 3D Viewer state
+  const [reconstructionModelUrl, setReconstructionModelUrl] = useState<string | null>(null);
+  const [isLoadingModel, setIsLoadingModel] = useState(false);
+
+  // Load 3D reconstruction model when frame changes
+  useEffect(() => {
+    if (!hasReconstructions || !reconstructionCacheReady) {
+      setReconstructionModelUrl(null);
+      return;
+    }
+
+    const loadModel = async () => {
+      setIsLoadingModel(true);
+      try {
+        console.log(`[Segmentation 3D] Loading model for frame ${currentFrame}...`);
+        const url = await getReconstructionGLB(currentFrame);
+        if (url) {
+          console.log(`[Segmentation 3D] ✅ Loaded model for frame ${currentFrame}`);
+          setReconstructionModelUrl(url);
+        } else {
+          console.warn(`[Segmentation 3D] ❌ No model URL for frame ${currentFrame}`);
+          setReconstructionModelUrl(null);
+        }
+      } catch (error) {
+        console.error(`[Segmentation 3D] Error loading model:`, error);
+        setReconstructionModelUrl(null);
+      } finally {
+        setIsLoadingModel(false);
+      }
+    };
+
+    loadModel();
+  }, [currentFrame, hasReconstructions, reconstructionCacheReady, getReconstructionGLB]);
 
   // Reset zoom and position
   const handleReset = useCallback(() => {
@@ -453,29 +491,63 @@ export default function SegmentationResultsPage() {
           direction="horizontal" 
           className="h-full w-full rounded-xl border shadow-sm"
         >
-          {/* Canvas Panel */}
+          {/* Canvas Panel with vertical split for 3D viewer */}
           <ResizablePanel defaultSize={70} minSize={20}>
-            <div className="h-full w-full relative bg-muted/40 rounded-l-xl p-4 flex items-center justify-center">
-              <ImageCanvas
-                projectData={projectData}
-                decodedMasks={safeDecodedMasks}
-                onMaskUpdate={updateMasksWithHistory}
-                currentFrame={currentFrame}
-                currentSlice={currentSlice}
-                onFrameChange={setCurrentFrame}
-                onSliceChange={setCurrentSlice}
-                width={canvasDimensions.width}
-                height={canvasDimensions.height}
-                activeLabel={activeLabel}
-                visibleMasks={visibleMasks}
-                tool={tool}
-                brushSize={brushSize}
-                opacity={opacity}
-                zoomLevel={zoomLevel}
-                setZoomLevel={setZoomLevel}
-                resetTrigger={resetTrigger}
-              />
-            </div>
+            <ResizablePanelGroup direction="vertical">
+              {/* 2D Canvas (Top) */}
+              <ResizablePanel defaultSize={hasReconstructions ? 65 : 100} minSize={30}>
+                <div className="h-full w-full relative bg-muted/40 p-4 flex items-center justify-center">
+                  <ImageCanvas
+                    projectData={projectData}
+                    decodedMasks={safeDecodedMasks}
+                    onMaskUpdate={updateMasksWithHistory}
+                    currentFrame={currentFrame}
+                    currentSlice={currentSlice}
+                    onFrameChange={setCurrentFrame}
+                    onSliceChange={setCurrentSlice}
+                    width={canvasDimensions.width}
+                    height={canvasDimensions.height}
+                    activeLabel={activeLabel}
+                    visibleMasks={visibleMasks}
+                    tool={tool}
+                    brushSize={brushSize}
+                    opacity={opacity}
+                    zoomLevel={zoomLevel}
+                    setZoomLevel={setZoomLevel}
+                    resetTrigger={resetTrigger}
+                  />
+                </div>
+              </ResizablePanel>
+
+              {/* 3D Viewer (Bottom) - Only show if reconstructions exist */}
+              {hasReconstructions && (
+                <>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel defaultSize={35} minSize={20} maxSize={70}>
+                    <div className="h-full w-full bg-background p-4">
+                      <div className="h-full w-full flex flex-col">
+                        <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-sm font-semibold">3D Reconstruction</h3>
+                          {isLoadingModel && (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Loading model...
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-h-0">
+                          <ReconstructionGLBViewer
+                            modelUrl={reconstructionModelUrl}
+                            frame={currentFrame}
+                            className="w-full h-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </ResizablePanel>
+                </>
+              )}
+            </ResizablePanelGroup>
           </ResizablePanel>
 
           <ResizableHandle withHandle />
