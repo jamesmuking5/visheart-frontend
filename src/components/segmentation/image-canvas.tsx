@@ -1072,7 +1072,7 @@ export function ImageCanvas({
             variant={isPanningState ? "default" : "secondary"}
             className={cn( "px-2 py-1 text-xs font-medium shadow", )}
           >
-            {isPanningState ? "Panning — release mouse" : tool === "pan" ? "Pan mode" : isCtrlPressed ? "Hold Ctrl to pan (click+drag)" : "Hold Ctrl to pan"}
+            {isPanningState ? "Panning — release mouse" : tool === "pan" ? "Pan mode" : isCtrlPressed ? "Hold Ctrl to pan (click+drag)" : "Ctrl+Click or Right-Click to pan"}
           </Badge>
         </div>
 
