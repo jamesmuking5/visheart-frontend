@@ -31,6 +31,7 @@ function CameraController({ onCameraChange, initialState }: CameraControllerProp
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const controlsRef = useRef<any>(null);
   const hasRestoredRef = useRef(false);
+  const lastSavedStateRef = useRef<string>("");
 
   useEffect(() => {
     if (initialState && controlsRef.current && !hasRestoredRef.current) {
@@ -42,13 +43,20 @@ function CameraController({ onCameraChange, initialState }: CameraControllerProp
     }
   }, [initialState, camera]);
 
-  const handleChange = () => {
+  const handleChangeEnd = () => {
+    // Only save state when user finishes moving (not during movement)
     if (controlsRef.current) {
       const state: CameraState = {
         position: camera.position.toArray() as [number, number, number],
         target: controlsRef.current.target.toArray() as [number, number, number],
       };
-      onCameraChange(state);
+      
+      // Only update if state actually changed (prevents unnecessary re-renders)
+      const stateString = JSON.stringify(state);
+      if (stateString !== lastSavedStateRef.current) {
+        lastSavedStateRef.current = stateString;
+        onCameraChange(state);
+      }
     }
   };
 
@@ -58,8 +66,13 @@ function CameraController({ onCameraChange, initialState }: CameraControllerProp
       makeDefault
       enableZoom
       enablePan
+      enableRotate
       zoomSpeed={0.5}
-      onChange={handleChange}
+      panSpeed={0.5}
+      rotateSpeed={0.5}
+      enableDamping
+      dampingFactor={0.05}
+      onEnd={handleChangeEnd}
     />
   );
 }
@@ -104,9 +117,17 @@ export function ReconstructionGLBViewer({
       </div>
       
       <Canvas 
-        camera={{ position: [0, 0, 5], fov: 50 }} 
+        camera={{ 
+          position: [0, 0, 5], 
+          fov: 50,
+          near: 0.1,
+          far: 1000
+        }} 
         style={{ width: "100%", height: "100%" }} 
-        gl={{ antialias: true }}
+        gl={{ 
+          antialias: true,
+          alpha: true
+        }}
       >
         <Suspense 
           fallback={
@@ -118,8 +139,14 @@ export function ReconstructionGLBViewer({
         >
           <ambientLight intensity={0.5} />
           <directionalLight position={[10, 10, 5]} intensity={1} />
+          <directionalLight position={[-10, -10, -5]} intensity={0.5} />
           
-          <Stage intensity={0.5} environment="city" adjustCamera={1.5}>
+          <Stage 
+            intensity={0.5} 
+            environment="city" 
+            adjustCamera={false}
+            shadows={false}
+          >
             <GLBModel url={modelUrl} />
           </Stage>
           
