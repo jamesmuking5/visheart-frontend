@@ -28,6 +28,7 @@ import { ChevronDown, Settings, Sparkles } from "lucide-react";
 
 export interface ReconstructionConfig {
   exportFormat: "obj" | "glb";
+  edFrame: number; // 1-based frame index for user selection
   numIterations: number;
   resolution: number;
 }
@@ -37,6 +38,7 @@ interface ReconstructionConfigDialogProps {
   onOpenChange: (open: boolean) => void;
   onStart: (config: ReconstructionConfig) => void;
   isLoading?: boolean;
+  totalFrames?: number; // Total number of frames in the project
 }
 
 export function ReconstructionConfigDialog({
@@ -44,8 +46,10 @@ export function ReconstructionConfigDialog({
   onOpenChange,
   onStart,
   isLoading = false,
+  totalFrames = 1,
 }: ReconstructionConfigDialogProps) {
   const [exportFormat, setExportFormat] = useState<"obj" | "glb">("glb");
+  const [edFrame, setEdFrame] = useState(1);
   const [numIterations, setNumIterations] = useState(30);
   const [resolution, setResolution] = useState(32);
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -53,6 +57,7 @@ export function ReconstructionConfigDialog({
   const handleStart = () => {
     onStart({
       exportFormat,
+      edFrame,
       numIterations,
       resolution,
     });
@@ -103,6 +108,30 @@ export function ReconstructionConfigDialog({
             </Select>
             <p className="text-xs text-muted-foreground">
               GLB format provides better performance and smaller file sizes for web viewing
+            </p>
+          </div>
+
+          {/* ED Frame Selection */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="edFrame">End-Diastole (ED) Frame</Label>
+              <span className="text-sm font-mono text-muted-foreground">
+                Frame {edFrame}
+              </span>
+            </div>
+            <Input
+              id="edFrame"
+              type="number"
+              min={1}
+              max={totalFrames}
+              step={1}
+              value={edFrame}
+              onChange={(e) => setEdFrame(Math.max(1, Math.min(totalFrames, parseInt(e.target.value) || 1)))}
+              className="font-mono"
+            />
+            <p className="text-xs text-muted-foreground">
+              Select the cardiac end-diastole frame for 4D reconstruction (1-{totalFrames}).
+              This frame represents the relaxed state of the cardiac cycle.
             </p>
           </div>
 

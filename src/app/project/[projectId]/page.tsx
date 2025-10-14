@@ -56,7 +56,7 @@ import * as ProjectTypes from "@/types/project";
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
-  const { loading, projectData, error, hasMasks, undecodedMasks, jobs, jobsError, refreshMasks, hasReconstructions, refreshReconstructions } = useProject();
+  const { loading, projectData, error, hasMasks, undecodedMasks, jobs, jobsError, refreshMasks, hasReconstructions, reconstructionMetadata, refreshReconstructions } = useProject();
 
   // Local state for editing
   const [isEditing, setIsEditing] = useState(false);
@@ -256,6 +256,7 @@ export default function ProjectPage() {
       await reconstructionApi.startReconstruction(projectId, {
         reconstructionName: `4D Cardiac Reconstruction - ${projectData.name}`,
         reconstructionDescription: "Generated via configuration wizard",
+        ed_frame: config.edFrame, // Pass 1-based ED frame from user selection
         export_format: config.exportFormat, // Pass user's format choice to backend
         parameters: {
           num_iterations: config.numIterations,
@@ -846,6 +847,85 @@ export default function ProjectPage() {
               </CardContent>
             </Card>
 
+            {/* Reconstruction Details Section - NEW */}
+            {hasReconstructions && reconstructionMetadata && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Box className="h-4 w-4" />
+                      4D Reconstruction
+                    </CardTitle>
+                    <Badge variant="default">Available</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Status Indicator */}
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+                      <Sparkles className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">Model Ready</p>
+                        <p className="text-xs text-muted-foreground">4D cardiac reconstruction available</p>
+                      </div>
+                    </div>
+
+                    {/* Reconstruction Parameters Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">ED Frame</p>
+                        <p className="text-sm font-mono font-semibold">
+                          Frame {reconstructionMetadata.metadata?.edFrameIndex || 1}
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Mesh Format</p>
+                        <p className="text-sm font-mono font-semibold uppercase">
+                          {reconstructionMetadata.meshFormat || 'GLB'}
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Resolution</p>
+                        <p className="text-sm font-mono">
+                          {reconstructionMetadata.metadata?.resolution || 32}³
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Iterations</p>
+                        <p className="text-sm font-mono">
+                          {reconstructionMetadata.metadata?.numIterations || 30}
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-1 col-span-2">
+                        <p className="text-xs text-muted-foreground">Mesh Size</p>
+                        <p className="text-sm font-semibold">
+                          {reconstructionMetadata.meshFileSize 
+                            ? `${(reconstructionMetadata.meshFileSize / 1024 / 1024).toFixed(2)} MB`
+                            : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Processing Time (if available) */}
+                    {reconstructionMetadata.metadata?.reconstructionTime && (
+                      <div className="pt-2 border-t">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Processing Time</span>
+                          <span className="font-mono font-medium">
+                            {reconstructionMetadata.metadata.reconstructionTime.toFixed(1)}s
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Jobs Section - Redesigned */}
             <Card>
               <CardHeader className="pb-3">
@@ -966,6 +1046,16 @@ export default function ProjectPage() {
         onOpenChange={setShowReconstructionDialog}
         onStart={handleStartReconstruction}
         isLoading={isStartingReconstruction}
+        totalFrames={projectData?.dimensions?.frames || 1}
+      />
+
+      {/* Reconstruction Configuration Dialog */}
+      <ReconstructionConfigDialog
+        open={showReconstructionDialog}
+        onOpenChange={setShowReconstructionDialog}
+        onStart={handleStartReconstruction}
+        isLoading={isStartingReconstruction}
+        totalFrames={projectData?.dimensions?.frames || 1}
       />
 
       {/* Delete Confirmation Dialog */}
