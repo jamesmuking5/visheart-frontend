@@ -1,17 +1,64 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useProject } from "@/context/ProjectContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Heart, Clock, CheckCircle2, XCircle, AlertCircle, Database, Activity, Download, Settings, ChevronUp, ChevronDown } from "lucide-react";
+import { 
+  Heart, 
+  Clock, 
+  CheckCircle2, 
+  XCircle, 
+  AlertCircle, 
+  Database, 
+  Activity, 
+  Download, 
+  ChevronUp, 
+  ChevronDown,
+  Layers,
+  Box,
+  Image as ImageIcon,
+  Sparkles
+} from "lucide-react";
 import { segmentationApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export function ProjectDashboardBar() {
-  const { projectData, loading, hasMasks, undecodedMasks, jobs, error } = useProject();
+  const { 
+    projectData, 
+    loading, 
+    hasMasks, 
+    undecodedMasks, 
+    jobs, 
+    error,
+    hasReconstructions,
+    reconstructionMetadata,
+    reconstructionCacheReady,
+    reconstructionCacheError
+  } = useProject();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const lastScrollY = useRef(0);
+
+  // Auto-hide on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Hide if scrolling down and not already collapsed
+      if (currentScrollY > lastScrollY.current && currentScrollY > 50 && !isCollapsed) {
+        setIsCollapsed(true);
+      }
+      
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isCollapsed]);
 
   if (!projectData) return null;
 
@@ -44,11 +91,12 @@ export function ProjectDashboardBar() {
     }
   };
 
-  // Get status info
+  // Get overall project status
   const getProjectStatus = () => {
     if (error) return { status: "error", icon: XCircle, color: "destructive" as const, text: "Error" };
     if (loading !== "done") return { status: "loading", icon: Clock, color: "secondary" as const, text: "Loading" };
-    if (hasMasks) return { status: "completed", icon: CheckCircle2, color: "default" as const, text: "Ready" };
+    if (hasMasks && hasReconstructions) return { status: "complete", icon: Sparkles, color: "default" as const, text: "Complete" };
+    if (hasMasks) return { status: "segmented", icon: CheckCircle2, color: "default" as const, text: "Segmented" };
 
     // Check job status
     const runningJobs = jobs?.filter((job) => job.status === "in_progress") || [];
@@ -60,8 +108,11 @@ export function ProjectDashboardBar() {
   const statusInfo = getProjectStatus();
   const StatusIcon = statusInfo.icon;
 
-  // Get mask count from actual mask data, not jobs
+  // Get mask count
   const maskCount = hasMasks ? undecodedMasks?.length || 0 : 0;
+
+  // Get reconstruction info
+  const reconstructionFrameCount = reconstructionMetadata?.frameCount || projectData.dimensions?.frames || 0;
 
   return (
     <>
@@ -69,84 +120,184 @@ export function ProjectDashboardBar() {
       <div 
         className={cn(
           "sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-all duration-300 ease-in-out overflow-hidden",
-          isCollapsed ? "max-h-0 opacity-0 border-b-0" : "max-h-24 opacity-100"
+          isCollapsed ? "max-h-0 opacity-0 border-b-0" : "max-h-40 opacity-100"
         )}
       >
-        <div className="container mx-auto px-6 py-3">
-          <div className="flex items-center justify-between">
-            {/* Left side - Project info */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Heart className="h-5 w-5 text-red-500" />
-                <div className="flex flex-col">
-                  <h1 className="font-semibold text-sm leading-none">{projectData.name}</h1>
-                  <p className="text-xs text-muted-foreground mt-0.5">{projectData.description}</p>
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex flex-col gap-3">
+            {/* Top Row - Project Info & Actions */}
+            <div className="flex items-center justify-between">
+              {/* Left - Project Name & Status */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Heart className="h-5 w-5 text-red-500" />
+                  <div className="flex flex-col">
+                    <h1 className="font-semibold text-sm leading-none">{projectData.name}</h1>
+                    {projectData.description && (
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{projectData.description}</p>
+                    )}
+                  </div>
+                </div>
+
+                <Separator orientation="vertical" className="h-10" />
+
+                {/* Overall Status */}
+                <div className="flex items-center gap-2">
+                  <StatusIcon className="h-4 w-4" />
+                  <Badge variant={statusInfo.color} className="text-xs">
+                    {statusInfo.text}
+                  </Badge>
                 </div>
               </div>
 
-              <Separator orientation="vertical" className="h-8" />
-
-              {/* Status badge */}
+              {/* Right - Action Buttons */}
               <div className="flex items-center gap-2">
-                <StatusIcon className="h-4 w-4" />
-                <Badge variant={statusInfo.color} className="text-xs">
-                  {statusInfo.text}
-                </Badge>
-              </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 text-xs" 
+                  disabled={!hasMasks}
+                  onClick={handleExportProject}
+                >
+                  <Download className="h-3 w-3 mr-1.5" />
+                  Export
+                </Button>
 
-              {/* Quick stats */}
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Database className="h-3 w-3" />
-                  <span>
-                    {projectData.dimensions?.width}×{projectData.dimensions?.height}
-                  </span>
-                </div>
-
-                {hasMasks && (
-                  <div className="flex items-center gap-1">
-                    <CheckCircle2 className="h-3 w-3 text-green-600" />
-                    <span>{maskCount} masks</span>
-                  </div>
-                )}
-
-                {jobs && jobs.length > 0 && (
-                  <div className="flex items-center gap-1">
-                    <Activity className="h-3 w-3" />
-                    <span>{jobs.length} jobs</span>
-                  </div>
-                )}
+                {/* Collapse button */}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  onClick={() => setIsCollapsed(true)}
+                  aria-label="Hide dashboard"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </Button>
               </div>
             </div>
 
-            {/* Right side - Actions */}
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-8 text-xs" 
-                disabled={!hasMasks}
-                onClick={handleExportProject}
-              >
-                <Download className="h-3 w-3 mr-1" />
-                Export
-              </Button>
+            {/* Bottom Row - Statistics Grid */}
+            <div className="grid grid-cols-5 gap-4">
+              {/* Dataset Info */}
+              <div className="flex flex-col gap-1 px-3 py-2 rounded-lg bg-muted/50 border">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Database className="h-3 w-3" />
+                  <span className="text-xs font-medium">Dataset</span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-semibold">
+                    {projectData.dimensions?.width}×{projectData.dimensions?.height}
+                  </span>
+                  <span className="text-xs text-muted-foreground">px</span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {projectData.dimensions?.frames || 0} frames · {projectData.dimensions?.slices || 0} slices
+                </div>
+              </div>
 
-              <Button variant="outline" size="sm" className="h-8 text-xs" disabled>
-                <Settings className="h-3 w-3 mr-1" />
-                Settings
-              </Button>
+              {/* Segmentation Status */}
+              <div className="flex flex-col gap-1 px-3 py-2 rounded-lg bg-muted/50 border">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Layers className="h-3 w-3" />
+                  <span className="text-xs font-medium">Segmentation</span>
+                </div>
+                {hasMasks ? (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                      <span className="text-sm font-semibold">{maskCount} masks</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">Ready for editing</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                      <span className="text-sm font-semibold">Not started</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">Start segmentation</div>
+                  </>
+                )}
+              </div>
 
-              {/* Collapse button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                onClick={() => setIsCollapsed(true)}
-                aria-label="Hide dashboard"
-              >
-                <ChevronUp className="h-4 w-4" />
-              </Button>
+              {/* 4D Reconstruction Status */}
+              <div className="flex flex-col gap-1 px-3 py-2 rounded-lg bg-muted/50 border">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Box className="h-3 w-3" />
+                  <span className="text-xs font-medium">3D Models</span>
+                </div>
+                {hasReconstructions ? (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      {reconstructionCacheReady ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                      ) : reconstructionCacheError ? (
+                        <XCircle className="h-3.5 w-3.5 text-red-600" />
+                      ) : (
+                        <Clock className="h-3.5 w-3.5 text-blue-600 animate-pulse" />
+                      )}
+                      <span className="text-sm font-semibold">{reconstructionFrameCount} frames</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {reconstructionCacheReady ? "Cached" : reconstructionCacheError ? "Cache error" : "Loading..."}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                      <span className="text-sm font-semibold">Not created</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">Create reconstruction</div>
+                  </>
+                )}
+              </div>
+
+              {/* Processing Jobs */}
+              <div className="flex flex-col gap-1 px-3 py-2 rounded-lg bg-muted/50 border">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Activity className="h-3 w-3" />
+                  <span className="text-xs font-medium">Active Jobs</span>
+                </div>
+                {jobs && jobs.length > 0 ? (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <Activity className="h-3.5 w-3.5 text-blue-600 animate-pulse" />
+                      <span className="text-sm font-semibold">{jobs.length} running</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {jobs.filter(j => j.status === "in_progress").length} in progress
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-sm font-semibold">None</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">No active jobs</div>
+                  </>
+                )}
+              </div>
+
+              {/* File Size Info */}
+              <div className="flex flex-col gap-1 px-3 py-2 rounded-lg bg-muted/50 border">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <ImageIcon className="h-3 w-3" />
+                  <span className="text-xs font-medium">Storage</span>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-semibold">
+                    {reconstructionMetadata?.meshFileSize 
+                      ? `${(reconstructionMetadata.meshFileSize / 1024 / 1024).toFixed(1)} MB`
+                      : "—"
+                    }
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {reconstructionMetadata?.meshFormat || "GLB"} format
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -162,17 +313,36 @@ export function ProjectDashboardBar() {
         <Button
           variant="secondary"
           size="sm"
-          className="h-12 px-3 rounded-lg shadow-lg border bg-background/95 backdrop-blur hover:bg-accent"
+          className="h-10 px-4 rounded-lg shadow-lg border bg-background/95 backdrop-blur hover:bg-accent"
           onClick={() => setIsCollapsed(false)}
           aria-label="Show dashboard"
         >
-          <Heart className="h-3 w-3 text-red-500 mr-1.5" />
+          <Heart className="h-3.5 w-3.5 text-red-500 mr-2" />
           <span className="text-xs font-medium">{projectData.name}</span>
-          <Separator orientation="vertical" className="h-3 mx-2" />
-          <Badge variant={statusInfo.color} className="text-xs h-5 px-1.5">
-            {statusInfo.text}
-          </Badge>
-          <ChevronDown className="h-3 w-3 ml-1.5" />
+          <Separator orientation="vertical" className="h-4 mx-3" />
+          
+          {/* Mini status indicators */}
+          <div className="flex items-center gap-2">
+            <Badge variant={statusInfo.color} className="text-xs h-5 px-2">
+              {statusInfo.text}
+            </Badge>
+            
+            {hasMasks && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Layers className="h-3 w-3" />
+                <span>{maskCount}</span>
+              </div>
+            )}
+            
+            {hasReconstructions && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Box className="h-3 w-3" />
+                <span>{reconstructionFrameCount}</span>
+              </div>
+            )}
+          </div>
+          
+          <ChevronDown className="h-3.5 w-3.5 ml-2" />
         </Button>
       </div>
     </>
