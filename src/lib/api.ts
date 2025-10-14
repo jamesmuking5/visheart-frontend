@@ -480,6 +480,21 @@ export const reconstructionApi = {
       throw error;
     }
   },
+
+  // Delete all reconstructions for a project
+  deleteProjectReconstructions: async (projectId: string) => {
+    console.log('[API] Deleting all reconstructions for project:', projectId);
+    try {
+      const response = await api.delete(
+        `/reconstruction/delete-project-reconstructions/${projectId}`
+      );
+      console.log('[API] Delete reconstructions response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[API] Delete reconstructions error:', error);
+      throw error;
+    }
+  },
 };
 
 // Define interfaces for the admin-specific responses

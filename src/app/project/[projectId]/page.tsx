@@ -73,6 +73,8 @@ export default function ProjectPage() {
   const [showReconstructionDialog, setShowReconstructionDialog] = useState(false);
   const [isStartingReconstruction, setIsStartingReconstruction] = useState(false);
   const [reconstructionError, setReconstructionError] = useState<string | null>(null);
+  const [isDeletingReconstruction, setIsDeletingReconstruction] = useState(false);
+  const [deleteReconstructionDialogOpen, setDeleteReconstructionDialogOpen] = useState(false);
 
   // Delete state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -285,6 +287,39 @@ export default function ProjectPage() {
       );
     } finally {
       setIsStartingReconstruction(false);
+    }
+  };
+
+  // Handle delete reconstructions
+  const handleDeleteReconstructions = async () => {
+    console.log("[Project] Deleting all reconstructions for project:", projectId);
+    setIsDeletingReconstruction(true);
+
+    try {
+      const reconstructionApi = await import("@/lib/api").then(m => m.reconstructionApi);
+      
+      const result = await reconstructionApi.deleteProjectReconstructions(projectId);
+      
+      console.log("[Project] ✅ Reconstructions deleted successfully:", result);
+      
+      // Close dialog
+      setDeleteReconstructionDialogOpen(false);
+      
+      // Refresh reconstructions to update UI
+      await refreshReconstructions();
+      
+      // Reload page to update storage stats
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: unknown) {
+      console.error("[Project] ❌ Error deleting reconstructions:", error);
+      alert(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 
+        "Failed to delete reconstructions. Please try again."
+      );
+    } finally {
+      setIsDeletingReconstruction(false);
     }
   };
 
@@ -630,18 +665,29 @@ export default function ProjectPage() {
                             onClick={() => setShowReconstructionDialog(true)}
                             size="lg"
                             className="justify-start h-auto py-4"
+                            disabled={hasReconstructions}
                           >
                             <div className="flex items-center gap-3 w-full">
                               <Sparkles className="h-5 w-5" />
                               <div className="text-left flex-1">
-                                <p className="font-semibold">Create 4D Reconstruction</p>
-                                <p className="text-xs opacity-90">Generate 3D mesh models from segmentation</p>
+                                <p className="font-semibold">
+                                  {hasReconstructions ? 'Reconstruction Exists' : 'Create 4D Reconstruction'}
+                                </p>
+                                <p className="text-xs opacity-90">
+                                  {hasReconstructions 
+                                    ? 'Delete existing reconstruction to create a new one' 
+                                    : 'Generate 3D mesh models from segmentation'}
+                                </p>
                               </div>
                             </div>
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Build animated 4D cardiac models for visualization and analysis</p>
+                          <p>
+                            {hasReconstructions 
+                              ? 'Only one reconstruction allowed - delete the existing one first' 
+                              : 'Build animated 4D cardiac models for visualization and analysis'}
+                          </p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -864,10 +910,30 @@ export default function ProjectPage() {
                     {/* Status Indicator */}
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
                       <Sparkles className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                      <div>
+                      <div className="flex-1">
                         <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">Model Ready</p>
                         <p className="text-xs text-muted-foreground">4D cardiac reconstruction available</p>
                       </div>
+                      {/* Delete Button */}
+                      <ShowForRegisteredUser>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDeleteReconstructionDialogOpen(true)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete reconstruction to create a new one</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </ShowForRegisteredUser>
                     </div>
 
                     {/* Reconstruction Parameters Grid */}
@@ -1049,16 +1115,48 @@ export default function ProjectPage() {
         totalFrames={projectData?.dimensions?.frames || 1}
       />
 
-      {/* Reconstruction Configuration Dialog */}
-      <ReconstructionConfigDialog
-        open={showReconstructionDialog}
-        onOpenChange={setShowReconstructionDialog}
-        onStart={handleStartReconstruction}
-        isLoading={isStartingReconstruction}
-        totalFrames={projectData?.dimensions?.frames || 1}
-      />
+      {/* Delete Reconstruction Confirmation Dialog */}
+      <AlertDialog open={deleteReconstructionDialogOpen} onOpenChange={setDeleteReconstructionDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Reconstruction</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                Are you sure you want to delete the 4D reconstruction for &quot;{currentProjectName}&quot;?
+              </p>
+              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-amber-900 dark:text-amber-100">
+                  <strong>Note:</strong> This will permanently delete all mesh files and reconstruction data. 
+                  You can create a new reconstruction after editing your segmentation masks.
+                </p>
+              </div>
+              <p className="font-semibold text-sm">This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingReconstruction}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteReconstructions} 
+              disabled={isDeletingReconstruction}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingReconstruction ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Reconstruction
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Project Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
