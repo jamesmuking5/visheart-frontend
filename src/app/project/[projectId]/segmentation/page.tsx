@@ -454,7 +454,7 @@ export default function SegmentationResultsPage() {
           className="h-full w-full rounded-xl border shadow-sm"
         >
           {/* Canvas Panel */}
-          <ResizablePanel defaultSize={70} minSize={40}>
+          <ResizablePanel defaultSize={70} minSize={20}>
             <div className="h-full w-full relative bg-muted/40 rounded-l-xl p-4 flex items-center justify-center">
               <ImageCanvas
                 projectData={projectData}
@@ -481,7 +481,7 @@ export default function SegmentationResultsPage() {
           <ResizableHandle withHandle />
 
           {/* Sidebar Panel */}
-          <ResizablePanel defaultSize={30} minSize={20} maxSize={40}>
+          <ResizablePanel defaultSize={30} minSize={20} maxSize={80}>
             <div className="h-full w-full bg-background">
               <SegmentationSidebar
                 projectData={projectData}
