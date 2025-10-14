@@ -49,7 +49,6 @@ import { LoadingProject } from "@/components/project/LoadingProject";
 import { ShowForUser, ShowForRegisteredUser } from "@/components/RoleGuard";
 import { AffineMatrixDisplay } from "@/components/ui/AffineMatrixDisplay";
 import { ReconstructionConfigDialog, ReconstructionConfig } from "@/components/reconstruction/ReconstructionConfigDialog";
-import { DebugMRIViewer } from "@/components/project/DebugMRIViewer";
 
 // Types
 import * as ProjectTypes from "@/types/project";
@@ -82,6 +81,10 @@ export default function ProjectPage() {
   // Segmentation state
   const [isStartingSegmentation, setIsStartingSegmentation] = useState(false);
   const [segmentationError, setSegmentationError] = useState<string | null>(null);
+
+  // Revert to AI state
+  const [revertDialogOpen, setRevertDialogOpen] = useState(false);
+  const [isReverting, setIsReverting] = useState(false);
 
   // Reconstruction state
   const [showReconstructionDialog, setShowReconstructionDialog] = useState(false);
@@ -260,6 +263,54 @@ export default function ProjectPage() {
     }
   };
 
+  // Handle revert to AI mask
+  const handleRevertToAI = async () => {
+    console.log("[Project] Reverting editable mask to AI-generated mask");
+    setIsReverting(true);
+
+    try {
+      // 1. Find AI mask and editable mask
+      const aiMask = undecodedMasks?.find(mask => mask.isMedSAMOutput === true);
+      const editableMask = undecodedMasks?.find(mask => mask.isMedSAMOutput === false);
+
+      if (!aiMask || !editableMask) {
+        console.error("[Project] Could not find AI or editable mask");
+        alert("Could not find masks to revert. Please try again.");
+        return;
+      }
+
+      // 2. Copy AI mask's frames to editable mask
+      const revertData = {
+        frames: aiMask.frames, // Full frame array with slices and RLE data
+      };
+
+      console.log("[Project] Copying AI mask frames to editable mask:", {
+        aiMaskId: aiMask._id,
+        editableMaskId: editableMask._id,
+        frameCount: aiMask.frames?.length || 0,
+      });
+
+      // 3. Use existing saveManualSegmentation API
+      await segmentationApi.saveManualSegmentation(projectId, revertData);
+
+      console.log("[Project] ✅ Successfully reverted to AI mask");
+
+      // 4. Reload window to show updated masks
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (error: unknown) {
+      console.error("[Project] ❌ Error reverting to AI mask:", error);
+      alert(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 
+        "Failed to revert to AI mask. Please try again."
+      );
+    } finally {
+      setIsReverting(false);
+      setRevertDialogOpen(false);
+    }
+  };
+
   // Handle start reconstruction
   const handleStartReconstruction = async (config: ReconstructionConfig) => {
     console.log("[Project] Starting 4D reconstruction with config:", config);
@@ -349,15 +400,9 @@ export default function ProjectPage() {
   // Check if there are any active jobs (pending or in progress)
   const hasActiveJobs = (jobs || []).some((job) => job.status === ProjectTypes.JobStatus.PENDING || job.status === ProjectTypes.JobStatus.IN_PROGRESS);
 
-  // Get mask statistics
-  const maskStats = undecodedMasks
-    ? {
-        total: undecodedMasks.length,
-        aiGenerated: undecodedMasks.filter((mask) => mask.isMedSAMOutput).length,
-        manual: undecodedMasks.filter((mask) => !mask.isMedSAMOutput).length,
-        saved: undecodedMasks.filter((mask) => mask.isSaved).length,
-      }
-    : null;
+  // Get editable mask (the one users interact with)
+  const editableMask = undecodedMasks?.find((mask) => !mask.isMedSAMOutput);
+  const maskIsSaved = editableMask?.isSaved || false;
 
   // Use local state if available (for optimistic updates), otherwise use project data
   const currentProjectName = localProjectName !== null ? localProjectName : projectData.name;
@@ -650,6 +695,26 @@ export default function ProjectPage() {
                 <CardContent className="space-y-4">
                   <TooltipProvider>
                     <div className="grid gap-3">
+                      {/* Preview Dataset */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button asChild variant="outline" size="lg" className="justify-start h-auto py-4">
+                            <Link href={`/project/${projectId}/preview`}>
+                              <div className="flex items-center gap-3 w-full">
+                                <Eye className="h-5 w-5 text-muted-foreground" />
+                                <div className="text-left flex-1">
+                                  <p className="font-semibold">Preview Dataset</p>
+                                  <p className="text-xs text-muted-foreground">View raw MRI images without masks. Optimized for quick previewing and navigation.</p>
+                                </div>
+                              </div>
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Browse through all frames and slices of your dataset</p>
+                        </TooltipContent>
+                      </Tooltip>
+
                       {/* Edit Segmentation */}
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -660,7 +725,7 @@ export default function ProjectPage() {
                                 <div className="text-left flex-1">
                                   <p className="font-semibold">Edit Segmentation Masks</p>
                                   <p className="text-xs text-muted-foreground">
-                                    {maskStats?.total || 0} masks ready • Refine with brush tools
+                                    Refine with brush tools and manual adjustments
                                   </p>
                                 </div>
                               </div>
@@ -734,6 +799,26 @@ export default function ProjectPage() {
                 <CardContent className="space-y-4">
                   <TooltipProvider>
                     <div className="grid gap-3">
+                      {/* Preview Dataset */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button asChild variant="outline" size="lg" className="justify-start h-auto py-4">
+                            <Link href={`/project/${projectId}/preview`}>
+                              <div className="flex items-center gap-3 w-full">
+                                <Eye className="h-5 w-5 text-muted-foreground" />
+                                <div className="text-left flex-1">
+                                  <p className="font-semibold">Preview Dataset</p>
+                                  <p className="text-xs text-muted-foreground">View raw MRI images without masks</p>
+                                </div>
+                              </div>
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Browse through all frames and slices of your dataset</p>
+                        </TooltipContent>
+                      </Tooltip>
+
                       {/* Edit Segmentation */}
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -744,7 +829,7 @@ export default function ProjectPage() {
                                 <div className="text-left flex-1">
                                   <p className="font-semibold">Edit Segmentation Masks</p>
                                   <p className="text-xs text-muted-foreground">
-                                    {maskStats?.total || 0} masks • Refine and update
+                                    Refine and update segmentation data
                                   </p>
                                 </div>
                               </div>
@@ -862,36 +947,47 @@ export default function ProjectPage() {
                     <Layers className="h-4 w-4" />
                     Segmentation
                   </CardTitle>
-                  {hasMasks && <Badge variant="secondary">{maskStats?.total || 0}</Badge>}
+                  {hasMasks && (
+                    <Badge variant={maskIsSaved ? "default" : "secondary"}>
+                      {maskIsSaved ? "Saved" : "Unsaved"}
+                    </Badge>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
-                {hasMasks && maskStats ? (
+                {hasMasks ? (
                   <div className="space-y-4">
                     {/* Status Indicator */}
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
                       <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                      <div>
+                      <div className="flex-1">
                         <p className="text-sm font-semibold text-green-900 dark:text-green-100">Masks Available</p>
                         <p className="text-xs text-muted-foreground">Ready for editing and reconstruction</p>
                       </div>
                     </div>
 
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className="p-2 rounded-lg bg-muted/50">
-                        <p className="text-lg font-bold">{maskStats.aiGenerated}</p>
-                        <p className="text-xs text-muted-foreground">AI Generated</p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-muted/50">
-                        <p className="text-lg font-bold">{maskStats.manual}</p>
-                        <p className="text-xs text-muted-foreground">Edited</p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-muted/50">
-                        <p className="text-lg font-bold">{maskStats.saved}</p>
-                        <p className="text-xs text-muted-foreground">Saved</p>
-                      </div>
-                    </div>
+                    {/* Reset Masks Button */}
+                    <ShowForRegisteredUser>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setRevertDialogOpen(true)}
+                              disabled={isReverting}
+                              className="w-full text-xs"
+                            >
+                              <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                              Reset Masks
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Reset all edits and restore original AI-generated masks</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </ShowForRegisteredUser>
                   </div>
                 ) : (
                   <div className="text-center py-6 space-y-2">
@@ -1199,6 +1295,46 @@ export default function ProjectPage() {
                 </>
               ) : (
                 "Delete Permanently"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Revert to AI Confirmation Dialog */}
+      <AlertDialog open={revertDialogOpen} onOpenChange={setRevertDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Masks to AI Segmentation?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                This will replace <strong>all your manual edits</strong> with the original AI-generated segmentation masks for &quot;{currentProjectName}&quot;.
+              </p>
+              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-amber-900 dark:text-amber-100">
+                  <strong>Warning:</strong> Any brush edits, refinements, or manual adjustments you&apos;ve made will be permanently lost.
+                </p>
+              </div>
+              <p className="font-semibold text-sm">This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isReverting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleRevertToAI} 
+              disabled={isReverting}
+              className="bg-amber-600 text-white hover:bg-amber-700"
+            >
+              {isReverting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reset Masks
+                </>
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

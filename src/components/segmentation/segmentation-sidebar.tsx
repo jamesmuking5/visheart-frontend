@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Brush, History, Save, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Brush, History, Save, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Import shared types and constants
@@ -419,6 +419,7 @@ export function SegmentationSidebar({
   hasUnsavedChanges,
   isSaving = false,
   onSave,
+  onRevert,
   currentFrame,
   currentSlice,
   totalFrames,
@@ -475,21 +476,38 @@ export function SegmentationSidebar({
 
       {/* Save Button - Moved to top for better accessibility */}
       <div className="p-4 border-b border-[var(--sidebar-border)]">
-        <Button 
-          onClick={onSave}
-          disabled={saveButtonConfig.disabled}
-          className="w-full transition-colors justify-start text-xs"
-          variant={saveButtonConfig.variant}
-          aria-label={`${saveButtonConfig.text} - ${hasUnsavedChanges ? 'Click to save your changes' : 'All changes are saved'}`}
-        >
-          {isSaving ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
+        <div className="flex gap-2">
+          {/* Save Button - Left */}
+          <Button 
+            onClick={onSave}
+            disabled={saveButtonConfig.disabled}
+            className="flex-1 transition-colors justify-start text-xs"
+            variant={saveButtonConfig.variant}
+            aria-label={`${saveButtonConfig.text} - ${hasUnsavedChanges ? 'Click to save your changes' : 'All changes are saved'}`}
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            {saveButtonConfig.text}
+            {!isSaving && <span className="text-xs text-muted-foreground ml-auto">Ctrl+S</span>}
+          </Button>
+
+          {/* Reset Masks Button - Right */}
+          {onRevert && (
+            <Button 
+              onClick={onRevert}
+              disabled={isSaving}
+              className="transition-colors text-xs px-3"
+              variant="outline"
+              aria-label="Reset all edits to original AI-generated segmentation"
+              title="Reset to AI Segmentation"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           )}
-          {saveButtonConfig.text}
-          {!isSaving && <span className="text-xs text-muted-foreground ml-auto">Ctrl+S</span>}
-        </Button>
+        </div>
       </div>
 
       {/* Sidebar Content with proper error boundaries */}

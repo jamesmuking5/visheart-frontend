@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { useState, useCallback, useRef, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -14,10 +14,12 @@ import { ErrorProject } from "@/components/project/ErrorProject";
 import { SegmentationSidebar } from "@/components/segmentation/segmentation-sidebar";
 import type { AnatomicalLabel, HistoryEntry, DrawingTool } from "@/types/segmentation";
 import { generateMaskKey } from "@/types/segmentation";
+import type * as ProjectTypes from "@/types/project";
 import { useProject } from "@/context/ProjectContext";
 import { useSegmentationHistory } from "@/hooks/useSegmentationHistory";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ReconstructionGLBViewer } from "@/components/reconstruction/ReconstructionGLBViewer";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const ImageCanvas = dynamic(() => import("@/components/segmentation/image-canvas").then((mod) => mod.ImageCanvas), {
   ssr: false,
@@ -38,6 +40,7 @@ export default function SegmentationResultsPage() {
     error,
     projectData,
     decodedMasks: contextDecodedMasks,
+    undecodedMasks,
     hasMasks,
     segmentationError,
     tarCacheReady,
@@ -97,6 +100,7 @@ export default function SegmentationResultsPage() {
   const [currentSlice, setCurrentSlice] = useState(0);
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [resetTrigger, setResetTrigger] = useState<number>(0);
+  const [revertDialogOpen, setRevertDialogOpen] = useState(false);
 
   // 3D Viewer state
   const [reconstructionModelUrl, setReconstructionModelUrl] = useState<string | null>(null);
@@ -369,6 +373,49 @@ export default function SegmentationResultsPage() {
     }
   }, [decodedMasks, projectId, isSaving, updateContextMasks]);
 
+  // Revert to AI Handler - copies AI mask data to editable mask and saves
+  const handleRevertToAI = useCallback(async () => {
+    if (!projectId || isSaving || !undecodedMasks) return;
+
+    setIsSaving(true);
+    try {
+      // 1. Find AI mask and editable mask from context
+      const aiMask = undecodedMasks.find((mask: ProjectTypes.BaseSegmentationMask) => mask.isMedSAMOutput === true);
+      const editableMask = undecodedMasks.find((mask: ProjectTypes.BaseSegmentationMask) => mask.isMedSAMOutput === false);
+
+      if (!aiMask || !editableMask) {
+        console.error("[Segmentation] Could not find AI or editable mask");
+        alert("Could not find masks to revert. Please try again.");
+        return;
+      }
+
+      console.log("[Segmentation] Reverting to AI mask:", {
+        aiMaskId: aiMask._id,
+        editableMaskId: editableMask._id,
+        frameCount: aiMask.frames?.length || 0,
+      });
+
+      // 2. Copy AI mask's frames to editable mask using existing save API
+      const revertData = {
+        frames: aiMask.frames, // Full frame array with slices and RLE data
+      };
+
+      await segmentationApi.saveManualSegmentation(projectId, revertData);
+
+      console.log("[Segmentation] ✅ Successfully reverted to AI mask");
+
+      // 3. Reload window to refresh all mask data
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (err) {
+      console.error("[Segmentation] ❌ Error reverting to AI mask:", err);
+      alert("Failed to revert to AI mask. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [projectId, isSaving, undecodedMasks]);
+
   // Keyboard shortcuts handler
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -590,6 +637,7 @@ export default function SegmentationResultsPage() {
                 hasUnsavedChanges={hasUnsavedChanges}
                 isSaving={isSaving}
                 onSave={handleSave}
+                onRevert={() => setRevertDialogOpen(true)}
                 currentFrame={currentFrame}
                 currentSlice={currentSlice}
                 totalFrames={projectData.dimensions?.frames || 1}
@@ -608,6 +656,46 @@ export default function SegmentationResultsPage() {
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
+
+      {/* Revert to AI Confirmation Dialog */}
+      <AlertDialog open={revertDialogOpen} onOpenChange={setRevertDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Masks to AI Segmentation?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                This will replace <strong>all your manual edits</strong> with the original AI-generated segmentation masks for &quot;{projectData?.name}&quot;.
+              </p>
+              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-amber-900 dark:text-amber-100">
+                  <strong>Warning:</strong> Any brush edits, refinements, or manual adjustments you&apos;ve made will be permanently lost.
+                </p>
+              </div>
+              <p className="font-semibold text-sm">This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSaving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleRevertToAI} 
+              disabled={isSaving}
+              className="bg-amber-600 text-white hover:bg-amber-700"
+            >
+              {isSaving ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reset Masks
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

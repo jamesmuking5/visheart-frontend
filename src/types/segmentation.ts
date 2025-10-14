@@ -124,6 +124,7 @@ export interface SegmentationSidebarProps {
   hasUnsavedChanges: boolean;
   isSaving?: boolean;
   onSave: () => void;
+  onRevert?: () => void; // New: Revert to AI mask handler
   currentFrame: number;
   currentSlice: number;
   totalFrames: number;
