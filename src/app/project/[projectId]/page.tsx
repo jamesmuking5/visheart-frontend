@@ -18,9 +18,29 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 // Icons
-import { Play, Eye, Edit, Save, X, RefreshCw, FileText, Database, CheckCircle, XCircle, Clock, AlertCircle, Image as ImageIcon, Activity, Layers } from "lucide-react";
+import { 
+  Play, 
+  Eye, 
+  Edit, 
+  Save, 
+  X, 
+  RefreshCw, 
+  Database, 
+  CheckCircle, 
+  XCircle, 
+  Clock, 
+  AlertCircle, 
+  Image as ImageIcon, 
+  Activity, 
+  Layers, 
+  Sparkles,
+  Box,
+  ChevronRight,
+  Trash2
+} from "lucide-react";
 
 // Custom components
 import { NoProjectFound } from "@/components/project/NoProjectFound";
@@ -28,6 +48,7 @@ import { ErrorProject } from "@/components/project/ErrorProject";
 import { LoadingProject } from "@/components/project/LoadingProject";
 import { ShowForUser, ShowForRegisteredUser } from "@/components/RoleGuard";
 import { AffineMatrixDisplay } from "@/components/ui/AffineMatrixDisplay";
+import { ReconstructionConfigDialog, ReconstructionConfig } from "@/components/reconstruction/ReconstructionConfigDialog";
 
 // Types
 import * as ProjectTypes from "@/types/project";
@@ -35,7 +56,20 @@ import * as ProjectTypes from "@/types/project";
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
-  const { loading, projectData, error, hasMasks, undecodedMasks, jobs, jobsError, refreshMasks } = useProject();
+  const { loading, projectData, error, hasMasks, undecodedMasks, jobs, jobsError, refreshMasks, hasReconstructions, reconstructionMetadata, refreshReconstructions } = useProject();
+
+  // Update page title dynamically
+  useEffect(() => {
+    if (projectData?.name) {
+      document.title = `VisHeart | ${projectData.name}`;
+    } else {
+      document.title = "VisHeart | Project";
+    }
+    
+    return () => {
+      document.title = "VisHeart";
+    };
+  }, [projectData?.name]);
 
   // Local state for editing
   const [isEditing, setIsEditing] = useState(false);
@@ -47,6 +81,21 @@ export default function ProjectPage() {
   // Segmentation state
   const [isStartingSegmentation, setIsStartingSegmentation] = useState(false);
   const [segmentationError, setSegmentationError] = useState<string | null>(null);
+
+  // Revert to AI state
+  const [revertDialogOpen, setRevertDialogOpen] = useState(false);
+  const [isReverting, setIsReverting] = useState(false);
+
+  // Reconstruction state
+  const [showReconstructionDialog, setShowReconstructionDialog] = useState(false);
+  const [isStartingReconstruction, setIsStartingReconstruction] = useState(false);
+  const [reconstructionError, setReconstructionError] = useState<string | null>(null);
+  const [isDeletingReconstruction, setIsDeletingReconstruction] = useState(false);
+  const [deleteReconstructionDialogOpen, setDeleteReconstructionDialogOpen] = useState(false);
+
+  // Delete state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Local project data (for optimistic updates after editing)
   const [localProjectName, setLocalProjectName] = useState<string | null>(null);
@@ -174,7 +223,28 @@ export default function ProjectPage() {
     }
   };
 
-  // Handle start segmentation
+  // Handle delete project
+  const handleDeleteProject = () => {
+    setDeleteDialogOpen(true);
+  };
+
+  // Confirm delete project
+  const confirmDeleteProject = async () => {
+    setIsDeleting(true);
+    try {
+      await projectApi.deleteProject(projectId);
+      // Success - redirect to dashboard
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Error deleting project:", error);
+      alert("Failed to delete project. Please try again.");
+      setDeleteDialogOpen(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Start segmentation
   const handleStartSegmentation = async () => {
     setIsStartingSegmentation(true);
     setSegmentationError(null);
@@ -193,6 +263,131 @@ export default function ProjectPage() {
     }
   };
 
+  // Handle revert to AI mask
+  const handleRevertToAI = async () => {
+    console.log("[Project] Reverting editable mask to AI-generated mask");
+    setIsReverting(true);
+
+    try {
+      // 1. Find AI mask and editable mask
+      const aiMask = undecodedMasks?.find(mask => mask.isMedSAMOutput === true);
+      const editableMask = undecodedMasks?.find(mask => mask.isMedSAMOutput === false);
+
+      if (!aiMask || !editableMask) {
+        console.error("[Project] Could not find AI or editable mask");
+        alert("Could not find masks to revert. Please try again.");
+        return;
+      }
+
+      // 2. Copy AI mask's frames to editable mask
+      const revertData = {
+        frames: aiMask.frames, // Full frame array with slices and RLE data
+      };
+
+      console.log("[Project] Copying AI mask frames to editable mask:", {
+        aiMaskId: aiMask._id,
+        editableMaskId: editableMask._id,
+        frameCount: aiMask.frames?.length || 0,
+      });
+
+      // 3. Use existing saveManualSegmentation API
+      await segmentationApi.saveManualSegmentation(projectId, revertData);
+
+      console.log("[Project] ✅ Successfully reverted to AI mask");
+
+      // 4. Reload window to show updated masks
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    } catch (error: unknown) {
+      console.error("[Project] ❌ Error reverting to AI mask:", error);
+      alert(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 
+        "Failed to revert to AI mask. Please try again."
+      );
+    } finally {
+      setIsReverting(false);
+      setRevertDialogOpen(false);
+    }
+  };
+
+  // Handle start reconstruction
+  const handleStartReconstruction = async (config: ReconstructionConfig) => {
+    console.log("[Project] Starting 4D reconstruction with config:", config);
+    setIsStartingReconstruction(true);
+    setReconstructionError(null);
+
+    try {
+      const reconstructionApi = await import("@/lib/api").then(m => m.reconstructionApi);
+      
+      await reconstructionApi.startReconstruction(projectId, {
+        reconstructionName: `4D Cardiac Reconstruction - ${projectData.name}`,
+        reconstructionDescription: "Generated via configuration wizard",
+        ed_frame: config.edFrame, // Pass 1-based ED frame from user selection
+        export_format: config.exportFormat, // Pass user's format choice to backend
+        parameters: {
+          num_iterations: config.numIterations,
+          resolution: config.resolution,
+          process_all_frames: true,
+        },
+      });
+
+      console.log("[Project] ✅ Reconstruction job started successfully");
+      
+      // Close dialog
+      setShowReconstructionDialog(false);
+      
+      // Refresh reconstructions to check status
+      await refreshReconstructions();
+      
+      // Show success message or reload page
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error: unknown) {
+      console.error("[Project] ❌ Error starting reconstruction:", error);
+      setReconstructionError(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 
+        "Failed to start 4D reconstruction. Please try again."
+      );
+    } finally {
+      setIsStartingReconstruction(false);
+    }
+  };
+
+  // Handle delete reconstructions
+  const handleDeleteReconstructions = async () => {
+    console.log("[Project] Deleting all reconstructions for project:", projectId);
+    setIsDeletingReconstruction(true);
+
+    try {
+      const reconstructionApi = await import("@/lib/api").then(m => m.reconstructionApi);
+      
+      const result = await reconstructionApi.deleteProjectReconstructions(projectId);
+      
+      console.log("[Project] ✅ Reconstructions deleted successfully:", result);
+      
+      // Close dialog
+      setDeleteReconstructionDialogOpen(false);
+      
+      // Refresh reconstructions to update UI
+      await refreshReconstructions();
+      
+      // Reload page to update storage stats
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: unknown) {
+      console.error("[Project] ❌ Error deleting reconstructions:", error);
+      alert(
+        (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 
+        "Failed to delete reconstructions. Please try again."
+      );
+    } finally {
+      setIsDeletingReconstruction(false);
+    }
+  };
+
   // Get job statistics
   const jobCounts = (jobs || []).reduce(
     (acc, job) => {
@@ -205,37 +400,43 @@ export default function ProjectPage() {
   // Check if there are any active jobs (pending or in progress)
   const hasActiveJobs = (jobs || []).some((job) => job.status === ProjectTypes.JobStatus.PENDING || job.status === ProjectTypes.JobStatus.IN_PROGRESS);
 
-  // Get mask statistics
-  const maskStats = undecodedMasks
-    ? {
-        total: undecodedMasks.length,
-        aiGenerated: undecodedMasks.filter((mask) => mask.isMedSAMOutput).length,
-        manual: undecodedMasks.filter((mask) => !mask.isMedSAMOutput).length,
-        saved: undecodedMasks.filter((mask) => mask.isSaved).length,
-      }
-    : null;
+  // Get editable mask (the one users interact with)
+  const editableMask = undecodedMasks?.find((mask) => !mask.isMedSAMOutput);
+  const maskIsSaved = editableMask?.isSaved || false;
 
   // Use local state if available (for optimistic updates), otherwise use project data
   const currentProjectName = localProjectName !== null ? localProjectName : projectData.name;
   const currentProjectDescription = localProjectDescription !== null ? localProjectDescription : projectData.description || "";
 
   return (
-    <div className="min-h-screen bg-background p-4 lg:p-8 ">
-      <div className="container mx-auto space-y-8">
-        {/* Header Section */}
-        <div className="flex items-center justify-between">
-          <div>
-            <Button variant="ghost" onClick={() => router.push("/dashboard")} className="mb-4">
-              ← Back to Dashboard
-            </Button>
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-                <Database className="h-6 w-6 text-primary" />
+    <div className="min-h-screen bg-background">
+      {/* Hero Header Section */}
+      <div className="border-b bg-gradient-to-r from-background via-muted/20 to-background">
+        <div className="container mx-auto px-6 py-8">
+          <Button 
+            variant="ghost" 
+            onClick={() => router.push("/dashboard")} 
+            className="mb-4 -ml-2"
+          >
+            ← Back to Dashboard
+          </Button>
+          
+          <div className="flex items-start justify-between">
+            {/* Project Title & Info */}
+            <div className="flex items-start gap-6">
+              <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-red-500/20 to-pink-500/20 flex items-center justify-center border-2 border-red-500/30">
+                <Database className="h-8 w-8 text-red-500" />
               </div>
-              <div>
+              
+              <div className="space-y-2">
                 {isEditing ? (
                   <div className="space-y-2">
-                    <Input value={editedName} onChange={(e) => setEditedName(e.target.value)} placeholder="Project name" className="text-xl font-bold" />
+                    <Input 
+                      value={editedName} 
+                      onChange={(e) => setEditedName(e.target.value)} 
+                      placeholder="Project name" 
+                      className="text-2xl font-bold h-12"
+                    />
                     {updateError && (
                       <Alert variant="destructive" className="w-fit">
                         <AlertCircle className="h-4 w-4" />
@@ -244,334 +445,751 @@ export default function ProjectPage() {
                     )}
                   </div>
                 ) : (
-                  <h1 className="text-3xl font-bold text-foreground">{currentProjectName}</h1>
+                  <h1 className="text-4xl font-bold tracking-tight">{currentProjectName}</h1>
                 )}
-                <p className="text-muted-foreground">Project ID: {projectId}</p>
+                
+                {isEditing ? (
+                  <Textarea 
+                    value={editedDescription} 
+                    onChange={(e) => setEditedDescription(e.target.value)} 
+                    placeholder="Project description (optional)" 
+                    rows={2}
+                    className="resize-none text-sm"
+                  />
+                ) : (
+                  <p className="text-muted-foreground max-w-2xl">
+                    {currentProjectDescription || "No description provided."}
+                  </p>
+                )}
+                
+                <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
+                  <span className="font-mono">{projectId}</span>
+                  <Separator orientation="vertical" className="h-3" />
+                  <span>{projectData.dimensions?.frames || 0} frames</span>
+                  <span>·</span>
+                  <span>{projectData.dimensions?.slices || 0} slices</span>
+                  <span>·</span>
+                  <span>{(projectData.filesize / 1024 / 1024).toFixed(2)} MB</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Edit Controls */}
+            <ShowForRegisteredUser>
+              {isEditing ? (
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handleCancelEdit} disabled={isUpdating}>
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={handleSaveEdit} disabled={isUpdating || !editedName.trim()}>
+                    {isUpdating ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                    {isUpdating ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={handleStartEdit}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleDeleteProject}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
+              )}
+            </ShowForRegisteredUser>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-6 py-8 space-y-6">
+        {/* Compact Processing Pipeline */}
+        <div className="bg-muted/30 rounded-lg border p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Activity className="h-4 w-4" />
+              <span>Progress</span>
+            </div>
+            <div className="flex items-center gap-4">
+              {/* Step 1: Dataset */}
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-950/30 border border-green-500 flex items-center justify-center">
+                  <Database className="h-4 w-4 text-green-600" />
+                </div>
+                <div className="hidden sm:block">
+                  <p className="text-xs font-medium">Dataset</p>
+                  <p className="text-xs text-muted-foreground">Complete</p>
+                </div>
+              </div>
+
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+
+              {/* Step 2: Segmentation */}
+              <div className="flex items-center gap-2">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center border ${
+                  hasMasks 
+                    ? 'bg-green-100 dark:bg-green-950/30 border-green-500' 
+                    : hasActiveJobs
+                    ? 'bg-blue-100 dark:bg-blue-950/30 border-blue-500 animate-pulse'
+                    : 'bg-muted border-muted-foreground/30'
+                }`}>
+                  <Layers className={`h-4 w-4 ${
+                    hasMasks ? 'text-green-600' : hasActiveJobs ? 'text-blue-600' : 'text-muted-foreground'
+                  }`} />
+                </div>
+                <div className="hidden sm:block">
+                  <p className="text-xs font-medium">Segmentation</p>
+                  <p className="text-xs text-muted-foreground">
+                    {hasMasks ? 'Complete' : hasActiveJobs ? 'Processing' : 'Pending'}
+                  </p>
+                </div>
+              </div>
+
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+
+              {/* Step 3: Reconstruction */}
+              <div className="flex items-center gap-2">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center border ${
+                  hasReconstructions 
+                    ? 'bg-green-100 dark:bg-green-950/30 border-green-500' 
+                    : hasMasks
+                    ? 'bg-amber-100 dark:bg-amber-950/30 border-amber-500'
+                    : 'bg-muted border-muted-foreground/30'
+                }`}>
+                  <Box className={`h-4 w-4 ${
+                    hasReconstructions ? 'text-green-600' : hasMasks ? 'text-amber-600' : 'text-muted-foreground'
+                  }`} />
+                </div>
+                <div className="hidden sm:block">
+                  <p className="text-xs font-medium">4D Model</p>
+                  <p className="text-xs text-muted-foreground">
+                    {hasReconstructions ? 'Complete' : hasMasks ? 'Available' : 'Locked'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Edit Controls */}
-          <ShowForRegisteredUser>
-            {isEditing ? (
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleCancelEdit} disabled={isUpdating}>
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={handleSaveEdit} disabled={isUpdating || !editedName.trim()}>
-                  {isUpdating ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                  {isUpdating ? "Saving..." : "Save"}
-                </Button>
-              </div>
-            ) : (
-              <Button variant="outline" size="sm" onClick={handleStartEdit}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit Project
-              </Button>
-            )}
-          </ShowForRegisteredUser>
         </div>
 
-        {/* Description Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Description
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isEditing ? (
-              <Textarea value={editedDescription} onChange={(e) => setEditedDescription(e.target.value)} placeholder="Project description (optional)" rows={3} className="resize-none" />
-            ) : (
-              <p className="text-muted-foreground">{currentProjectDescription || "No description provided."}</p>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* Left Column - Project Info & Actions */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          {/* Left Column - Main Actions */}
           <div className="xl:col-span-2 space-y-6">
-            {/* Action Buttons Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <TooltipProvider>
-                  <div className={`grid gap-4 ${hasMasks ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
-                    {!hasMasks && (
+            
+            {/* STATE 1: No Masks, No Reconstructions - Get Started */}
+            {!hasMasks && !hasReconstructions && (
+              <Card className="border-2 border-primary/20">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Play className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <CardTitle>Get Started</CardTitle>
+                      <p className="text-sm text-muted-foreground">Begin processing your cardiac imaging data</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <TooltipProvider>
+                    <div className="grid gap-3">
+                      {/* Preview Action */}
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button asChild className="h-12" variant="outline">
+                          <Button asChild variant="outline" size="lg" className="justify-start h-auto py-4">
                             <Link href={`/project/${projectId}/preview`}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Preview Images
+                              <div className="flex items-center gap-3 w-full">
+                                <Eye className="h-5 w-5 text-muted-foreground" />
+                                <div className="text-left flex-1">
+                                  <p className="font-semibold">Preview Dataset</p>
+                                  <p className="text-xs text-muted-foreground">View your MRI images before processing</p>
+                                </div>
+                              </div>
                             </Link>
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>View MRI images without segmentation masks</p>
+                          <p>Browse through all frames and slices of your dataset</p>
                         </TooltipContent>
                       </Tooltip>
-                    )}
 
-                    {hasMasks ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button asChild className="h-12">
-                            <Link href={`/project/${projectId}/segmentation`}>
-                              <Edit className="h-4 w-4 mr-2 " />
-                              Edit Segmentation on Images
-                            </Link>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Edit and refine segmentation masks using brush tools</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
+                      {/* Start Segmentation Action */}
                       <ShowForUser fallback={null}>
                         {hasActiveJobs ? (
+                          <Button disabled variant="secondary" size="lg" className="justify-start h-auto py-4">
+                            <div className="flex items-center gap-3 w-full">
+                              <RefreshCw className="h-5 w-5 animate-spin" />
+                              <div className="text-left flex-1">
+                                <p className="font-semibold">Segmentation in Progress</p>
+                                <p className="text-xs text-muted-foreground">Check the Processing Jobs panel for updates</p>
+                              </div>
+                            </div>
+                          </Button>
+                        ) : (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <Button disabled className="h-12" variant="secondary">
-                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                Segmentation in Progress
+                              <Button 
+                                onClick={handleStartSegmentation} 
+                                disabled={isStartingSegmentation}
+                                size="lg"
+                                className="justify-start h-auto py-4"
+                              >
+                                <div className="flex items-center gap-3 w-full">
+                                  {isStartingSegmentation ? (
+                                    <RefreshCw className="h-5 w-5 animate-spin" />
+                                  ) : (
+                                    <Sparkles className="h-5 w-5" />
+                                  )}
+                                  <div className="text-left flex-1">
+                                    <p className="font-semibold">
+                                      {isStartingSegmentation ? 'Starting Segmentation...' : 'Start AI Segmentation'}
+                                    </p>
+                                    <p className="text-xs opacity-90">
+                                      Generate cardiac segmentation masks automatically
+                                    </p>
+                                  </div>
+                                </div>
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Segmentation is currently processing. Please refresh the page to check for updates or monitor progress in the Processing Jobs section below.</p>
+                              <p>Uses AI to automatically detect and segment cardiac structures</p>
                             </TooltipContent>
                           </Tooltip>
-                        ) : (
-                          <Button onClick={handleStartSegmentation} disabled={isStartingSegmentation} className="h-12">
-                            {isStartingSegmentation ? (
-                              <>
-                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                                Starting...
-                              </>
-                            ) : (
-                              <>
-                                <Play className="h-4 w-4 mr-2" />
-                                Start Segmentation
-                              </>
-                            )}
-                          </Button>
                         )}
                       </ShowForUser>
-                    )}
+                    </div>
+                  </TooltipProvider>
+
+                  {segmentationError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{segmentationError}</AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* STATE 2: Has Masks, No Reconstructions - Refine & Reconstruct */}
+            {hasMasks && !hasReconstructions && (
+              <Card className="border-2 border-green-500/20">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                    </div>
+                    <div>
+                      <CardTitle>Segmentation Complete</CardTitle>
+                      <p className="text-sm text-muted-foreground">Refine your masks or create 3D models</p>
+                    </div>
                   </div>
-                </TooltipProvider>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <TooltipProvider>
+                    <div className="grid gap-3">
+                      {/* Preview Dataset */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button asChild variant="outline" size="lg" className="justify-start h-auto py-4">
+                            <Link href={`/project/${projectId}/preview`}>
+                              <div className="flex items-center gap-3 w-full">
+                                <Eye className="h-5 w-5 text-muted-foreground" />
+                                <div className="text-left flex-1">
+                                  <p className="font-semibold">Preview Dataset</p>
+                                  <p className="text-xs text-muted-foreground">View raw MRI images without masks. Optimized for quick previewing and navigation.</p>
+                                </div>
+                              </div>
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Browse through all frames and slices of your dataset</p>
+                        </TooltipContent>
+                      </Tooltip>
 
-                {segmentationError && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{segmentationError}</AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
+                      {/* Edit Segmentation */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button asChild size="lg" variant="outline" className="justify-start h-auto py-4">
+                            <Link href={`/project/${projectId}/segmentation`}>
+                              <div className="flex items-center gap-3 w-full">
+                                <Edit className="h-5 w-5 text-primary" />
+                                <div className="text-left flex-1">
+                                  <p className="font-semibold">Edit Segmentation Masks</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Refine with brush tools and manual adjustments
+                                  </p>
+                                </div>
+                              </div>
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Manually adjust and refine AI-generated segmentation masks</p>
+                        </TooltipContent>
+                      </Tooltip>
 
-            {/* Technical Specifications */}
+                      {/* Start Reconstruction */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            onClick={() => setShowReconstructionDialog(true)}
+                            size="lg"
+                            className="justify-start h-auto py-4"
+                            disabled={hasReconstructions}
+                          >
+                            <div className="flex items-center gap-3 w-full">
+                              <Sparkles className="h-5 w-5" />
+                              <div className="text-left flex-1">
+                                <p className="font-semibold">
+                                  {hasReconstructions ? 'Reconstruction Exists' : 'Create 4D Reconstruction'}
+                                </p>
+                                <p className="text-xs opacity-90">
+                                  {hasReconstructions 
+                                    ? 'Delete existing reconstruction to create a new one' 
+                                    : 'Generate 3D mesh models from segmentation'}
+                                </p>
+                              </div>
+                            </div>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>
+                            {hasReconstructions 
+                              ? 'Only one reconstruction allowed - delete the existing one first' 
+                              : 'Build animated 4D cardiac models for visualization and analysis'}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TooltipProvider>
+
+                  {reconstructionError && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{reconstructionError}</AlertDescription>
+                    </Alert>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* STATE 3: Has Masks AND Reconstructions - Full Pipeline Complete */}
+            {hasMasks && hasReconstructions && (
+              <Card className="border-2 border-blue-500/20">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                      <Box className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <CardTitle>Pipeline Complete</CardTitle>
+                      <p className="text-sm text-muted-foreground">All processing stages finished</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <TooltipProvider>
+                    <div className="grid gap-3">
+                      {/* Preview Dataset */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button asChild variant="outline" size="lg" className="justify-start h-auto py-4">
+                            <Link href={`/project/${projectId}/preview`}>
+                              <div className="flex items-center gap-3 w-full">
+                                <Eye className="h-5 w-5 text-muted-foreground" />
+                                <div className="text-left flex-1">
+                                  <p className="font-semibold">Preview Dataset</p>
+                                  <p className="text-xs text-muted-foreground">View raw MRI images without masks</p>
+                                </div>
+                              </div>
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Browse through all frames and slices of your dataset</p>
+                        </TooltipContent>
+                      </Tooltip>
+
+                      {/* Edit Segmentation */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button asChild size="lg" variant="outline" className="justify-start h-auto py-4">
+                            <Link href={`/project/${projectId}/segmentation`}>
+                              <div className="flex items-center gap-3 w-full">
+                                <Edit className="h-5 w-5 text-primary" />
+                                <div className="text-left flex-1">
+                                  <p className="font-semibold">Edit Segmentation Masks</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Refine and update segmentation data
+                                  </p>
+                                </div>
+                              </div>
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Update masks to regenerate 3D models</p>
+                        </TooltipContent>
+                      </Tooltip>
+
+                      {/* View Reconstruction - Link to standalone 4D viewer */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            size="lg" 
+                            className="justify-start h-auto py-4"
+                            asChild
+                          >
+                            <Link href={`/project/${projectId}/standalone-4d-viewer`}>
+                              <div className="flex items-center gap-3 w-full">
+                                <Box className="h-5 w-5" />
+                                <div className="text-left flex-1">
+                                  <p className="font-semibold">View 4D Model</p>
+                                  <p className="text-xs opacity-90">Explore your 3D cardiac reconstruction</p>
+                                </div>
+                                <ChevronRight className="h-4 w-4" />
+                              </div>
+                            </Link>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Interactive 3D viewer with animation controls</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TooltipProvider>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Technical Specifications - Always Visible, Redesigned */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ImageIcon className="h-5 w-5" />
-                  Technical Specifications
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4" />
+                  Dataset Information
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="space-y-3">
-                    <h4 className="font-semibold">Dimensions</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Width:</span>
-                        <span>{projectData.dimensions?.width || 0} px</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Height:</span>
-                        <span>{projectData.dimensions?.height || 0} px</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Slices:</span>
-                        <span>{projectData.dimensions?.slices || 0}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Frames:</span>
-                        <span>{projectData.dimensions?.frames || 0}</span>
-                      </div>
-                    </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {/* Dimensions */}
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Dimensions</p>
+                    <p className="text-sm font-mono">
+                      {projectData.dimensions?.width} × {projectData.dimensions?.height}
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Frames</p>
+                    <p className="text-sm font-semibold">{projectData.dimensions?.frames || 0}</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Slices</p>
+                    <p className="text-sm font-semibold">{projectData.dimensions?.slices || 0}</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">File Size</p>
+                    <p className="text-sm font-semibold">{(projectData.filesize / 1024 / 1024).toFixed(2)} MB</p>
                   </div>
 
-                  <div className="space-y-3">
-                    <h4 className="font-semibold">Voxel Size</h4>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">X:</span>
-                        <span>{projectData.voxelsize?.x || 0} mm</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Y:</span>
-                        <span>{projectData.voxelsize?.y || 0} mm</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Z:</span>
-                        <span>{projectData.voxelsize?.z || 0} mm</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">T:</span>
-                        <span>{projectData.voxelsize?.t || 0} ms</span>
-                      </div>
-                    </div>
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Voxel X</p>
+                    <p className="text-sm font-mono">{projectData.voxelsize?.x || 0} mm</p>
                   </div>
-
-                  {/* Affine Matrix Display - Full Version for Project Details */}
-                  <AffineMatrixDisplay 
-                    affineMatrix={projectData.affineMatrix} 
-                    compact={false}
-                    title="Spatial Transform"
-                  />
+                  
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Voxel Y</p>
+                    <p className="text-sm font-mono">{projectData.voxelsize?.y || 0} mm</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Voxel Z</p>
+                    <p className="text-sm font-mono">{projectData.voxelsize?.z || 0} mm</p>
+                  </div>
+                  
+                  <div className="space-y-1">
+                    <p className="text-xs text-muted-foreground">Temporal</p>
+                    <p className="text-sm font-mono">{projectData.voxelsize?.t || 0} ms</p>
+                  </div>
                 </div>
 
                 <Separator className="my-4" />
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">File Type:</span>
-                    <p className="font-mono">{projectData.filetype}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Size:</span>
-                    <p>{(projectData.filesize / 1024 / 1024).toFixed(2)} MB</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Project ID:</span>
-                    <p className="truncate font-mono">{projectData.projectId}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Saved:</span>
-                    <p>{projectData.isSaved ? "Yes" : "No"}</p>
-                  </div>
-                </div>
+                {/* Affine Matrix - Collapsible */}
+                <AffineMatrixDisplay 
+                  affineMatrix={projectData.affineMatrix} 
+                  compact={true}
+                  title="Spatial Transform Matrix"
+                />
               </CardContent>
             </Card>
           </div>
 
-          {/* Right Column - Masks & Jobs */}
+          {/* Right Column - Status Panels */}
           <div className="space-y-6">
-            {/* Masks Section */}
+            {/* Masks Section - Redesigned */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Layers className="h-5 w-5" />
-                  Segmentation Masks
-                  {hasMasks && <Badge variant="outline">{maskStats?.total || 0}</Badge>}
-                </CardTitle>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Layers className="h-4 w-4" />
+                    Segmentation
+                  </CardTitle>
+                  {hasMasks && (
+                    <Badge variant={maskIsSaved ? "default" : "secondary"}>
+                      {maskIsSaved ? "Saved" : "Unsaved"}
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
-                {hasMasks && maskStats ? (
+                {hasMasks ? (
                   <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="text-center p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
-                        <div className="flex items-center justify-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <span className="font-semibold text-green-900 dark:text-green-100">Available</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">Ready for editing</p>
-                      </div>
-                      <div className="text-center p-3 rounded-lg bg-muted/50">
-                        <p className="font-semibold">{maskStats.total}</p>
-                        <p className="text-xs text-muted-foreground">Total Masks</p>
+                    {/* Status Indicator */}
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+                      <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-green-900 dark:text-green-100">Masks Available</p>
+                        <p className="text-xs text-muted-foreground">Ready for editing and reconstruction</p>
                       </div>
                     </div>
 
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">AI Generated:</span>
-                        <Badge variant="secondary">{maskStats.aiGenerated}</Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Manual/Edited:</span>
-                        <Badge variant="outline">{maskStats.manual}</Badge>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Saved:</span>
-                        <Badge variant="default">{maskStats.saved}</Badge>
-                      </div>
-                    </div>
+                    {/* Reset Masks Button */}
+                    <ShowForRegisteredUser>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setRevertDialogOpen(true)}
+                              disabled={isReverting}
+                              className="w-full text-xs"
+                            >
+                              <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                              Reset Masks
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Reset all edits and restore original AI-generated masks</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </ShowForRegisteredUser>
                   </div>
                 ) : (
-                  <div className="text-center py-8 space-y-3">
-                    <div className="w-16 h-16 mx-auto rounded-lg bg-muted/50 flex items-center justify-center">
-                      <Layers className="h-8 w-8 text-muted-foreground" />
+                  <div className="text-center py-6 space-y-2">
+                    <div className="w-12 h-12 mx-auto rounded-lg bg-muted/50 flex items-center justify-center">
+                      <Layers className="h-6 w-6 text-muted-foreground" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-muted-foreground">No Masks Available</h3>
-                      <p className="text-sm text-muted-foreground">Start segmentation to generate masks</p>
+                      <p className="text-sm font-medium text-muted-foreground">No Masks Yet</p>
+                      <p className="text-xs text-muted-foreground">Start segmentation above</p>
                     </div>
                   </div>
                 )}
               </CardContent>
             </Card>
 
-            {/* Jobs Section */}
+            {/* Reconstruction Details Section - NEW */}
+            {hasReconstructions && reconstructionMetadata && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Box className="h-4 w-4" />
+                      4D Reconstruction
+                    </CardTitle>
+                    <Badge variant="default">Available</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Status Indicator */}
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+                      <Sparkles className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">Model Ready</p>
+                        <p className="text-xs text-muted-foreground">4D cardiac reconstruction available</p>
+                      </div>
+                      {/* Delete Button */}
+                      <ShowForRegisteredUser>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDeleteReconstructionDialogOpen(true)}
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete reconstruction to create a new one</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </ShowForRegisteredUser>
+                    </div>
+
+                    {/* Reconstruction Parameters Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">ED Frame</p>
+                        <p className="text-sm font-mono font-semibold">
+                          Frame {reconstructionMetadata.metadata?.edFrameIndex || 1}
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Mesh Format</p>
+                        <p className="text-sm font-mono font-semibold uppercase">
+                          {reconstructionMetadata.meshFormat || 'GLB'}
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Resolution</p>
+                        <p className="text-sm font-mono">
+                          {reconstructionMetadata.metadata?.resolution || 32}³
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Iterations</p>
+                        <p className="text-sm font-mono">
+                          {reconstructionMetadata.metadata?.numIterations || 30}
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-1 col-span-2">
+                        <p className="text-xs text-muted-foreground">Mesh Size</p>
+                        <p className="text-sm font-semibold">
+                          {reconstructionMetadata.meshFileSize 
+                            ? `${(reconstructionMetadata.meshFileSize / 1024 / 1024).toFixed(2)} MB`
+                            : 'N/A'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Processing Time (if available) */}
+                    {reconstructionMetadata.metadata?.reconstructionTime && (
+                      <div className="pt-2 border-t">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">Processing Time</span>
+                          <span className="font-mono font-medium">
+                            {reconstructionMetadata.metadata.reconstructionTime.toFixed(1)}s
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Jobs Section - Redesigned */}
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5" />
-                  Processing Jobs
-                  {jobs && jobs.length > 0 && <Badge variant="outline">{jobs.length}</Badge>}
-                </CardTitle>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Activity className="h-4 w-4" />
+                    Processing Jobs
+                  </CardTitle>
+                  {jobs && jobs.length > 0 && <Badge variant="secondary">{jobs.length}</Badge>}
+                </div>
               </CardHeader>
               <CardContent>
                 {jobsError ? (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{jobsError}</AlertDescription>
+                    <AlertDescription className="text-xs">{jobsError}</AlertDescription>
                   </Alert>
                 ) : jobs && jobs.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
+                    {/* Job Status Summary */}
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="text-center p-2 rounded-lg bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800">
-                        <p className="font-semibold text-yellow-900 dark:text-yellow-100">{jobCounts[ProjectTypes.JobStatus.PENDING] || 0}</p>
-                        <p className="text-xs text-muted-foreground">Pending</p>
-                      </div>
-                      <div className="text-center p-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-                        <p className="font-semibold text-blue-900 dark:text-blue-100">{jobCounts[ProjectTypes.JobStatus.IN_PROGRESS] || 0}</p>
-                        <p className="text-xs text-muted-foreground">In Progress</p>
-                      </div>
-                      <div className="text-center p-2 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
-                        <p className="font-semibold text-green-900 dark:text-green-100">{jobCounts[ProjectTypes.JobStatus.COMPLETED] || 0}</p>
-                        <p className="text-xs text-muted-foreground">Completed</p>
-                      </div>
-                      <div className="text-center p-2 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
-                        <p className="font-semibold text-red-900 dark:text-red-100">{jobCounts[ProjectTypes.JobStatus.FAILED] || 0}</p>
-                        <p className="text-xs text-muted-foreground">Failed</p>
-                      </div>
+                      {jobCounts[ProjectTypes.JobStatus.IN_PROGRESS] > 0 && (
+                        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+                          <div className="flex items-center gap-1.5">
+                            <RefreshCw className="h-3.5 w-3.5 text-blue-600 animate-spin" />
+                            <div>
+                              <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">{jobCounts[ProjectTypes.JobStatus.IN_PROGRESS]}</p>
+                              <p className="text-xs text-muted-foreground">Running</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {jobCounts[ProjectTypes.JobStatus.PENDING] > 0 && (
+                        <div className="p-2 rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800">
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5 text-yellow-600" />
+                            <div>
+                              <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-100">{jobCounts[ProjectTypes.JobStatus.PENDING]}</p>
+                              <p className="text-xs text-muted-foreground">Pending</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {jobCounts[ProjectTypes.JobStatus.COMPLETED] > 0 && (
+                        <div className="p-2 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                            <div>
+                              <p className="text-sm font-semibold text-green-900 dark:text-green-100">{jobCounts[ProjectTypes.JobStatus.COMPLETED]}</p>
+                              <p className="text-xs text-muted-foreground">Done</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {jobCounts[ProjectTypes.JobStatus.FAILED] > 0 && (
+                        <div className="p-2 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+                          <div className="flex items-center gap-1.5">
+                            <XCircle className="h-3.5 w-3.5 text-red-600" />
+                            <div>
+                              <p className="text-sm font-semibold text-red-900 dark:text-red-100">{jobCounts[ProjectTypes.JobStatus.FAILED]}</p>
+                              <p className="text-xs text-muted-foreground">Failed</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    <ScrollArea className="h-48">
+                    {/* Job List - Compact */}
+                    <ScrollArea className="h-32">
                       <div className="space-y-2">
-                        {jobs.map((job, index) => (
-                          <div key={job.jobId || index} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex items-center gap-2">
-                              {job.status === ProjectTypes.JobStatus.PENDING && <Clock className="h-4 w-4 text-yellow-600" />}
-                              {job.status === ProjectTypes.JobStatus.IN_PROGRESS && <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />}
-                              {job.status === ProjectTypes.JobStatus.COMPLETED && <CheckCircle className="h-4 w-4 text-green-600" />}
-                              {job.status === ProjectTypes.JobStatus.FAILED && <XCircle className="h-4 w-4 text-red-600" />}
-                              <div>
-                                <p className="text-sm font-medium">Segmentation Job</p>
-                                <p className="text-xs text-muted-foreground">Job ID: {job.jobId}</p>
-                              </div>
+                        {jobs.slice(0, 5).map((job, index) => (
+                          <div key={job.jobId || index} className="flex items-center gap-2 p-2 border rounded text-xs">
+                            {job.status === ProjectTypes.JobStatus.PENDING && <Clock className="h-3 w-3 text-yellow-600 flex-shrink-0" />}
+                            {job.status === ProjectTypes.JobStatus.IN_PROGRESS && <RefreshCw className="h-3 w-3 text-blue-600 animate-spin flex-shrink-0" />}
+                            {job.status === ProjectTypes.JobStatus.COMPLETED && <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />}
+                            {job.status === ProjectTypes.JobStatus.FAILED && <XCircle className="h-3 w-3 text-red-600 flex-shrink-0" />}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">Segmentation</p>
+                              <p className="text-muted-foreground truncate">{job.jobId}</p>
                             </div>
-                            <Badge variant={job.status === ProjectTypes.JobStatus.COMPLETED ? "default" : job.status === ProjectTypes.JobStatus.FAILED ? "destructive" : "secondary"}>
+                            <Badge 
+                              variant={
+                                job.status === ProjectTypes.JobStatus.COMPLETED ? "default" : 
+                                job.status === ProjectTypes.JobStatus.FAILED ? "destructive" : 
+                                "secondary"
+                              }
+                              className="text-xs"
+                            >
                               {job.status}
                             </Badge>
                           </div>
@@ -580,13 +1198,15 @@ export default function ProjectPage() {
                     </ScrollArea>
                   </div>
                 ) : (
-                  <div className="text-center py-8 space-y-3">
-                    <div className="w-16 h-16 mx-auto rounded-lg bg-muted/50 flex items-center justify-center">
-                      <Activity className="h-8 w-8 text-muted-foreground" />
+                  <div className="text-center py-6 space-y-2">
+                    <div className="w-12 h-12 mx-auto rounded-lg bg-muted/50 flex items-center justify-center">
+                      <Activity className="h-6 w-6 text-muted-foreground" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-muted-foreground">No Processing Jobs</h3>
-                      <p className="text-sm text-muted-foreground">{hasMasks ? "All segmentation processing is complete" : "Start segmentation to see job progress"}</p>
+                      <p className="text-sm font-medium text-muted-foreground">No Jobs</p>
+                      <p className="text-xs text-muted-foreground">
+                        {hasMasks ? 'All processing complete' : 'No processing started'}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -595,6 +1215,131 @@ export default function ProjectPage() {
           </div>
         </div>
       </div>
+
+      {/* Reconstruction Configuration Dialog */}
+      <ReconstructionConfigDialog
+        open={showReconstructionDialog}
+        onOpenChange={setShowReconstructionDialog}
+        onStart={handleStartReconstruction}
+        isLoading={isStartingReconstruction}
+        totalFrames={projectData?.dimensions?.frames || 1}
+      />
+
+      {/* Delete Reconstruction Confirmation Dialog */}
+      <AlertDialog open={deleteReconstructionDialogOpen} onOpenChange={setDeleteReconstructionDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Reconstruction</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                Are you sure you want to delete the 4D reconstruction for &quot;{currentProjectName}&quot;?
+              </p>
+              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-amber-900 dark:text-amber-100">
+                  <strong>Note:</strong> This will permanently delete all mesh files and reconstruction data. 
+                  You can create a new reconstruction after editing your segmentation masks.
+                </p>
+              </div>
+              <p className="font-semibold text-sm">This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingReconstruction}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteReconstructions} 
+              disabled={isDeletingReconstruction}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingReconstruction ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Reconstruction
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Project Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Project</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              Are you sure you want to delete &quot;{currentProjectName}&quot;?
+              <br />
+              <span className="text-muted-foreground text-sm italic">
+                This will permanently delete the project and all associated data including segmentation results and 4D reconstructions.
+              </span>
+              <br />
+              <span className="font-semibold">This action cannot be undone.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteProject} 
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete Permanently"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Revert to AI Confirmation Dialog */}
+      <AlertDialog open={revertDialogOpen} onOpenChange={setRevertDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Masks to AI Segmentation?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                This will replace <strong>all your manual edits</strong> with the original AI-generated segmentation masks for &quot;{currentProjectName}&quot;.
+              </p>
+              <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                <p className="text-sm text-amber-900 dark:text-amber-100">
+                  <strong>Warning:</strong> Any brush edits, refinements, or manual adjustments you&apos;ve made will be permanently lost.
+                </p>
+              </div>
+              <p className="font-semibold text-sm">This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isReverting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleRevertToAI} 
+              disabled={isReverting}
+              className="bg-amber-600 text-white hover:bg-amber-700"
+            >
+              {isReverting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Resetting...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reset Masks
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

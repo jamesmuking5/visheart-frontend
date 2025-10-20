@@ -20,7 +20,6 @@ import type { ImageCanvasProps, AnatomicalLabel } from "@/types/segmentation";
 import { 
   LABEL_COLORS, 
   LABEL_NAMES,
-  HARDNESS_TO_BLUR, 
   PERFORMANCE_CONSTANTS 
 } from "@/types/segmentation";
 
@@ -45,7 +44,7 @@ const NavigationControls = memo(({
   onFrameChange: (frame: number) => void;
   onSliceChange: (slice: number) => void;
 }) => (
-  <div className="w-full max-w-6xl mb-4 p-4 bg-muted rounded-lg shadow-md">
+  <div className="w-full mb-4 p-4 bg-muted rounded-lg shadow-md">
     <div className="grid grid-cols-2 gap-8">
       {/* Frame Controls */}
       <div className="space-y-2">
@@ -158,10 +157,6 @@ const NavigationControls = memo(({
         />
       </div>
     </div>
-    {/* Keyboard shortcut hint */}
-    <div className="mt-3 text-xs text-muted-foreground text-center py-1 bg-muted/20 rounded">
-      ← → frames • ↑ ↓ slices • + - zoom
-    </div>
   </div>
 ));
 
@@ -184,7 +179,6 @@ export function ImageCanvas({
   tool,
   brushSize,
   opacity,
-  hardness,
   zoomLevel = 1,
   setZoomLevel,
   resetTrigger,
@@ -211,7 +205,7 @@ export function ImageCanvas({
   // Refs for performance
   const stageRef = useRef<any>(null);
   const isDrawing = useRef(false);
-  const [stageScale, setStageScale] = useState<number>(Math.min(Math.max(zoomLevel || 1, 0.1), 5));
+  const [stageScale, setStageScale] = useState<number>(Math.min(Math.max(zoomLevel || 1, 0.1), 10));
   const [stagePosition, setStagePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Container pan (move whole stage by dragging the wrapper) — preferred for
@@ -227,8 +221,24 @@ export function ImageCanvas({
   const [isResetKeyPressed, setIsResetKeyPressed] = useState(false);
 
   const handleContainerMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    // Allow panning either when tool is explicitly 'pan' OR when user holds Ctrl
+    // Allow left-click (0) with pan tool/Ctrl OR right-click (2) for panning
+    const isLeftClick = e.button === 0;
+    const isRightClick = e.button === 2;
+    
+    if (isRightClick) {
+      // Right-click always enables panning
+      isContainerPanning.current = true;
+      setIsPanningState(true);
+      if (containerRef.current) containerRef.current.style.cursor = 'grabbing';
+      lastContainerPoint.current = { x: e.clientX, y: e.clientY };
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    
+    if (!isLeftClick) return;
+    
+    // Left-click: Allow panning when tool is 'pan' OR when user holds Ctrl
     if (tool !== 'pan' && !isCtrlPressed) return;
     isContainerPanning.current = true;
     setIsPanningState(true);
@@ -394,7 +404,7 @@ export function ImageCanvas({
         event.preventDefault();
         // Zoom in
         const currentScale = stageScale || 1;
-        const newScale = Math.min(5, currentScale * 1.2);
+        const newScale = Math.min(10, currentScale * 1.2);
         setStageScale(newScale);
         const stage = stageRef.current?.getStage?.();
         if (stage) {
@@ -456,7 +466,7 @@ export function ImageCanvas({
     }
     
     if (typeof zoomLevel === 'number') {
-      const clamped = Math.min(Math.max(zoomLevel, 0.1), 5);
+      const clamped = Math.min(Math.max(zoomLevel, 0.1), 10);
       const applied = clamped; // do not multiply by baseFitScale
       setStageScale(applied);
       const stage = stageRef.current;
@@ -475,7 +485,7 @@ export function ImageCanvas({
     const stage = stageRef.current?.getStage?.();
     if (!stage) return;
 
-    const zoom = typeof zoomLevel === 'number' ? Math.min(Math.max(zoomLevel, 0.1), 5) : 1;
+    const zoom = typeof zoomLevel === 'number' ? Math.min(Math.max(zoomLevel, 0.1), 10) : 1;
     const newScale = zoom; // keep image at original size when zoom === 1
     stage.scale({ x: newScale, y: newScale });
     setStageScale(newScale);
@@ -680,7 +690,7 @@ export function ImageCanvas({
     };
 
     const scaleBy = e.evt.deltaY > 0 ? 0.9 : 1.1;
-    const newScale = Math.max(0.1, Math.min(5, oldScale * scaleBy));
+    const newScale = Math.max(0.1, Math.min(10, oldScale * scaleBy));
 
     // Smooth zoom animation using requestAnimationFrame
     let animationFrame: number;
@@ -1044,7 +1054,8 @@ export function ImageCanvas({
     onMouseDown={handleContainerMouseDown}
     onMouseMove={handleContainerMouseMove}
     onMouseUp={handleContainerMouseUp}
-    className="w-full max-w-7xl h-[80vh] min-h-[400px] max-h-[700px] bg-background rounded-lg overflow-hidden relative mx-auto border flex flex-col"
+    onContextMenu={(e) => e.preventDefault()}
+    className="w-full h-[70vh] min-h-[400px] max-h-[700px] bg-background rounded-lg overflow-hidden relative mx-auto border flex flex-col"
   >
         {/* Top info bar (frame/slice + zoom) */}
         <div 
@@ -1061,7 +1072,7 @@ export function ImageCanvas({
             variant={isPanningState ? "default" : "secondary"}
             className={cn( "px-2 py-1 text-xs font-medium shadow", )}
           >
-            {isPanningState ? "Panning — release mouse" : tool === "pan" ? "Pan mode" : isCtrlPressed ? "Hold Ctrl to pan (click+drag)" : "Hold Ctrl to pan"}
+            {isPanningState ? "Panning — release mouse" : tool === "pan" ? "Pan mode" : isCtrlPressed ? "Hold Ctrl to pan (click+drag)" : "Ctrl+Click or Right-Click to pan"}
           </Badge>
         </div>
 
@@ -1158,7 +1169,6 @@ export function ImageCanvas({
                 stroke={tool === "eraser" ? "#000" : LABEL_COLORS[activeLabel]}
                 strokeWidth={brushSize}
                 opacity={0.8}
-                shadowBlur={HARDNESS_TO_BLUR[hardness]}
                 tension={0.5}
                 lineCap="round"
                 lineJoin="round"

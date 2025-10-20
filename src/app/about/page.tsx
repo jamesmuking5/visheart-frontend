@@ -82,20 +82,20 @@ const AboutPage = () => {
       description:
         "Managing cloud infrastructure and deployment on AWS to ensure scalability and reliability.",
     },
-    {
-      name: "Qian Hui",
-      role: "Frontend Developer",
-      imageUrl: qh_image,
-      description:
-        "Crafting a responsive and intuitive user interface for a seamless experience.",
-    },
-    {
-      name: "Zia",
-      role: "ML Engineer",
-      imageUrl: zia_image,
-      description:
-        "Implementing and optimizing the cardiac segmentation models for accuracy.",
-    },
+    // {
+    //   name: "Qian Hui",
+    //   role: "Frontend Developer",
+    //   imageUrl: qh_image,
+    //   description:
+    //     "Crafting a responsive and intuitive user interface for a seamless experience.",
+    // },
+    // {
+    //   name: "Zia",
+    //   role: "ML Engineer",
+    //   imageUrl: zia_image,
+    //   description:
+    //     "Implementing and optimizing the cardiac segmentation models for accuracy.",
+    // },
   ];
 
   return (

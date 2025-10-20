@@ -618,7 +618,7 @@ const DocPage = () => {
                           <li>• <strong>All MRI viewer capabilities</strong> - frame navigation, zoom, pan, thumbnails</li>
                           <li>• Advanced drawing tools (brush, select, linear tool)</li>
                           <li>• Mask overlay toggle and opacity controls</li>
-                          <li>• Brush size and hardness adjustments</li>
+                          <li>• Brush size and opacity adjustments</li>
                           <li>• Undo/redo functionality for precise editing</li>
                           <li>• Real-time mask preview and editing</li>
                           <li>• Available only after successful AI segmentation</li>

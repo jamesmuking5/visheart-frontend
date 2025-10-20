@@ -15,20 +15,24 @@ export const LoadingProject = ({ loadingStage }: { loadingStage: LoadingStage })
   useEffect(() => {
     switch (loadingStage) {
       case "project":
-        setProgress(20);
+        setProgress(16);
         setMessage("Loading project data...");
         break;
       case "mask":
-        setProgress(40);
+        setProgress(33);
         setMessage("Loading segmentation masks...");
         break;
       case "job":
-        setProgress(60);
+        setProgress(50);
         setMessage("Loading job data...");
         break;
       case "tar-cache":
-        setProgress(80);
+        setProgress(66);
         setMessage("Initializing MRI image cache...");
+        break;
+      case "reconstruction-cache":
+        setProgress(83);
+        setMessage("Loading 4D reconstruction models...");
         break;
       case "idle":
         // Progress does not change

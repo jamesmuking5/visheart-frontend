@@ -4,25 +4,20 @@ import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Undo2, Redo2, Trash2, Brush, Eraser, MousePointer2, Square, Search, Move, RotateCcw } from "lucide-react";
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { cn } from "@/lib/utils";
 
 // Import shared types and constants
 import type { 
   DrawingPanelProps, 
-  AnatomicalLabel,
-  DrawingTool,
-  BrushHardness 
+  DrawingTool
 } from "@/types/segmentation";
 import { 
-  LABEL_COLORS, 
-  LABEL_NAMES,
-  DRAWING_TOOLS,
-  BRUSH_HARDNESS
+  DRAWING_TOOLS
 } from "@/types/segmentation";
 
 // Simplified tool configuration
-const TOOL_CONFIG: Record<DrawingTool, { icon: React.ComponentType<any>; label: string }> = {
+const TOOL_CONFIG: Record<DrawingTool, { icon: React.ComponentType<{className?: string}>; label: string }> = {
   select: { icon: MousePointer2, label: 'Select' },
   brush: { icon: Brush, label: 'Brush' },
   eraser: { icon: Eraser, label: 'Eraser' },
@@ -38,8 +33,6 @@ export function DrawingPanel({
   setBrushSize,
   opacity,
   setOpacity,
-  hardness,
-  setHardness,
   activeLabel,
   setActiveLabel,
   handleUndo,
@@ -53,26 +46,12 @@ export function DrawingPanel({
   onReset,
 }: DrawingPanelProps) {
 
-  // Memoized label selection handler
-  const handleLabelChange = React.useCallback((value: string) => {
-    if (value && value in LABEL_COLORS) {
-      setActiveLabel(value as AnatomicalLabel);
-    }
-  }, [setActiveLabel]);
-
   // Memoized tool selection handler
   const handleToolChange = React.useCallback((value: string) => {
     if (value && DRAWING_TOOLS.includes(value as DrawingTool)) {
       setTool(value as DrawingTool);
     }
   }, [setTool]);
-
-  // Memoized hardness handler
-  const handleHardnessChange = React.useCallback((value: string) => {
-    if (value && BRUSH_HARDNESS.includes(value as BrushHardness)) {
-      setHardness(value as BrushHardness);
-    }
-  }, [setHardness]);
 
   // Optimized keyboard shortcut handler with cleanup
   useEffect(() => {
@@ -95,52 +74,10 @@ export function DrawingPanel({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-foreground">Drawing Tools</h2>
-      
-      {/* Label Selection */}
-      <div>
-        <h3 className="text-sm font-medium text-foreground mb-3">Active Label</h3>
-        <ToggleGroup
-          type="single"
-          value={activeLabel}
-          onValueChange={handleLabelChange}
-          aria-label="Anatomical Label"
-          className="flex rounded-lg border border-border overflow-hidden w-full"
-        >
-          {Object.entries(LABEL_COLORS).map(([key, color]) => (
-            <ToggleGroupItem
-              key={key}
-              value={key}
-              aria-label={LABEL_NAMES[key as AnatomicalLabel]}
-              variant="outline" 
-              className={cn(
-                "flex-1 flex items-center justify-center px-4 py-2",
-                "font-semibold transition-colors",
-                "data-[state=on]:bg-opacity-20 data-[state=on]:border-current",
-                "border-r border-border last:border-r-0",
-                "focus:z-10"
-              )}
-              style={{ 
-                color: activeLabel === key ? color : undefined,
-                backgroundColor: activeLabel === key ? `${color}20` : undefined,
-                borderColor: activeLabel === key ? color : undefined,
-               borderLeftWidth: 1, borderRightWidth: 1
-              }}
-            >
-              <span 
-                className="w-3 h-3 rounded-full mr-2 flex-shrink-0" 
-                style={{ backgroundColor: color }} 
-              />
-              {key.toUpperCase()}
-            </ToggleGroupItem>
-          ))}
-        </ToggleGroup>
-      </div>
-      
       {/* Tool Selection */}
       <div>
         <h3 className="text-sm font-medium text-foreground mb-3">Tool Selection</h3>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-6 gap-2">
           {DRAWING_TOOLS.map((toolKey) => {
             const config = TOOL_CONFIG[toolKey];
             const IconComponent = config.icon;
@@ -173,74 +110,47 @@ export function DrawingPanel({
         <div>
           <h3 className="text-sm font-medium text-foreground mb-3">Brush Settings</h3>
           <div className="bg-muted rounded-lg border p-4 space-y-4">
-            {/* Size */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-foreground">
-                  Brush Size
-                </label>
-                <span className="text-xs text-muted-foreground">
-                  {brushSize}px
-                </span>
+            {/* Size and Opacity in one row */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Size */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Size
+                  </label>
+                  <span className="text-xs text-muted-foreground">
+                    {brushSize}px
+                  </span>
+                </div>
+                <Slider
+                  value={[brushSize]}
+                  onValueChange={(v: number[]) => setBrushSize(v[0])}
+                  min={1}
+                  max={50}
+                  step={1}
+                  className="[&>span:first-child]:border [&>span:first-child]:border-border"
+                />
               </div>
-              <Slider
-                value={[brushSize]}
-                onValueChange={(v: number[]) => setBrushSize(v[0])}
-                min={1}
-                max={50}
-                step={1}
-                className="[&>span:first-child]:border [&>span:first-child]:border-border"
-              />
-            </div>
 
-            {/* Opacity */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-foreground">
-                  Opacity
-                </label>
-                <span className="text-xs text-muted-foreground">
-                  {Math.round(opacity * 100)}%
-                </span>
+              {/* Opacity */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-foreground">
+                    Opacity
+                  </label>
+                  <span className="text-xs text-muted-foreground">
+                    {Math.round(opacity * 100)}%
+                  </span>
+                </div>
+                <Slider
+                  value={[opacity * 100]}
+                  onValueChange={(v: number[]) => setOpacity(v[0] / 100)}
+                  min={10}
+                  max={100}
+                  step={1}
+                  className="[&>span:first-child]:border [&>span:first-child]:border-border"
+                />
               </div>
-              <Slider
-                value={[opacity * 100]}
-                onValueChange={(v: number[]) => setOpacity(v[0] / 100)}
-                min={10}
-                max={100}
-                step={1}
-                className="[&>span:first-child]:border [&>span:first-child]:border-border"
-              />
-            </div>
-
-            {/* Hardness */}
-            <div>
-              <label className="text-sm font-medium text-foreground mb-2 block">
-                Brush Hardness
-              </label>
-              <ToggleGroup
-                type="single"
-                value={hardness}
-                onValueChange={handleHardnessChange}
-                className="flex rounded-lg border border-border overflow-hidden w-full"
-                aria-label="Brush Hardness"
-              >
-                {BRUSH_HARDNESS.map((level) => (
-                  <ToggleGroupItem
-                    key={level}
-                    value={level}
-                    className={cn(
-                      "flex-1 py-2 text-xs font-medium transition-colors",
-                      "bg-transparent hover:bg-primary/20",
-                      "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground",
-                      "data-[state=off]:text-foreground border-0",
-                      "focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring"
-                    )}
-                  >
-                    {level.charAt(0).toUpperCase() + level.slice(1)}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
             </div>
           </div>
         </div>
@@ -279,92 +189,112 @@ export function DrawingPanel({
         </div>
       )}
 
-      {/* Rectangle/Bounding Box Settings - Only show for rectangle tool */}
+      {/* Rectangle/Bounding Box Guide - Only show for rectangle tool */}
       {tool === 'rectangle' && (
-        <div>
-          <h3 className="text-sm font-medium text-foreground mb-3">Bounding Box Settings</h3>
-          <div className="bg-muted rounded-lg border p-4 space-y-4">
-            <div className="text-sm text-muted-foreground">
-              Draw a rectangle to define the region of interest for manual segmentation.
-            </div>
-            
-            <div className="space-y-2">
-              <div className="text-xs text-muted-foreground">
-                <strong>Instructions:</strong>
-                <ol className="list-decimal list-inside mt-1 space-y-1">
-                  <li>Select your desired anatomical label above before drawing</li>
-                  <li>Click and drag to draw a bounding box around the area you want to segment</li>
-                  <li>The box will appear as a red dashed outline while drawing</li>
-                  <li>Release the mouse to finalize - the box will turn green</li>
-                  <li>Segmentation will start automatically using the selected anatomical label</li>
-                  <li>Wait for the AI to process the region and return the segmentation mask</li>
-                </ol>
+        <Accordion type="multiple" className="w-full">
+          <AccordionItem value="bounding-box-guide" className="border-none">
+            <AccordionTrigger className="py-2 hover:no-underline">
+              <h3 className="text-sm font-medium text-foreground">Bounding Box Guide</h3>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="bg-muted rounded-lg border p-4 space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  Draw a rectangle to define the region of interest for manual segmentation.
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="text-xs text-muted-foreground">
+                    <strong>Instructions:</strong>
+                    <ol className="list-decimal list-inside mt-1 space-y-1">
+                      <li>Select your desired anatomical label above before drawing</li>
+                      <li>Click and drag to draw a bounding box around the area you want to segment</li>
+                      <li>The box will appear as a red dashed outline while drawing</li>
+                      <li>Release the mouse to finalize - the box will turn green</li>
+                      <li>Segmentation will start automatically using the selected anatomical label</li>
+                      <li>Wait for the AI to process the region and return the segmentation mask</li>
+                    </ol>
+                  </div>
+                  
+                  <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-2 rounded border-l-2 border-blue-400">
+                    <strong>Note:</strong> The bounding box coordinates will be sent to the AI segmentation model to process only the selected region.
+                  </div>
+                </div>
               </div>
-              
-              <div className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-2 rounded border-l-2 border-blue-400">
-                <strong>Note:</strong> The bounding box coordinates will be sent to the AI segmentation model to process only the selected region.
-              </div>
-            </div>
-          </div>
-        </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       )}
 
-      {/* Actions */}
-      <div className="pt-4 border-t border-border">
-        <h3 className="text-sm font-medium text-foreground mb-3">Actions</h3>
-        <div className="space-y-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleUndo}
-            disabled={!canUndo}
-            className="w-full justify-start text-xs"
-            aria-label="Undo last action (Ctrl+Z)"
-          >
-            <Undo2 className="w-4 h-4 mr-2" />
-            Undo
-            <span className="text-xs text-muted-foreground ml-auto">Ctrl+Z</span>
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRedo}
-            disabled={!canRedo}
-            className="w-full justify-start text-xs"
-            aria-label="Redo last action (Ctrl+Y)"
-          >
-            <Redo2 className="w-4 h-4 mr-2" />
-            Redo
-            <span className="text-xs text-muted-foreground ml-auto">Ctrl+Y</span>
-          </Button>
-          
-          <Button
-            variant="destructive"
-            onClick={handleClear}
-            disabled={!canClear}
-            className="w-full justify-start text-xs"
-            aria-label="Clear current mask (Delete)"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            Clear Current Mask
-            <span className="text-xs text-muted-foreground ml-auto">Del</span>
-          </Button>
-        </div>
-      </div>
-      
-      {/* Tool Tips Info Section */}
-      <div className="p-3 bg-muted rounded-lg border">
-        <h3 className="text-sm font-medium text-foreground mb-2">Tool Tips</h3>
-        <div className="text-xs text-muted-foreground space-y-1">
-          <div>• <strong>Select:</strong> Move and select objects</div>
-          <div>• <strong>Brush:</strong> Paint segmentation masks</div>
-          <div>• <strong>Eraser:</strong> Remove mask pixels</div>
-          <div>• <strong>Bounding Box:</strong> Draw bounding box for AI-powered manual segmentation</div>
-          <div>• <strong>Zoom:</strong> Enlarge the image</div>
-          <div>• <strong>Pan:</strong> Navigate the canvas</div>
-        </div>
-      </div>
+      {/* Collapsible Sections using Accordion */}
+      <Accordion type="multiple" defaultValue={["actions"]} className="w-full">
+        {/* Actions - Open by default */}
+        <AccordionItem value="actions" className="border-none">
+          <AccordionTrigger className="py-3 hover:no-underline">
+            <h3 className="text-sm font-medium text-foreground">Actions</h3>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-2 pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleUndo}
+                disabled={!canUndo}
+                className="w-full justify-start text-xs"
+                aria-label="Undo last action (Ctrl+Z)"
+              >
+                <Undo2 className="w-4 h-4 mr-2" />
+                Undo
+                <span className="text-xs text-muted-foreground ml-auto">Ctrl+Z</span>
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRedo}
+                disabled={!canRedo}
+                className="w-full justify-start text-xs"
+                aria-label="Redo last action (Ctrl+Y)"
+              >
+                <Redo2 className="w-4 h-4 mr-2" />
+                Redo
+                <span className="text-xs text-muted-foreground ml-auto">Ctrl+Y</span>
+              </Button>
+              
+              <Button
+                variant="destructive"
+                onClick={handleClear}
+                disabled={!canClear}
+                className="w-full justify-start text-xs"
+                aria-label="Clear current mask (Delete)"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Clear Current Mask
+                <span className="text-xs text-muted-foreground ml-auto">Del</span>
+              </Button>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Tool Tips - Collapsed by default */}
+        <AccordionItem value="tooltips" className="border-none">
+          <AccordionTrigger className="py-3 hover:no-underline">
+            <h3 className="text-sm font-medium text-foreground">Tool Tips</h3>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="p-3 bg-muted rounded-lg border">
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div>• <strong>Select:</strong> Move and select objects</div>
+                <div>• <strong>Brush:</strong> Paint segmentation masks</div>
+                <div>• <strong>Eraser:</strong> Remove mask pixels</div>
+                <div>• <strong>Bounding Box:</strong> Draw bounding box for AI-powered manual segmentation</div>
+                <div>• <strong>Zoom:</strong> Enlarge the image</div>
+                <div>• <strong>Pan:</strong> Navigate the canvas</div>
+                <div>• <strong>Keyboard Shortcuts: ← → frames ↑ ↓ slices + - zoom</strong></div>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }

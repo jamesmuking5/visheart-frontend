@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useGpuStatus, useUserProjects, useUserJobs, useUserStats } from "@/lib/dashboard-hooks";
 import { useProjectSegmentationStatus } from "@/hooks/useProjectSegmentationStatus";
+import { useProjectReconstructionStatus } from "@/hooks/useProjectReconstructionStatus";
 import { ShowForUser, ShowForGuest, ShowForRegisteredUser } from "@/components/RoleGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,10 +16,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertCircle,
   Brain,
+  Box,
   Download,
   FolderOpen,
   Heart,
@@ -42,6 +43,7 @@ import Link from "next/link";
 import { projectApi, segmentationApi } from "@/lib/api";
 import { FileUploadDialog } from "@/components/upload/FileUploadDialog";
 import { SegmentationIndicator } from "@/components/dashboard/SegmentationIndicator";
+import { ReconstructionIndicator } from "@/components/dashboard/ReconstructionIndicator";
 import { EditableProjectCard } from "@/components/dashboard/EditableProjectCard";
 
 // Helper function to format file size
@@ -97,6 +99,9 @@ export default function DashboardPage() {
 
   // Add segmentation status tracking for projects
   const { statuses: segmentationStatuses, refresh: refreshSegmentationStatuses } = useProjectSegmentationStatus(projects);
+  
+  // Add reconstruction status tracking for projects
+  const { statuses: reconstructionStatuses, refresh: refreshReconstructionStatuses } = useProjectReconstructionStatus(projects);
 
   // State for upload dialog
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -174,8 +179,9 @@ export default function DashboardPage() {
   const refreshDashboard = async () => {
     if (user) {
       await Promise.all([refreshProjects(), refreshJobs(), refreshGpuStatus()]);
-      // Refresh segmentation statuses after projects are refreshed
+      // Refresh segmentation and reconstruction statuses after projects are refreshed
       refreshSegmentationStatuses();
+      refreshReconstructionStatuses();
     }
   };
 
@@ -330,7 +336,7 @@ export default function DashboardPage() {
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-4">
           {/* Stats Cards */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
@@ -344,12 +350,23 @@ export default function DashboardPage() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Completed</CardTitle>
+                <CardTitle className="text-sm font-medium">Segmentations</CardTitle>
                 <Brain className="text-muted-foreground h-4 w-4" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{userStats?.completedSegmentations || 0}</div>
-                <p className="text-muted-foreground text-xs">Segmentations done</p>
+                <p className="text-muted-foreground text-xs">Completed</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Reconstructions</CardTitle>
+                <Box className="text-muted-foreground h-4 w-4" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{userStats?.completedReconstructions || 0}</div>
+                <p className="text-muted-foreground text-xs">4D Models</p>
               </CardContent>
             </Card>
 
@@ -429,7 +446,7 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-3">
                       <FileText className="text-muted-foreground h-4 w-4" />
                       <div>
-                        <p className="text-sm font-medium">{project.name}</p>
+                        <p className="text-sm font-medium truncate max-w-96">{project.name}</p>
                         <p className="text-muted-foreground text-xs">
                           {formatFileSize(project.filesize)} •{project.filetype}
                         </p>
@@ -609,6 +626,7 @@ export default function DashboardPage() {
                     onDelete={handleDeleteProject}
                     onExport={handleExportProject}
                     segmentationIndicator={<SegmentationIndicator status={segmentationStatuses[project.projectId]} variant="badge" />}
+                    reconstructionIndicator={<ReconstructionIndicator status={reconstructionStatuses[project.projectId]} variant="badge" />}
                     hasMasks={segmentationStatuses[project.projectId]?.hasMasks || false}
                   />
                 </div>
@@ -625,7 +643,7 @@ export default function DashboardPage() {
                       <TableHead className="hidden sm:table-cell">Size</TableHead>
                       <TableHead className="hidden md:table-cell">Type</TableHead>
                       <TableHead className="hidden lg:table-cell">Dimensions</TableHead>
-                      <TableHead className="hidden lg:table-cell">Affine Matrix</TableHead>
+                      <TableHead className="hidden xl:table-cell">Reconstruction</TableHead>
                       <TableHead className="hidden md:table-cell">Created</TableHead>
                       <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
@@ -635,19 +653,12 @@ export default function DashboardPage() {
                       <TableRow key={project.projectId} className="group hover:bg-muted/50">
                         <TableCell className="font-medium">
                           <div>
-                            <div className="font-semibold">{project.name}</div>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="text-sm text-muted-foreground truncate max-w-xs cursor-help">{project.description || "No description"}</div>
-                                </TooltipTrigger>
-                                {project.description && project.description.length > 50 && (
-                                  <TooltipContent className="max-w-xs">
-                                    <p>{project.description}</p>
-                                  </TooltipContent>
-                                )}
-                              </Tooltip>
-                            </TooltipProvider>
+                            <div className="font-semibold truncate max-w-80" title={project.name}>
+                              {project.name}
+                            </div>
+                            <div className="text-sm text-muted-foreground truncate max-w-xs" title={project.description || "No description"}>
+                              {project.description || "No description"}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -666,6 +677,7 @@ export default function DashboardPage() {
                               </Button>
                             </ShowForRegisteredUser>
                             <SegmentationIndicator status={segmentationStatuses[project.projectId]} variant="badge" />
+                            <ReconstructionIndicator status={reconstructionStatuses[project.projectId]} variant="badge" />
                           </div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">{formatFileSize(project.filesize)}</TableCell>
@@ -684,15 +696,18 @@ export default function DashboardPage() {
                             })()}
                           </span>
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell">
-                          {project.affineMatrix && project.affineMatrix.length > 0 ? (
-                            <Badge variant="outline" className="text-xs">
-                              4×4 Available
-                            </Badge>
+                        <TableCell className="hidden xl:table-cell">
+                          {project.reconstruction ? (
+                            <div className="text-sm">
+                              <div className="text-muted-foreground">
+                                ED Frame: <span className="font-medium text-foreground">{project.reconstruction.edFrame}</span>
+                              </div>
+                              <div className="text-muted-foreground">
+                                Mesh: <span className="font-medium text-foreground">{project.reconstruction.tarFileSize ? formatFileSize(project.reconstruction.tarFileSize) : "N/A"}</span>
+                              </div>
+                            </div>
                           ) : (
-                            <Badge variant="outline" className="text-xs text-muted-foreground">
-                              Not Available
-                            </Badge>
+                            <span className="text-muted-foreground text-sm">—</span>
                           )}
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{new Date(project.createdAt).toLocaleDateString()}</TableCell>

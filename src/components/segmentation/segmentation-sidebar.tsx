@@ -2,49 +2,77 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Layers, Brush, BarChart2, History, LayoutGrid, Settings, Save, Undo2, Redo2, Trash2, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Brush, History, Save, Eye, EyeOff, Loader2, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Import shared types and constants
 import type { SegmentationSidebarProps, AnatomicalLabel } from "@/types/segmentation";
-import { LABEL_COLORS, LABEL_NAMES } from "@/types/segmentation";
+import { LABEL_COLORS, LABEL_NAMES, ANATOMICAL_LABELS } from "@/types/segmentation";
 import { DrawingPanel } from './drawing-panel';
 import { HistoryPanel } from './history-panel';
 import { useMaskStats } from '@/hooks/useMaskStats';
 
 // Navigation configuration with proper typing
 const NAV_ITEMS = [
-  { key: 'masks', icon: Layers, label: 'Masks' },
-  { key: 'brush', icon: Brush, label: 'Brush' },
-  { key: 'stats', icon: BarChart2, label: 'Stats' },
+  { key: 'tools', icon: Brush, label: 'Tools & Masks' },
   { key: 'history', icon: History, label: 'History' },
-  { key: 'compare', icon: LayoutGrid, label: 'Compare' },
-  { key: 'settings', icon: Settings, label: 'Settings' },
 ] as const;
 
 type TabKey = typeof NAV_ITEMS[number]['key'];
 
-// Masks Panel Component with proper typing
-const MasksPanel = React.memo(({
+// Consolidated Tools & Masks Panel Component
+const ToolsAndMasksPanel = React.memo(({
   decodedMasks,
   currentFrame,
   currentSlice,
+  tool,
+  setTool,
+  brushSize,
+  setBrushSize,
+  opacity,
+  setOpacity,
   activeLabel,
   setActiveLabel,
   visibleMasks,
-  setVisibleMasks
+  setVisibleMasks,
+  handleUndo,
+  handleRedo,
+  handleClear,
+  canUndo,
+  canRedo,
+  canClear,
+  zoomLevel,
+  setZoomLevel,
+  onReset,
 }: {
   decodedMasks: Record<string, Uint8Array>;
   currentFrame: number;
   currentSlice: number;
+  tool: import("@/types/segmentation").DrawingTool;
+  setTool: (tool: import("@/types/segmentation").DrawingTool) => void;
+  brushSize: number;
+  setBrushSize: (size: number) => void;
+  opacity: number;
+  setOpacity: (opacity: number) => void;
   activeLabel: AnatomicalLabel;
   setActiveLabel: (label: AnatomicalLabel) => void;
   visibleMasks: Set<AnatomicalLabel>;
   setVisibleMasks: (masks: Set<AnatomicalLabel>) => void;
+  handleUndo: () => void;
+  handleRedo: () => void;
+  handleClear: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  canClear: boolean;
+  zoomLevel?: number;
+  setZoomLevel?: (level: number) => void;
+  onReset?: () => void;
 }) => {
-  // Memoized current masks calculation
+  // Memoized current masks calculation - ALWAYS show all labels in consistent order
   const currentMasks = useMemo(() => {
-    const maskMap: Record<string, [string, Uint8Array]> = {};
+    // Build map of existing masks for current frame/slice
+    const maskMap: Record<string, [string, Uint8Array | null]> = {};
 
     Object.entries(decodedMasks).forEach(([key, maskData]) => {
       if (
@@ -56,15 +84,17 @@ const MasksPanel = React.memo(({
       }
     });
 
-    return Object.values(maskMap);
+    // Return ALL labels in consistent order (even if mask doesn't exist yet)
+    return ANATOMICAL_LABELS.map(label => {
+      const existing = maskMap[label];
+      if (existing) {
+        return existing; // [maskKey, maskData]
+      }
+      // Return placeholder for non-existent mask
+      const placeholderKey = `editable_frame_${currentFrame}_slice_${currentSlice}_${label}`;
+      return [placeholderKey, null] as [string, Uint8Array | null];
+    });
   }, [decodedMasks, currentFrame, currentSlice]);
-
-  // Memoized label click handler
-  const handleLabelClick = useCallback((label: string) => {
-    if (label in LABEL_COLORS) {
-      setActiveLabel(label as AnatomicalLabel);
-    }
-  }, [setActiveLabel]);
 
   const toggleMaskVisibility = useCallback((label: AnatomicalLabel) => {
     const newVisibleMasks = new Set(visibleMasks);
@@ -78,92 +108,108 @@ const MasksPanel = React.memo(({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-foreground">Segmentation Masks</h2>
-      
-      {/* Current Frame/Slice Info */}
-      <div className="p-3 bg-muted rounded-lg">
-        <div className="text-sm text-muted-foreground mb-2">
-          Frame {currentFrame + 1}, Slice {currentSlice + 1}
+      {/* Available Masks Section - Clean 3-column grid layout */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-foreground">Active Label & Masks</h3>
+          <div className="text-xs text-muted-foreground">
+            Frame {currentFrame + 1}, Slice {currentSlice + 1}
+          </div>
         </div>
-        <div className="text-xs text-muted-foreground">
-          {currentMasks.length} mask(s) available
-        </div>
-      </div>
-
-      {/* Available Masks */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-foreground">Available Masks</h3>
-        {currentMasks.length > 0 ? (
-          currentMasks.map(([maskKey, maskData]) => {
+        
+        <div className="grid grid-cols-3 gap-2">
+          {currentMasks.map(([maskKey, maskData]) => {
             const label = maskKey.split('_').pop() || 'unknown';
             const anatomicalLabel = label as AnatomicalLabel;
             const color = LABEL_COLORS[anatomicalLabel] || '#gray';
             const labelName = LABEL_NAMES[anatomicalLabel] || label.toUpperCase();
-            const filledPixels = maskData.filter(pixel => pixel > 0).length;
+            
+            // Handle null maskData (mask doesn't exist yet)
+            const filledPixels = maskData ? maskData.filter(pixel => pixel > 0).length : 0;
+            const maskExists = maskData !== null;
+            
             const isActive = activeLabel === label;
             const isVisible = visibleMasks.has(anatomicalLabel);
 
             return (
-              <div 
-                key={maskKey} 
-                className={cn(
-                  "p-3 rounded-lg border flex items-center gap-3 transition-all cursor-pointer",
-                  isActive ? "bg-primary/10 border-primary/30" : "bg-background border-border hover:bg-muted/50"
-                )}
-                onClick={() => handleLabelClick(label)} 
-                tabIndex={0}
-                role="button"
-                aria-label={`Select ${labelName} as active mask`}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleLabelClick(label); }}
-              >
-                {/* Radio button for active mask */}
-                <span
-                  className={cn(
-                    "w-4 h-4 rounded-full border-2 flex items-center justify-center",
-                    isActive 
-                      ? "border-primary bg-primary" 
-                      : "border-muted-foreground"
-                  )}
-                  aria-hidden="true"
-                >
-                  {isActive && <div className="w-2 h-2 bg-primary-foreground rounded-full" />}
-                </span>
-
-                {/* Mask info */}
-                <div className="flex-1">
-                  <div className="font-medium text-sm">{labelName}</div>
-                  <div className="text-xs text-muted-foreground">{filledPixels.toLocaleString()} pixels</div>
-                </div>
-
-                {/* Mask color indicator */}
-                <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-                
-                {/* Eye icon for visibility toggle */}
+              <div key={maskKey} className="flex flex-col gap-1.5">
+                {/* Main selection button */}
                 <button
-                  onClick={e => { e.stopPropagation(); toggleMaskVisibility(anatomicalLabel); }}
+                  onClick={() => setActiveLabel(anatomicalLabel)}
                   className={cn(
-                    "p-1 rounded hover:bg-muted",
-                    isVisible ? "text-foreground" : "text-muted-foreground"
+                    "w-full p-2.5 rounded-lg border-2 transition-all flex flex-col items-center gap-2",
+                    "hover:border-primary/50 hover:shadow-sm",
+                    isActive 
+                      ? "border-primary bg-primary/5 shadow-sm" 
+                      : "border-border bg-background",
+                    !maskExists && "opacity-60"
+                  )}
+                  aria-label={`Select ${labelName} as active mask`}
+                >
+                  {/* Color indicator dot */}
+                  <div 
+                    className={cn(
+                      "w-4 h-4 rounded-full flex-shrink-0 ring-2 ring-offset-1 transition-all",
+                      isActive ? "ring-primary/30 scale-110" : "ring-transparent"
+                    )}
+                    style={{ backgroundColor: color }}
+                  />
+                  
+                  {/* Label name */}
+                  <div className="font-medium text-xs leading-none text-center">
+                    {labelName}
+                  </div>
+                  
+                  {/* Pixel count */}
+                  <div className="text-[10px] text-muted-foreground text-center">
+                    {maskExists ? `${filledPixels.toLocaleString()}px` : 'Empty'}
+                  </div>
+                </button>
+                
+                {/* Visibility toggle button */}
+                <button
+                  onClick={() => toggleMaskVisibility(anatomicalLabel)}
+                  className={cn(
+                    "w-full py-1.5 rounded-md transition-all flex items-center justify-center",
+                    isVisible 
+                      ? "text-foreground hover:bg-muted/50 bg-muted/30" 
+                      : "text-muted-foreground hover:bg-muted/50"
                   )}
                   aria-label={`${isVisible ? 'Hide' : 'Show'} ${labelName} mask`}
-                  tabIndex={0}
                 >
-                  {isVisible ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  {isVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                 </button>
               </div>
             );
-          })
-        ) : (
-          <div className="text-center text-muted-foreground text-sm py-8">
-            No masks found for current frame/slice
-          </div>
-        )}
+          })}
+        </div>
       </div>
+
+      {/* Drawing Tools - DrawingPanel without Active Label selector */}
+      <DrawingPanel
+        tool={tool}
+        setTool={setTool}
+        brushSize={brushSize}
+        setBrushSize={setBrushSize}
+        opacity={opacity}
+        setOpacity={setOpacity}
+        activeLabel={activeLabel}
+        setActiveLabel={setActiveLabel}
+        handleUndo={handleUndo}
+        handleRedo={handleRedo}
+        handleClear={handleClear}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        canClear={canClear}
+        zoomLevel={zoomLevel}
+        setZoomLevel={setZoomLevel}
+        onReset={onReset}
+      />
     </div>
   );
 });
 
-MasksPanel.displayName = 'MasksPanel';
+ToolsAndMasksPanel.displayName = 'ToolsAndMasksPanel';
 
 // Stats Panel Component with optimized custom hook
 const StatsPanel = React.memo(({
@@ -361,8 +407,6 @@ export function SegmentationSidebar({
   setBrushSize,
   opacity,
   setOpacity,
-  hardness,
-  setHardness,
   activeLabel,
   setActiveLabel,
   visibleMasks,
@@ -376,6 +420,7 @@ export function SegmentationSidebar({
   hasUnsavedChanges,
   isSaving = false,
   onSave,
+  onRevert,
   currentFrame,
   currentSlice,
   totalFrames,
@@ -392,7 +437,7 @@ export function SegmentationSidebar({
   setZoomLevel,
   onReset,
 }: SegmentationSidebarProps) {
-  const [activeTab, setActiveTab] = useState('brush');
+  const [activeTab, setActiveTab] = useState<TabKey>('tools');
 
   // Memoized tab change handler
   const handleTabChange = useCallback((tabKey: TabKey) => {
@@ -407,14 +452,14 @@ export function SegmentationSidebar({
   }), [hasUnsavedChanges, isSaving]);
 
   return (
-    <div className="flex flex-col h-full bg-[var(--sidebar)] rounded-xl border border-[var(--sidebar-border)] shadow-sm">
-      {/* Top Navigation Bar with proper accessibility */}
-      <div className="flex items-center justify-center gap-3 px-2 py-2 border-b border-[var(--sidebar-border)] bg-[var(--sidebar-primary)] rounded-t-xl">
+    <div className="flex flex-col h-full bg-[var(--sidebar)] rounded-r-xl border border-[var(--sidebar-border)] shadow-sm">
+      {/* Top Navigation Bar - Compact horizontal layout */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-[var(--sidebar-border)] bg-[var(--sidebar-primary)] rounded-tr-xl">
         {NAV_ITEMS.map(({ key, icon: Icon, label }) => (
           <button
             key={key}
             className={cn(
-              "flex items-center justify-center p-2 rounded-lg transition-all hover:scale-105",
+              "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all flex-1",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               activeTab === key
                 ? "bg-[var(--sidebar-accent)] text-[var(--sidebar-accent-foreground)] shadow-sm"
@@ -422,59 +467,75 @@ export function SegmentationSidebar({
             )}
             onClick={() => handleTabChange(key)}
             aria-label={`Switch to ${label} tab`}
-            title={label}
             type="button"
           >
-            <Icon className="w-5 h-5" />
+            <Icon className="w-4 h-4 flex-shrink-0" />
+            <span className="text-xs font-medium">{label}</span>
           </button>
         ))}
       </div>
 
       {/* Save Button - Moved to top for better accessibility */}
       <div className="p-4 border-b border-[var(--sidebar-border)]">
-        <Button 
-          onClick={onSave}
-          disabled={saveButtonConfig.disabled}
-          className="w-full transition-colors justify-start text-xs"
-          variant={saveButtonConfig.variant}
-          aria-label={`${saveButtonConfig.text} - ${hasUnsavedChanges ? 'Click to save your changes' : 'All changes are saved'}`}
-        >
-          {isSaving ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4 mr-2" />
+        <div className="flex gap-2">
+          {/* Save Button - Left */}
+          <Button 
+            onClick={onSave}
+            disabled={saveButtonConfig.disabled}
+            className="flex-1 transition-colors justify-start text-xs"
+            variant={saveButtonConfig.variant}
+            aria-label={`${saveButtonConfig.text} - ${hasUnsavedChanges ? 'Click to save your changes' : 'All changes are saved'}`}
+          >
+            {isSaving ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Save className="h-4 w-4 mr-2" />
+            )}
+            {saveButtonConfig.text}
+            {!isSaving && <span className="text-xs text-muted-foreground ml-auto">Ctrl+S</span>}
+          </Button>
+
+          {/* Reset Masks Button - Right */}
+          {onRevert && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    onClick={onRevert}
+                    disabled={isSaving}
+                    className="transition-colors text-xs px-3"
+                    variant="outline"
+                    aria-label="Reset all edits to original AI-generated segmentation"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Reset to AI Segmentation</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
-          {saveButtonConfig.text}
-          {!isSaving && <span className="text-xs text-muted-foreground ml-auto">Ctrl+S</span>}
-        </Button>
+        </div>
       </div>
 
       {/* Sidebar Content with proper error boundaries */}
       <div className="flex-1 flex flex-col p-4 overflow-y-auto">
-        {activeTab === 'masks' && (
-          <MasksPanel
+        {activeTab === 'tools' && (
+          <ToolsAndMasksPanel
             decodedMasks={decodedMasks}
             currentFrame={currentFrame}
             currentSlice={currentSlice}
-            activeLabel={activeLabel}
-            setActiveLabel={setActiveLabel}
-            visibleMasks={visibleMasks}
-            setVisibleMasks={setVisibleMasks}
-          />
-        )}
-
-        {activeTab === 'brush' && (
-          <DrawingPanel
             tool={tool}
             setTool={setTool}
             brushSize={brushSize}
             setBrushSize={setBrushSize}
             opacity={opacity}
             setOpacity={setOpacity}
-            hardness={hardness}
-            setHardness={setHardness}
             activeLabel={activeLabel}
             setActiveLabel={setActiveLabel}
+            visibleMasks={visibleMasks}
+            setVisibleMasks={setVisibleMasks}
             handleUndo={handleUndo}
             handleRedo={handleRedo}
             handleClear={handleClear}
@@ -484,15 +545,6 @@ export function SegmentationSidebar({
             zoomLevel={zoomLevel}
             setZoomLevel={setZoomLevel}
             onReset={onReset}
-          />
-        )}
-
-        {activeTab === 'stats' && (
-          <StatsPanel
-            decodedMasks={decodedMasks}
-            currentFrame={currentFrame}
-            currentSlice={currentSlice}
-            projectData={projectData}
           />
         )}
 
@@ -508,16 +560,6 @@ export function SegmentationSidebar({
             historyData={historyData}
           />
         )}
-
-        {activeTab === 'compare' && (
-          <ComparePanel
-            decodedMasks={decodedMasks}
-            currentFrame={currentFrame}
-            currentSlice={currentSlice}
-          />
-        )}
-
-        {activeTab === 'settings' && <SettingsPanel />}
       </div>
     </div>
   );

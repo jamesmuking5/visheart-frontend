@@ -1,14 +1,12 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Edit2, Check, X, Loader2, Edit, Download, Trash2, Eye, Brain } from "lucide-react";
+import { Edit2, Check, X, Loader2, Edit, Download, Trash2 } from "lucide-react";
 import { Project } from "@/types/dashboard";
 import { projectApi } from "@/lib/api";
 import { ShowForRegisteredUser } from "@/components/RoleGuard";
-import { AffineMatrixDisplay } from "@/components/ui/AffineMatrixDisplay";
 
 interface EditableProjectCardProps {
   project: Project;
@@ -17,10 +15,11 @@ interface EditableProjectCardProps {
   onDelete: (projectId: string, projectName: string) => void;
   onExport: (projectId: string) => void;
   segmentationIndicator?: React.ReactNode;
+  reconstructionIndicator?: React.ReactNode;
   hasMasks?: boolean; // Add mask availability info
 }
 
-export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExport, segmentationIndicator, hasMasks = false }: EditableProjectCardProps) {
+export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExport, segmentationIndicator, reconstructionIndicator, hasMasks = false }: EditableProjectCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [editedName, setEditedName] = useState(project.name);
@@ -101,27 +100,31 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
                   className="font-semibold text-lg"
                   disabled={isUpdating}
                 />
-                <Textarea
+                <Input
                   value={editedDescription}
                   onChange={(e) => setEditedDescription(e.target.value)}
                   onKeyDown={handleKeyPress}
                   placeholder="Project description (optional)"
-                  className="text-sm min-h-[60px] resize-none"
+                  className="text-sm"
                   disabled={isUpdating}
                 />
                 {updateError && <p className="text-sm text-destructive">{updateError}</p>}
               </div>
             ) : (
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold truncate">{project.name}</h3>
+                <div className="flex items-center justify-between gap-2 max-w-64">
+                  <p className="text-lg font-semibold truncate" title={project.name}>
+                    {project.name}
+                  </p>
                   <ShowForRegisteredUser fallback={null}>
-                    <Button variant="ghost" size="sm" onClick={handleStartEdit} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto">
+                    <Button variant="ghost" size="sm" onClick={handleStartEdit} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto self-end">
                       <Edit2 className="h-3 w-3" />
                     </Button>
                   </ShowForRegisteredUser>
                 </div>
-                <p className="text-sm text-muted-foreground line-clamp-2">{project.description || "No description"}</p>
+                <p className="text-sm text-muted-foreground truncate max-w-80" title={project.description || "No description"}>
+                  {project.description || "No description"}
+                </p>
               </div>
             )}
           </div>
@@ -146,6 +149,7 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
                   </Button>
                 </ShowForRegisteredUser>
                 {segmentationIndicator}
+                {reconstructionIndicator}
               </>
             )}
           </div>
@@ -179,24 +183,30 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
             <span className="text-muted-foreground">Created:</span>
             <p className="font-medium">{new Date(project.createdAt).toLocaleDateString()}</p>
           </div>
+          {/* Reconstruction Metadata */}
+          {project.reconstruction && (
+            <>
+              <div>
+                <span className="text-muted-foreground">ED Frame:</span>
+                <p className="font-medium">{project.reconstruction.edFrame}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Mesh Size:</span>
+                <p className="font-medium">{project.reconstruction.tarFileSize ? formatFileSize(project.reconstruction.tarFileSize) : "N/A"}</p>
+              </div>
+            </>
+          )}
         </div>
-
-        {/* Affine Matrix Display - Compact Version for Dashboard */}
-        <AffineMatrixDisplay 
-          affineMatrix={project.affineMatrix} 
-          compact={true}
-          className="mt-3"
-        />
 
         <div className="flex gap-2">
           <Button size="sm" className="flex-1" onClick={() => window.open(`/project/${project.projectId}`, "_blank")} title={`Open project ${project.name}`}>
             <Edit className="mr-1 h-3 w-3" />
             Open
           </Button>
-          <Button 
-            size="sm" 
-            variant="outline" 
-            className="flex-1" 
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1"
             onClick={() => onExport(project.projectId)}
             disabled={!hasMasks}
             title={hasMasks ? "Export segmentation as NIfTI" : "Complete segmentation to enable export"}

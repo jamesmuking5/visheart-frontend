@@ -274,6 +274,27 @@ export const segmentationApi = {
     }
   },
 
+  // Batch get segmentation status for multiple projects
+  batchSegmentationStatus: async (projectIds: string[]) => {
+    console.log('[API] Batch segmentation status check:', { projectIds });
+
+    try {
+      const response = await api.post('/segmentation/batch-segmentation-status', {
+        projectIds,
+      });
+
+      console.log('[API] Batch segmentation status response:', {
+        success: response.data.success,
+        statusCount: Object.keys(response.data.statuses || {}).length
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('[API] Batch segmentation status error:', error);
+      throw error;
+    }
+  },
+
   // Start manual segmentation
   startManualSegmentation: async (
     projectId: string,
@@ -341,40 +362,40 @@ export const segmentationApi = {
   exportProjectData: async (projectId: string) => {
     try {
       console.log(`[API] Starting export for project: ${projectId}`);
-      
+
       // First, get the presigned URL from the backend
       const response = await api.get(
         `/segmentation/export-project-data/${projectId}`,
       );
-      
+
       console.log(`[API] Backend response:`, response.data);
-      
+
       if (!response.data.success || !response.data.exportPackageUrl) {
         throw new Error(response.data.message || "Export failed - no download URL received");
       }
-      
+
       // Then download the actual file from the presigned URL
       console.log(`[API] Downloading from presigned URL: ${response.data.exportPackageUrl}`);
       const fileResponse = await fetch(response.data.exportPackageUrl);
-      
+
       console.log(`[API] File response:`, {
         status: fileResponse.status,
         statusText: fileResponse.statusText,
         headers: Object.fromEntries(fileResponse.headers.entries()),
         ok: fileResponse.ok
       });
-      
+
       if (!fileResponse.ok) {
         throw new Error(`Failed to download export file: ${fileResponse.status} ${fileResponse.statusText}`);
       }
-      
+
       const blob = await fileResponse.blob();
       console.log(`[API] Created blob:`, {
         size: blob.size,
         type: blob.type,
         expectedSize: response.data.fileSizeBytes
       });
-      
+
       // Return both the blob and metadata
       return {
         blob,
@@ -383,6 +404,95 @@ export const segmentationApi = {
       };
     } catch (error) {
       console.error(`[API] Export error:`, error);
+      throw error;
+    }
+  },
+};
+
+// Reconstruction functions
+export const reconstructionApi = {
+  // Start 4D reconstruction for a project
+  startReconstruction: async (
+    projectId: string,
+    data: {
+      reconstructionName?: string;
+      reconstructionDescription?: string;
+      ed_frame?: number;
+      export_format?: 'obj' | 'glb'; // User's choice for mesh export format
+      parameters?: {
+        num_iterations?: number;
+        resolution?: number;
+        process_all_frames?: boolean;
+        debug_save?: boolean;
+        debug_dir?: string;
+      };
+    }
+  ) => {
+    try {
+      const response = await api.post(
+        `/reconstruction/start-reconstruction/${projectId}`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get reconstruction results for a project
+  getReconstructionResults: async (projectId: string) => {
+    try {
+      const response = await api.get(
+        `/reconstruction/reconstruction-results/${projectId}`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Batch get reconstruction status for multiple projects
+  batchReconstructionStatus: async (projectIds: string[]) => {
+    console.log('[API] Batch reconstruction status check:', { projectIds });
+
+    try {
+      const response = await api.post('/reconstruction/batch-reconstruction-status', {
+        projectIds,
+      });
+
+      console.log('[API] Batch reconstruction status response:', {
+        success: response.data.success,
+        statusCount: Object.keys(response.data.statuses || {}).length
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('[API] Batch reconstruction status error:', error);
+      throw error;
+    }
+  },
+
+  // Get user reconstruction jobs
+  getUserReconstructionJobs: async () => {
+    try {
+      const response = await api.get("/reconstruction/user-check-jobs");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Delete all reconstructions for a project
+  deleteProjectReconstructions: async (projectId: string) => {
+    console.log('[API] Deleting all reconstructions for project:', projectId);
+    try {
+      const response = await api.delete(
+        `/reconstruction/delete-project-reconstructions/${projectId}`
+      );
+      console.log('[API] Delete reconstructions response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[API] Delete reconstructions error:', error);
       throw error;
     }
   },

@@ -150,25 +150,71 @@ export function useUserStats(projects: Project[], recentJobs: Job[]) {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
 
   useEffect(() => {
-    if (projects.length > 0 || recentJobs.length > 0) {
-      const completedSegmentations = recentJobs.filter(
-        (job) => job.status === "completed",
-      ).length;
+    const fetchStats = async () => {
+      if (projects.length === 0 && recentJobs.length === 0) {
+        return;
+      }
+
       const pendingJobsCount = recentJobs.filter(
         (job) => job.status === "pending",
       ).length;
-      const totalFileSize = projects.reduce(
-        (sum, project) => sum + project.filesize,
-        0,
-      );
+      
+      // Calculate total file size including mesh files from reconstructions
+      const totalFileSize = projects.reduce((sum, project) => {
+        let projectTotal = sum + project.filesize;
+        
+        // Add reconstruction mesh file size if available
+        if (project.reconstruction && project.reconstruction.tarFileSize) {
+          projectTotal += project.reconstruction.tarFileSize;
+        }
+        
+        return projectTotal;
+      }, 0);
+
+      // Count completed segmentations by checking actual mask data
+      let completedSegmentations = 0;
+      let completedReconstructions = 0;
+      
+      if (projects.length > 0) {
+        try {
+          const projectIds = projects.map((p) => p.projectId);
+          
+          // Fetch segmentation status
+          const segmentationResponse = await segmentationApi.batchSegmentationStatus(projectIds);
+          if (segmentationResponse.success && segmentationResponse.statuses) {
+            // Count projects that have segmentation masks
+            completedSegmentations = Object.values(segmentationResponse.statuses as Record<string, { hasMasks: boolean; maskCount: number }>).filter(
+              (status) => status.hasMasks
+            ).length;
+          }
+          
+          // Fetch reconstruction status
+          const { reconstructionApi } = await import("@/lib/api");
+          const reconstructionResponse = await reconstructionApi.batchReconstructionStatus(projectIds);
+          if (reconstructionResponse.success && reconstructionResponse.statuses) {
+            // Count projects that have reconstructions
+            completedReconstructions = Object.values(reconstructionResponse.statuses as Record<string, { hasReconstructions: boolean; reconstructionCount: number }>).filter(
+              (status) => status.hasReconstructions
+            ).length;
+          }
+        } catch (error) {
+          console.error("Error fetching segmentation/reconstruction status for stats:", error);
+          // Fallback: count as 0 if API call fails
+          completedSegmentations = 0;
+          completedReconstructions = 0;
+        }
+      }
 
       setUserStats({
         projectCount: projects.length,
         totalFileSize,
         completedSegmentations,
+        completedReconstructions,
         pendingJobs: pendingJobsCount,
       });
-    }
+    };
+
+    fetchStats();
   }, [projects, recentJobs]);
 
   return userStats;

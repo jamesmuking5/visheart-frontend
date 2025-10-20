@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { 
   History, 
   Save, 
-  Download, 
   Clock, 
   Brush, 
   Eraser, 
@@ -17,6 +16,7 @@ import {
   Redo2 
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 // Import shared types from centralized file
 import type { HistoryPanelProps, HistoryEntry } from "@/types/segmentation";
@@ -24,7 +24,6 @@ import { LABEL_COLORS, LABEL_NAMES } from "@/types/segmentation";
 
 export function HistoryPanel({
   onClear,
-  onExport,
   onCheckpoint,
   onHistoryStepChange,
   currentFrame = 0,
@@ -75,9 +74,9 @@ export function HistoryPanel({
     );
   }, []);
   
-  // Icon mapping with object lookup for better performance
-  const getHistoryIcon = useMemo(() => {
-    const iconMap = {
+  // Icon mapping as a stable callback for render
+  const getHistoryIcon = useCallback((type: HistoryEntry['type']) => {
+  const iconMap: Record<string, React.ReactNode> = {
       brush: <Brush className="w-4 h-4 text-blue-500" />,
       eraser: <Eraser className="w-4 h-4 text-orange-500" />,
       clear: <Trash2 className="w-4 h-4 text-red-500" />,
@@ -86,10 +85,8 @@ export function HistoryPanel({
       undo: <Undo2 className="w-4 h-4 text-gray-500" />,
       redo: <Redo2 className="w-4 h-4 text-gray-500" />,
     };
-    
-    return (type: HistoryEntry['type']) => {
-      return iconMap[type] || <Edit3 className="w-4 h-4 text-muted-foreground" />;
-    };
+
+    return iconMap[type] ?? <Edit3 className="w-4 h-4 text-muted-foreground" />;
   }, []);
 
   // Pre-calculated session statistics
@@ -111,7 +108,6 @@ export function HistoryPanel({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-lg font-semibold text-foreground">Edit History</h2>
       
       {/* Current Session Info with enhanced layout */}
       <div className="p-3 bg-muted rounded-lg border">
@@ -137,7 +133,8 @@ export function HistoryPanel({
         <h3 className="text-sm font-medium text-foreground">Recent Actions</h3>
         
         {processedHistory.length > 0 ? (
-          <div className="space-y-2 max-h-58 overflow-y-auto pr-2">
+          <ScrollArea className="h-[400px] pr-4">
+            <div className="space-y-2">
             {processedHistory.map((entry: HistoryEntry, index: number) => {
               const isCurrentStep = (historyData.length - 1 - index) === currentHistoryStep;
               
@@ -187,7 +184,8 @@ export function HistoryPanel({
                 </div>
               );
             })}
-          </div>
+            </div>
+          </ScrollArea>
         ) : (
           <div className="text-center text-muted-foreground text-sm py-12">
             <History className="w-12 h-12 mx-auto mb-3 opacity-30" />
@@ -213,24 +211,7 @@ export function HistoryPanel({
             onClick={onCheckpoint}
           >
             <Save className="w-4 h-4 mr-2" />
-            Create Checkpoint 
-            <span className="ml-auto text-xs text-muted-foreground">Ctrl+S</span>
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className={cn(
-              "w-full justify-start text-xs",
-              "hover:bg-blue-50 dark:hover:bg-blue-950",
-              "hover:border-blue-200 dark:hover:border-blue-800",
-              "transition-colors duration-200"
-            )}
-            onClick={onExport}
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export Timeline
-            <span className="ml-auto text-xs text-muted-foreground">JSON</span>
+            Create Checkpoint
           </Button>
         </div>
       </div>
