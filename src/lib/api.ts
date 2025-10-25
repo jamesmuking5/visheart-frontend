@@ -988,6 +988,20 @@ export const analyticsApi = {
       console.error(`Failed to fetch S3 PUT requests metrics for ${bucketName}:`, error);
       return null;
     }
+  },
+
+  /**
+   * List all S3 buckets
+   * @returns Promise<{buckets: Array<{Name: string, CreationDate: Date}>} | null> - List of S3 buckets
+   */
+  getS3Buckets: async (): Promise<{buckets: Array<{Name: string, CreationDate: Date}>} | null> => {
+    try {
+      const response = await api.get("/metrics/s3");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch S3 buckets:", error);
+      return null;
+    }
   }
 };
 
