@@ -915,16 +915,16 @@ export const analyticsApi = {
         console.error("Bucket name is required for S3 metrics");
         return null;
       }
-      const response = await api.get(`/metrics/s3/${encodeURIComponent(bucketName)}`);
-      // Transform the response to match the expected S3Metrics interface
+      const response = await api.get(`/metrics/s3/${encodeURIComponent(bucketName)}/all`);
+      // The backend returns S3Metrics directly
       const data = response.data;
       return {
         bucketName: data.bucketName,
-        bucketSizeBytes: data.metrics.BucketSizeBytes,
-        numberOfObjects: data.metrics.NumberOfObjects,
-        allRequests: data.metrics.AllRequests,
-        getRequests: data.metrics.GetRequests,
-        putRequests: data.metrics.PutRequests
+        bucketSizeBytes: data.bucketSizeBytes,
+        numberOfObjects: data.numberOfObjects,
+        allRequests: data.allRequests,
+        getRequests: data.getRequests,
+        putRequests: data.putRequests
       };
     } catch (error) {
       console.error(`Failed to fetch S3 metrics for bucket ${bucketName}:`, error);
@@ -1027,13 +1027,13 @@ export const analyticsApi = {
     }
   },
 
-  /**
+/**
    * List all S3 buckets
    * @returns Promise<{buckets: Array<{Name: string, CreationDate: Date}>} | null> - List of S3 buckets
    */
   getS3Buckets: async (): Promise<{buckets: Array<{Name: string, CreationDate: Date}>} | null> => {
     try {
-      const response = await api.get("/metrics/s3");
+      const response = await api.get("/metrics/s3/buckets"); // ✅ Fixed: added /buckets
       return response.data;
     } catch (error) {
       console.error("Failed to fetch S3 buckets:", error);
