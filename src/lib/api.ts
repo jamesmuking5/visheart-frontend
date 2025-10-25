@@ -1027,7 +1027,7 @@ export const analyticsApi = {
     }
   },
 
-/**
+  /**
    * List all S3 buckets
    * @returns Promise<{buckets: Array<{Name: string, CreationDate: Date}>} | null> - List of S3 buckets
    */
@@ -1037,6 +1037,92 @@ export const analyticsApi = {
       return response.data;
     } catch (error) {
       console.error("Failed to fetch S3 buckets:", error);
+      return null;
+    }
+  },
+
+  // ===== ALB CloudWatch Metrics =====
+
+  /**
+   * Get ALB Request Count metrics
+   * @returns Promise<MetricData | null> - Request count data with timestamps and values (count)
+   */
+  getALBRequestCountMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/alb/request-count");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ALB Request Count metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ALB Target Response Time metrics
+   * @returns Promise<MetricData | null> - Target response time data with timestamps and values (seconds)
+   */
+  getALBTargetResponseTimeMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/alb/target-response-time");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ALB Target Response Time metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ALB HTTP 4XX ELB Error Count metrics
+   * @returns Promise<MetricData | null> - ELB 4xx error count data with timestamps and values (count)
+   */
+  getALBHTTP4XXELBMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/alb/http-4xx-elb");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ALB HTTP 4XX ELB Error Count metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ALB HTTP 4XX Target Error Count metrics
+   * @returns Promise<MetricData | null> - Target 4xx error count data with timestamps and values (count)
+   */
+  getALBHTTP4XXTargetMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/alb/http-4xx-target");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ALB HTTP 4XX Target Error Count metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ALB Healthy Host Count metrics
+   * @returns Promise<MetricData | null> - Healthy host count data with timestamps and values (count)
+   */
+  getALBHealthyHostCountMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/alb/healthy-hosts");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ALB Healthy Host Count metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ALB Unhealthy Host Count metrics
+   * @returns Promise<MetricData | null> - Unhealthy host count data with timestamps and values (count)
+   */
+  getALBUnhealthyHostCountMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/alb/unhealthy-hosts");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ALB Unhealthy Host Count metrics:", error);
       return null;
     }
   }
