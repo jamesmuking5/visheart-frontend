@@ -183,19 +183,19 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
             <span className="text-muted-foreground">Created:</span>
             <p className="font-medium">{new Date(project.createdAt).toLocaleDateString()}</p>
           </div>
-          {/* Reconstruction Metadata */}
-          {project.reconstruction && (
-            <>
-              <div>
-                <span className="text-muted-foreground">ED Frame:</span>
-                <p className="font-medium">{project.reconstruction.edFrame}</p>
-              </div>
-              <div>
-                <span className="text-muted-foreground">Mesh Size:</span>
-                <p className="font-medium">{project.reconstruction.tarFileSize ? formatFileSize(project.reconstruction.tarFileSize) : "N/A"}</p>
-              </div>
-            </>
-          )}
+          {/* Reconstruction Metadata - Always show these fields for consistent layout */}
+          <div>
+            <span className="text-muted-foreground">ED Frame:</span>
+            <p className={project.reconstruction?.edFrame ? "font-medium" : "font-medium text-muted-foreground"}>
+              {project.reconstruction?.edFrame ?? "n/a"}
+            </p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Mesh Size:</span>
+            <p className={project.reconstruction?.tarFileSize ? "font-medium" : "font-medium text-muted-foreground"}>
+              {project.reconstruction?.tarFileSize ? formatFileSize(project.reconstruction.tarFileSize) : "n/a"}
+            </p>
+          </div>
         </div>
 
         <div className="flex gap-2">
