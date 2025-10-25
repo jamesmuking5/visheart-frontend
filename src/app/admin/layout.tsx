@@ -43,10 +43,10 @@ const adminNavigation: NavigationItem[] = [
     status: "active",
   },
   {
-    title: "Analytics",
+    title: "AWS Analytics",
     href: "/admin/analytics",
     icon: BarChart3,
-    description: "View system analytics and reports",
+    description: "View AWS metrics and reports",
     status: "active",
   },
   {
