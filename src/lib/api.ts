@@ -874,6 +874,34 @@ export const analyticsApi = {
     }
   },
 
+  /**
+   * Get ECR Backend Repository Pull Count metrics
+   * @returns Promise<MetricData | null> - ECR Backend Repository Pull Count data with timestamps and values (count)
+   */
+  getEcrBackendRepositoryPullCountMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/ecr/backend/repository-size");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ECR Backend Repository Pull Count metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ECR Frontend Repository Pull Count metrics
+   * @returns Promise<MetricData | null> - ECR Frontend Repository Pull Count data with timestamps and values (count)
+   */
+  getEcrFrontendRepositoryPullCountMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/ecr/frontend/repository-size");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ECR Frontend Repository Pull Count metrics:", error);
+      return null;
+    }
+  },
+
   // ===== S3 CloudWatch Metrics =====
 
   /**
