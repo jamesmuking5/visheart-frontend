@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Zap, Settings } from "lucide-react";
+import { CheckCircle, Zap, Settings, Box } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -18,8 +18,8 @@ interface FirstSectionProps {
 
 export default function FirstSection({
   title = "Welcome to VisHeart",
-  subtitle = "Advanced Cardiac Segmentation Platform",
-  description = "Revolutionizing cardiac imaging analysis with cutting-edge AI technology for precise heart segmentation and medical insights.",
+  subtitle = "A 2D Cardiac MRI Segmentation and 4D Reconstruction Platform",
+  description = "Experience GPU-powered cardiac imaging analysis with cutting-edge AI technology. From precise segmentation to dynamic 4D reconstruction - intuitive, fast, and designed for clinical workflow.",
   className = "",
 }: FirstSectionProps) {
   const { user } = useAuth();
@@ -82,7 +82,7 @@ export default function FirstSection({
           </motion.div>
 
           {/* Optional Feature Highlights */}
-          <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16" initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 1 }}>
+          <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mt-16" initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 1 }}>
             <motion.div className="text-center" whileHover={{ y: -10 }} transition={{ duration: 0.3 }}>
               <motion.div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center" whileHover={{ rotate: 360 }} transition={{ duration: 0.6 }}>
                 <CheckCircle className="w-8 h-8 text-primary" />
@@ -95,16 +95,24 @@ export default function FirstSection({
               <motion.div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center" whileHover={{ rotate: 360 }} transition={{ duration: 0.6 }}>
                 <Zap className="w-8 h-8 text-primary" />
               </motion.div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">Fast Processing</h3>
-              <p className="text-muted-foreground">Real-time segmentation with optimized performance</p>
+              <h3 className="text-xl font-semibold text-foreground mb-2">GPU-Powered Speed</h3>
+              <p className="text-muted-foreground">Lightning-fast processing with cloud GPU acceleration</p>
+            </motion.div>
+
+            <motion.div className="text-center" whileHover={{ y: -10 }} transition={{ duration: 0.3 }}>
+              <motion.div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center" whileHover={{ rotate: 360 }} transition={{ duration: 0.6 }}>
+                <Box className="w-8 h-8 text-primary" />
+              </motion.div>
+              <h3 className="text-xl font-semibold text-foreground mb-2">4D Reconstruction</h3>
+              <p className="text-muted-foreground">Dynamic cardiac mesh generation from segmentation masks</p>
             </motion.div>
 
             <motion.div className="text-center" whileHover={{ y: -10 }} transition={{ duration: 0.3 }}>
               <motion.div className="w-16 h-16 mx-auto mb-4 bg-primary/10 rounded-full flex items-center justify-center" whileHover={{ rotate: 360 }} transition={{ duration: 0.6 }}>
                 <Settings className="w-8 h-8 text-primary" />
               </motion.div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">Easy Integration</h3>
-              <p className="text-muted-foreground">Seamless workflow integration for medical professionals</p>
+              <h3 className="text-xl font-semibold text-foreground mb-2">Intuitive Workflow</h3>
+              <p className="text-muted-foreground">User-friendly interface designed for medical professionals</p>
             </motion.div>
           </motion.div>
         </motion.div>

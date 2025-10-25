@@ -599,7 +599,7 @@ export default function DashboardPage() {
           {/* Projects Display - Card or Table View */}
           {getSortedAndFilteredProjects().length === 0 ? (
             <Card>
-              <CardContent className="text-center py-12">
+              <CardContent className="text-center py-12 ">
                 <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">{searchTerm ? "No projects match your search" : "No projects yet"}</h3>
                 <p className="text-muted-foreground mb-4">
@@ -650,10 +650,10 @@ export default function DashboardPage() {
                   </TableHeader>
                   <TableBody>
                     {getSortedAndFilteredProjects().map((project) => (
-                      <TableRow key={project.projectId} className="group hover:bg-muted/50">
+                      <TableRow key={project.projectId} className="group hover:bg-muted/50 cursor-pointer" onClick={() => window.open(`/project/${project.projectId}`, "_blank")}>
                         <TableCell className="font-medium">
                           <div>
-                            <div className="font-semibold truncate max-w-80" title={project.name}>
+                            <div className="font-semibold truncate max-w-80 group-hover:text-primary transition-colors" title={project.name}>
                               {project.name}
                             </div>
                             <div className="text-sm text-muted-foreground truncate max-w-xs" title={project.description || "No description"}>
@@ -661,7 +661,7 @@ export default function DashboardPage() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-2">
                             <ShowForRegisteredUser fallback={<Badge variant={project.isSaved ? "default" : "secondary"}>{project.isSaved ? "Saved" : "Temp"}</Badge>}>
                               <Button
@@ -697,21 +697,17 @@ export default function DashboardPage() {
                           </span>
                         </TableCell>
                         <TableCell className="hidden xl:table-cell">
-                          {project.reconstruction ? (
-                            <div className="text-sm">
-                              <div className="text-muted-foreground">
-                                ED Frame: <span className="font-medium text-foreground">{project.reconstruction.edFrame}</span>
-                              </div>
-                              <div className="text-muted-foreground">
-                                Mesh: <span className="font-medium text-foreground">{project.reconstruction.tarFileSize ? formatFileSize(project.reconstruction.tarFileSize) : "N/A"}</span>
-                              </div>
+                          <div className="text-sm">
+                            <div className="text-muted-foreground">
+                              ED Frame: <span className="font-medium text-foreground">{project.reconstruction ? project.reconstruction.edFrame : "—"}</span>
                             </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">—</span>
-                          )}
+                            <div className="text-muted-foreground">
+                              Mesh: <span className="font-medium text-foreground">{project.reconstruction?.tarFileSize ? formatFileSize(project.reconstruction.tarFileSize) : "—"}</span>
+                            </div>
+                          </div>
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{new Date(project.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                             <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => window.open(`/project/${project.projectId}`, "_blank")} title={`Open project ${project.name}`}>
                               <Edit className="h-4 w-4" />
