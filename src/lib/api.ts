@@ -1,5 +1,5 @@
 import axios from "axios";
-import { MetricData, S3Metrics } from "@/types/system-monitor";
+import { MetricData, S3Metrics, CostData } from "@/types/system-monitor";
 
 // Create a pre-configured instance of axios.
 // This is a best practice for managing API calls in a structured way.
@@ -1123,6 +1123,118 @@ export const analyticsApi = {
       return response.data;
     } catch (error) {
       console.error("Failed to fetch ALB Unhealthy Host Count metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ASG Group Min Size metrics
+   * @returns Promise<MetricData | null> - ASG Group Min Size data with timestamps and values (count)
+   */
+  getASGGroupMinSizeMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/asg/min-size");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ASG Group Min Size metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ASG Group Max Size metrics
+   * @returns Promise<MetricData | null> - ASG Group Max Size data with timestamps and values (count)
+   */
+  getASGGroupMaxSizeMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/asg/max-size");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ASG Group Max Size metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ASG Group Desired Capacity metrics
+   * @returns Promise<MetricData | null> - ASG Group Desired Capacity data with timestamps and values (count)
+   */
+  getASGGroupDesiredCapacityMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/asg/desired-capacity");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ASG Group Desired Capacity metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ASG Group In Service Instances metrics
+   * @returns Promise<MetricData | null> - ASG Group In Service Instances data with timestamps and values (count)
+   */
+  getASGGroupInServiceInstancesMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/asg/in-service");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ASG Group In Service Instances metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ASG Group Pending Instances metrics
+   * @returns Promise<MetricData | null> - ASG Group Pending Instances data with timestamps and values (count)
+   */
+  getASGGroupPendingInstancesMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/asg/pending");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ASG Group Pending Instances metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get ASG Group Total Instances metrics
+   * @returns Promise<MetricData | null> - ASG Group Total Instances data with timestamps and values (count)
+   */
+  getASGGroupTotalInstancesMetrics: async (): Promise<MetricData | null> => {
+    try {
+      const response = await api.get("/metrics/asg/total");
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch ASG Group Total Instances metrics:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get total AWS costs for current month
+   * @returns Promise<CostData[] | null> - Array of cost data with service, amount, and unit
+   */
+  getTotalCosts: async (): Promise<CostData[] | null> => {
+    try {
+      const response = await api.get("/metrics/billing/total");
+      return response.data.data;
+    } catch (error) {
+      console.error("Failed to fetch total costs:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Get AWS costs grouped by service for current month
+   * @returns Promise<CostData[] | null> - Array of cost data grouped by service with amount and unit
+   */
+  getCostsByService: async (): Promise<CostData[] | null> => {
+    try {
+      const response = await api.get("/metrics/billing/by-service");
+      return response.data.data;
+    } catch (error) {
+      console.error("Failed to fetch costs by service:", error);
       return null;
     }
   }

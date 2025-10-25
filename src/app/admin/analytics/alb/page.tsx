@@ -71,7 +71,7 @@ const CustomXAxisTick = (props: any) => {
     <g transform={`translate(${x},${y})`}>
       <text
         x={0}
-        y={10}
+        y={5}
         textAnchor="middle"
         className="text-xs fill-gray-600 dark:fill-gray-400"
       >
@@ -79,7 +79,7 @@ const CustomXAxisTick = (props: any) => {
       </text>
       <text
         x={0}
-        y={25}
+        y={20}
         textAnchor="middle"
         className="text-xs fill-gray-500 dark:fill-gray-500"
       >
@@ -207,7 +207,7 @@ export default function ALBAnalytics() {
         analyticsApi.getALBHTTP4XXTargetMetrics(),
         analyticsApi.getALBHealthyHostCountMetrics(),
         analyticsApi.getALBUnhealthyHostCountMetrics()
-      ]);
+      ]); 
 
       setAlbMetrics({
         requestCount,
@@ -832,7 +832,7 @@ export default function ALBAnalytics() {
                               stroke="#6B7280"
                               fontSize={12}
                               tick={<CustomXAxisTick />}
-                              height={50}
+                              height={40}
                             />
                             <YAxis
                               stroke="#6B7280"
@@ -872,7 +872,7 @@ export default function ALBAnalytics() {
                               stroke="#6B7280"
                               fontSize={12}
                               tick={<CustomXAxisTick />}
-                              height={50}
+                              height={40}
                             />
                             <YAxis
                               stroke="#6B7280"
@@ -948,7 +948,7 @@ export default function ALBAnalytics() {
                                 stroke="#6B7280"
                                 fontSize={12}
                                 tick={<CustomXAxisTick />}
-                                height={50}
+                                height={40}
                               />
                               <YAxis
                                 stroke="#6B7280"
@@ -1029,7 +1029,7 @@ export default function ALBAnalytics() {
                                 stroke="#6B7280"
                                 fontSize={12}
                                 tick={<CustomXAxisTick />}
-                                height={50}
+                                height={40}
                               />
                               <YAxis
                                 stroke="#6B7280"
