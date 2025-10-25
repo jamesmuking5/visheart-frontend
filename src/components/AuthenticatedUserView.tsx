@@ -102,14 +102,14 @@ export const AuthenticatedUserView = () => {
 
         <div className="grid gap-2">
           <Link href="/dashboard">
-            <Button variant="outline" className="w-full justify-start h-11 text-sm sm:text-base">
+            <Button variant="outline" className="w-full justify-start h-11 text-sm sm:text-base hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:border-zinc-600 dark:hover:border-zinc-400 transition-all duration-200">
               <Settings className="mr-2 h-4 w-4 flex-shrink-0" />
               My Dashboard
             </Button>
           </Link>
           <ShowForAdmin fallback={null}>
             <Link href="/admin">
-              <Button variant="outline" className="w-full justify-start h-11 text-sm sm:text-base">
+              <Button variant="outline" className="w-full justify-start h-11 text-sm sm:text-base hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:border-zinc-600 dark:hover:border-zinc-400 transition-all duration-200">
                 <Shield className="mr-2 h-4 w-4 flex-shrink-0" />
                 Admin Panel
               </Button>
@@ -117,7 +117,7 @@ export const AuthenticatedUserView = () => {
           </ShowForAdmin>
           <ShowForUser fallback={null}>
             <Link href="/profile">
-              <Button variant="outline" className="w-full justify-start h-11 text-sm sm:text-base">
+              <Button variant="outline" className="w-full justify-start h-11 text-sm sm:text-base hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:border-zinc-600 dark:hover:border-zinc-400 transition-all duration-200">
                 <User className="mr-2 h-4 w-4 flex-shrink-0" />
                 Profile Settings
               </Button>
@@ -137,7 +137,7 @@ export const AuthenticatedUserView = () => {
       <CardFooter className="pt-4 px-4 sm:px-6">
         <Button
           variant="outline"
-          className="w-full justify-start border-red-200 text-red-600 hover:bg-red-50 h-11 text-sm sm:text-base"
+          className="w-full justify-start border-red-200 text-red-600 hover:bg-red-50 h-11 text-sm sm:text-base hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:border-zinc-600 dark:hover:border-zinc-400 transition-all duration-200"
           onClick={logout}
         >
           <LogOut className="mr-2 h-4 w-4 flex-shrink-0" />
