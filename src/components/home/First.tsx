@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AnimatedBackground } from "@/components/ui/animated-background";
+import { useAuth } from "@/context/auth-context";
 
 interface FirstSectionProps {
   title?: string;
@@ -21,6 +22,8 @@ export default function FirstSection({
   description = "Revolutionizing cardiac imaging analysis with cutting-edge AI technology for precise heart segmentation and medical insights.",
   className = "",
 }: FirstSectionProps) {
+  const { user } = useAuth();
+  
   return (
     <section className={cn("min-h-screen flex items-start justify-center pt-30 bg-muted-background relative", className)}>
       <AnimatedBackground />
@@ -62,7 +65,7 @@ export default function FirstSection({
 
           {/* Call to Action Buttons */}
           <motion.div className="flex flex-col sm:flex-row gap-4 justify-center items-center" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.8 }}>
-            <Link href="/dashboard">
+            <Link href={user ? "/dashboard" : "/login"}>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.2 }}>
                 <Button size="lg" className="text-base">
                   Get Started
