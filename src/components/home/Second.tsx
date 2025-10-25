@@ -342,9 +342,46 @@ export default function SecondSection({ className = '' }: SecondSectionProps) {
             >
               Complete Clinical Workflow
             </motion.h3>
-            <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+            <p className="text-center text-muted-foreground mb-6 max-w-2xl mx-auto">
               From raw cardiac MRI scans to exportable 3D meshes—our streamlined pipeline guides you through every step
             </p>
+            
+            {/* Try it Now Section */}
+            <motion.div 
+              className="bg-primary/5 border border-primary/20 rounded-lg p-6 mb-12 max-w-3xl mx-auto"
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+              viewport={{ once: true }}
+            >
+              <div className="flex flex-col md:flex-row items-center gap-4">
+                <div className="flex-1 text-center md:text-left">
+                  <h4 className="text-lg font-semibold text-foreground mb-2">
+                    Try it Now with Our Sample Files!
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Want to see the platform in action? Download our sample cardiac MRI dataset and test the complete workflow using a guest account — <b>no signup required!</b>
+                  </p>
+                  <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                    <Link 
+                      href="/sample-nifti" 
+                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download Sample Files
+                    </Link>
+                    <span className="text-muted-foreground">•</span>
+                    <Link 
+                      href="/login" 
+                      className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                    >
+                      Use Guest Account
+                      <ExternalLink className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
             
             <div className="space-y-8">
               {/* Step 1: Upload Project */}
@@ -566,7 +603,7 @@ export default function SecondSection({ className = '' }: SecondSectionProps) {
                         </div>
                         <div className="bg-primary/5 rounded-lg p-3 mt-4">
                           <p className="text-xs text-muted-foreground italic text-center">
-                            🚀 GPU-accelerated reconstruction pipeline with SDF models
+                            ⚡ GPU-accelerated reconstruction pipeline with cutting-edge Shape-Motion and SDF models in unified pipeline
                           </p>
                         </div>
                       </div>
