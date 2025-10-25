@@ -463,7 +463,7 @@ export default function EC2Analytics() {
             <div className="mb-8 px-4 sm:px-6 lg:px-8">
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 transition-colors">EC2 Analytics</h1>
               <p className="text-gray-600 dark:text-gray-300 text-lg transition-colors mb-4">
-                Monitor CPU utilization, network traffic, and disk I/O for EC2 instances with intelligent threshold-based insights.
+                Monitor CPU utilization, network traffic, and disk I/O for EC2 instances with analytical insights.
               </p>
 
               {/* Threshold Explanation */}
