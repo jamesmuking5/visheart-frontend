@@ -888,7 +888,16 @@ export const analyticsApi = {
         return null;
       }
       const response = await api.get(`/metrics/s3/${encodeURIComponent(bucketName)}`);
-      return response.data;
+      // Transform the response to match the expected S3Metrics interface
+      const data = response.data;
+      return {
+        bucketName: data.bucketName,
+        bucketSizeBytes: data.metrics.BucketSizeBytes,
+        numberOfObjects: data.metrics.NumberOfObjects,
+        allRequests: data.metrics.AllRequests,
+        getRequests: data.metrics.GetRequests,
+        putRequests: data.metrics.PutRequests
+      };
     } catch (error) {
       console.error(`Failed to fetch S3 metrics for bucket ${bucketName}:`, error);
       return null;
