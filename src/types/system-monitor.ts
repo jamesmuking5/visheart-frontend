@@ -105,6 +105,13 @@ export interface MetricData {
   values: number[];
 }
 
+// Cost Explorer Types
+export interface CostData {
+  service: string;
+  amount: number;
+  unit: string;
+}
+
 // S3 CloudWatch Metrics Types
 export interface S3Metrics {
   bucketName: string;
