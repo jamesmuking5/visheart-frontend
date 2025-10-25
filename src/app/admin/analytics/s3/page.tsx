@@ -2,7 +2,6 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import S3MetricsDashboard from '@/components/S3MetricsDashboard';
 
 export default function S3Analytics() {
   const pathname = usePathname();
@@ -44,7 +43,6 @@ export default function S3Analytics() {
       {/* Main Content */}
       <div className="ml-64 p-6 space-y-8 flex-1">
         <h1 className="text-2xl font-bold">S3 Analytics</h1>
-        <S3MetricsDashboard />
       </div>
     </div>
   );
