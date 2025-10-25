@@ -120,11 +120,11 @@ export default function S3Analytics() {
 
   // Calculate request metrics summary
   const requestSummary: RequestMetricsSummary | null = useMemo(() => {
-    if (!metrics.data) return null;
+    if (!metrics.data || !metrics.data.allRequests || !metrics.data.getRequests || !metrics.data.putRequests) return null;
 
-    const latestAll = metrics.data.allRequests.values[metrics.data.allRequests.values.length - 1] || 0;
-    const latestGet = metrics.data.getRequests.values[metrics.data.getRequests.values.length - 1] || 0;
-    const latestPut = metrics.data.putRequests.values[metrics.data.putRequests.values.length - 1] || 0;
+    const latestAll = metrics.data.allRequests.values?.[metrics.data.allRequests.values.length - 1] || 0;
+    const latestGet = metrics.data.getRequests.values?.[metrics.data.getRequests.values.length - 1] || 0;
+    const latestPut = metrics.data.putRequests.values?.[metrics.data.putRequests.values.length - 1] || 0;
 
     return {
       total: latestAll,
@@ -136,7 +136,7 @@ export default function S3Analytics() {
 
   // Prepare chart data for requests over time
   const requestChartData: ChartDataPoint[] = useMemo(() => {
-    if (!metrics.data) return [];
+    if (!metrics.data || !metrics.data.allRequests?.timestamps || !metrics.data.getRequests?.timestamps || !metrics.data.putRequests?.timestamps) return [];
 
     const maxLength = Math.max(
       metrics.data.allRequests.timestamps.length,
@@ -146,9 +146,9 @@ export default function S3Analytics() {
 
     return Array.from({ length: maxLength }, (_, i) => ({
       timestamp: metrics.data!.allRequests.timestamps[i] || '',
-      total: metrics.data!.allRequests.values[i] || 0,
-      get: metrics.data!.getRequests.values[i] || 0,
-      put: metrics.data!.putRequests.values[i] || 0,
+      total: metrics.data!.allRequests.values?.[i] || 0,
+      get: metrics.data!.getRequests.values?.[i] || 0,
+      put: metrics.data!.putRequests.values?.[i] || 0,
       label: formatTimestamp(metrics.data!.allRequests.timestamps[i] || '')
     }));
   }, [metrics.data]);
@@ -165,8 +165,8 @@ export default function S3Analytics() {
   }, [requestSummary]);
 
   // Get latest bucket size and object count
-  const latestSize = metrics.data?.bucketSizeBytes.values[metrics.data.bucketSizeBytes.values.length - 1] || 0;
-  const latestObjects = metrics.data?.numberOfObjects.values[metrics.data.numberOfObjects.values.length - 1] || 0;
+  const latestSize = metrics.data?.bucketSizeBytes?.values?.[metrics.data.bucketSizeBytes.values.length - 1] || 0;
+  const latestObjects = metrics.data?.numberOfObjects?.values?.[metrics.data.numberOfObjects.values.length - 1] || 0;
 
   // Fetch buckets on component mount
   useEffect(() => {
@@ -388,42 +388,48 @@ export default function S3Analytics() {
                   </CardHeader>
                   <CardContent>
                     <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={metrics.data.bucketSizeBytes.timestamps.map((timestamp, i) => ({
-                          timestamp: formatTimestamp(timestamp),
-                          size: metrics.data?.bucketSizeBytes.values[i] || 0,
-                          objects: metrics.data?.numberOfObjects.values[i] || 0
-                        }))}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="timestamp" />
-                          <YAxis yAxisId="size" orientation="left" tickFormatter={formatBytes} />
-                          <YAxis yAxisId="objects" orientation="right" tickFormatter={formatNumber} />
-                          <Tooltip
-                            labelFormatter={(value) => `Date: ${value}`}
-                            formatter={(value: any, name: string) => [
-                              name === 'size' ? formatBytes(value) : formatNumber(value),
-                              name === 'size' ? 'Bucket Size' : 'Object Count'
-                            ]}
-                          />
-                          <Legend />
-                          <Line
-                            yAxisId="size"
-                            type="monotone"
-                            dataKey="size"
-                            stroke={CHART_COLORS.primary}
-                            strokeWidth={2}
-                            name="Bucket Size"
-                          />
-                          <Line
-                            yAxisId="objects"
-                            type="monotone"
-                            dataKey="objects"
-                            stroke={CHART_COLORS.secondary}
-                            strokeWidth={2}
-                            name="Object Count"
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
+                      {metrics.data.bucketSizeBytes?.timestamps?.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={metrics.data.bucketSizeBytes?.timestamps?.map((timestamp, i) => ({
+                            timestamp: formatTimestamp(timestamp),
+                            size: metrics.data?.bucketSizeBytes?.values?.[i] || 0,
+                            objects: metrics.data?.numberOfObjects?.values?.[i] || 0
+                          })) || []}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="timestamp" />
+                            <YAxis yAxisId="size" orientation="left" tickFormatter={formatBytes} />
+                            <YAxis yAxisId="objects" orientation="right" tickFormatter={formatNumber} />
+                            <Tooltip
+                              labelFormatter={(value) => `Date: ${value}`}
+                              formatter={(value: any, name: string) => [
+                                name === 'size' ? formatBytes(value) : formatNumber(value),
+                                name === 'size' ? 'Bucket Size' : 'Object Count'
+                              ]}
+                            />
+                            <Legend />
+                            <Line
+                              yAxisId="size"
+                              type="monotone"
+                              dataKey="size"
+                              stroke={CHART_COLORS.primary}
+                              strokeWidth={2}
+                              name="Bucket Size"
+                            />
+                            <Line
+                              yAxisId="objects"
+                              type="monotone"
+                              dataKey="objects"
+                              stroke={CHART_COLORS.secondary}
+                              strokeWidth={2}
+                              name="Object Count"
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                          No storage data available
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -438,24 +444,30 @@ export default function S3Analytics() {
                   </CardHeader>
                   <CardContent>
                     <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={requestChartData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="label" />
-                          <YAxis tickFormatter={formatNumber} />
-                          <Tooltip
-                            labelFormatter={(value) => `Time: ${value}`}
-                            formatter={(value: any, name: string) => [
-                              formatNumber(value),
-                              name.toUpperCase() + ' Requests'
-                            ]}
-                          />
-                          <Legend />
-                          <Bar dataKey="total" fill={CHART_COLORS.primary} name="Total" />
-                          <Bar dataKey="get" fill={CHART_COLORS.secondary} name="GET" />
-                          <Bar dataKey="put" fill={CHART_COLORS.tertiary} name="PUT" />
-                        </BarChart>
-                      </ResponsiveContainer>
+                      {requestChartData.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={requestChartData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="label" />
+                            <YAxis tickFormatter={formatNumber} />
+                            <Tooltip
+                              labelFormatter={(value) => `Time: ${value}`}
+                              formatter={(value: any, name: string) => [
+                                formatNumber(value),
+                                name.toUpperCase() + ' Requests'
+                              ]}
+                            />
+                            <Legend />
+                            <Bar dataKey="total" fill={CHART_COLORS.primary} name="Total" />
+                            <Bar dataKey="get" fill={CHART_COLORS.secondary} name="GET" />
+                            <Bar dataKey="put" fill={CHART_COLORS.tertiary} name="PUT" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                          No request data available
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -538,7 +550,7 @@ export default function S3Analytics() {
                 <Database className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No Bucket Selected</h3>
                 <p className="text-muted-foreground">
-                  Enter an S3 bucket name above to view CloudWatch metrics
+                  Select an S3 bucket from the dropdown above to view CloudWatch metrics
                 </p>
               </CardContent>
             </Card>
