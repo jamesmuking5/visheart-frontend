@@ -579,7 +579,7 @@ export default function SegmentationResultsPage() {
                       </div>
                     </div>
                   </ResizablePanel>
-                  <ResizableHandle  />
+                  <ResizableHandle withHandle />
                 </>
               )}
 
@@ -610,7 +610,7 @@ export default function SegmentationResultsPage() {
             </ResizablePanelGroup>
           </ResizablePanel>
 
-          <ResizableHandle />
+          <ResizableHandle withHandle />
 
           {/* Sidebar Panel */}
           <ResizablePanel defaultSize={30} minSize={0} maxSize={80}>

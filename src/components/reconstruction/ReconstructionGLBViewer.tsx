@@ -353,6 +353,33 @@ function CameraController({ onCameraChange, initialState, activePreset, onPreset
   );
 }
 
+// Canvas resize handler to properly update renderer when container size changes
+function CanvasResizer() {
+  const { gl, camera } = useThree();
+  
+  useEffect(() => {
+    const handleResize = () => {
+      gl.setSize(gl.domElement.clientWidth, gl.domElement.clientHeight);
+      if (camera instanceof THREE.PerspectiveCamera) {
+        camera.aspect = gl.domElement.clientWidth / gl.domElement.clientHeight;
+        camera.updateProjectionMatrix();
+      }
+    };
+
+    // Create ResizeObserver for the canvas element
+    const resizeObserver = new ResizeObserver(handleResize);
+    if (gl.domElement.parentElement) {
+      resizeObserver.observe(gl.domElement.parentElement);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [gl, camera]);
+
+  return null;
+}
+
 interface ReconstructionGLBViewerProps { 
   modelUrl: string | null; 
   frame: number; 
@@ -372,6 +399,25 @@ export function ReconstructionGLBViewer({
   const [showPresets, setShowPresets] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<ViewerSettings>(DEFAULT_SETTINGS);
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
+  // Add resize observer to handle dynamic container size changes
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        setContainerSize({ width, height });
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
 
   const handleCameraChange = (state: CameraState) => {
     setCameraState(state);
@@ -701,6 +747,9 @@ export function ReconstructionGLBViewer({
           
           {/* Environment Map for reflections - customizable preset */}
           <Environment preset={settings.environmentPreset} />
+          
+          {/* Canvas resize handler */}
+          <CanvasResizer />
           
           <CameraController 
             onCameraChange={handleCameraChange} 
