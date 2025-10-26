@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Zap, Settings, Box } from "lucide-react";
+import { CheckCircle, Zap, Settings, Box, Activity, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -25,7 +25,7 @@ export default function FirstSection({
   const { user } = useAuth();
   
   return (
-    <section className={cn("min-h-screen flex items-start justify-center pt-30 bg-muted-background relative", className)}>
+    <section className={cn("min-h-screen flex items-start justify-center pt-20 pb-20 bg-muted-background relative", className)}>
       <AnimatedBackground />
       <div className="container mx-auto px-4 relative z-10">
         <motion.div className="text-center max-w-4xl mx-auto" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, staggerChildren: 0.3, delayChildren: 0.2 }}>
@@ -67,14 +67,16 @@ export default function FirstSection({
           <motion.div className="flex flex-col sm:flex-row gap-4 justify-center items-center" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.8 }}>
             <Link href={user ? "/dashboard" : "/login"}>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.2 }}>
-                <Button size="lg" className="text-base">
+                <Button size="lg" className="...">
+                  <Activity className="w-5 h-5 mr-2" />
                   Get Started
                 </Button>
               </motion.div>
             </Link>
             <Link href="/doc">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.2 }}>
-                <Button variant="outline" size="lg" className="text-base">
+                <Button variant="outline" size="lg" className="...">
+                  <BookOpen className="w-5 h-5 mr-2" />
                   Learn More
                 </Button>
               </motion.div>

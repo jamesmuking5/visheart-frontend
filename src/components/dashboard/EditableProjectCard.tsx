@@ -122,7 +122,7 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
                     </Button>
                   </ShowForRegisteredUser>
                 </div>
-                <p className="text-sm text-muted-foreground truncate max-w-80" title={project.description || "No description"}>
+                <p className="text-sm text-muted-foreground truncate overflow-hidden text-ellipsis whitespace-nowrap max-w-[90px] sm:max-w-[140px] md:max-w-[200px] lg:max-w-[260px]" title={project.description || "No description"}>
                   {project.description || "No description"}
                 </p>
               </div>
