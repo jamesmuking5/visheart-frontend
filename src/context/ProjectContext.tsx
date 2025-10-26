@@ -18,11 +18,13 @@ interface ProjectContextType {
   undecodedMasks: ProjectTypes.BaseSegmentationMask[] | null;
   decodedMasks: Record<string, Uint8Array> | null;
   jobs: ProjectTypes.UserJob[] | null;
+  reconstructionJobs: ProjectTypes.UserJob[] | null;
 
   // Error states
   error: string | null;
   segmentationError: string | null;
   jobsError: string | null;
+  reconstructionJobsError: string | null;
 
   // Status flags
   maskFetchDone: boolean;
@@ -101,6 +103,10 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
   // 3. Jobs state
   const [jobs, setJobs] = useState<ProjectTypes.UserJob[] | null>(null);
   const [jobsError, setJobsError] = useState<string | null>(null);
+
+  // 3b. Reconstruction jobs state
+  const [reconstructionJobs, setReconstructionJobs] = useState<ProjectTypes.UserJob[] | null>(null);
+  const [reconstructionJobsError, setReconstructionJobsError] = useState<string | null>(null);
 
   // 4. Tar cache state - NEW
   const [tarCacheReady, setTarCacheReady] = useState<boolean>(false);
@@ -631,6 +637,67 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     };
   }, [maskFetchDone, hasMasks, projectData, projectId, jobsError]);
 
+  // 3b. Optimized reconstruction jobs loading - similar to segmentation jobs
+  useEffect(() => {
+    const abortController = new AbortController();
+
+    // If reconstructions are present, clear any previous job error about missing results
+    if (hasReconstructions && reconstructionJobsError) {
+      setReconstructionJobsError(null);
+      return;
+    }
+
+    // Only fetch jobs if we don't have reconstructions and project data is loaded
+    if (hasReconstructions || !projectData || !projectId) {
+      return;
+    }
+
+    // Fetch reconstruction jobs for the current user
+    reconstructionApi
+      .getUserReconstructionJobs()
+      .then((response: { success: boolean; message?: string; jobs: ProjectTypes.UserJob[] }) => {
+        // Check if request was aborted
+        if (abortController.signal.aborted) {
+          return;
+        }
+
+        console.log("Reconstruction jobs response:", response);
+
+        // Handle job fetch error
+        if (!response.success) {
+          setReconstructionJobsError(response.message || "Failed to fetch reconstruction jobs");
+          console.warn("Failed to fetch reconstruction jobs:", response.message);
+          setReconstructionJobs(null);
+          return;
+        }
+
+        // Filter jobs by current project ID
+        const projectJobs = response.jobs.filter((job: ProjectTypes.UserJob) => job.projectId === projectId);
+        setReconstructionJobs(projectJobs);
+        console.log(`Found ${projectJobs.length} reconstruction jobs for project ${projectId}:`, projectJobs);
+
+        // Check for logical errors: completed jobs should have reconstructions
+        const completedJobs = projectJobs.filter((job: ProjectTypes.UserJob) => job.status === ProjectTypes.JobStatus.COMPLETED);
+        if (completedJobs.length > 0 && !hasReconstructions) {
+          console.warn(`Warning: Found ${completedJobs.length} completed reconstruction job(s) but no reconstructions for project ${projectId}. This may indicate a server-side issue.`);
+          setReconstructionJobsError(`Found completed reconstruction job(s) but no results. Please contact support or try re-creating the reconstruction.`);
+        }
+      })
+      .catch((error: unknown) => {
+        if (abortController.signal.aborted) {
+          console.log("Reconstruction jobs fetch request was aborted");
+          return;
+        }
+        setReconstructionJobsError("Failed to fetch reconstruction job data.");
+        console.error("Error fetching reconstruction jobs:", error);
+        setReconstructionJobs(null);
+      });
+
+    return () => {
+      abortController.abort();
+    };
+  }, [hasReconstructions, projectData, projectId, reconstructionJobsError]);
+
   // 4. Initialize tar cache when project data is available and mask fetch is done - NEW
   useEffect(() => {
     if (!projectData || !projectId || !maskFetchDone) {
@@ -892,9 +959,11 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       undecodedMasks,
       decodedMasks,
       jobs,
+      reconstructionJobs,
       error,
       segmentationError,
       jobsError,
+      reconstructionJobsError,
       maskFetchDone,
       // NEW: Tar cache properties and methods (MRI images)
       tarCacheReady,
@@ -926,9 +995,11 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       undecodedMasks,
       decodedMasks,
       jobs,
+      reconstructionJobs,
       error,
       segmentationError,
       jobsError,
+      reconstructionJobsError,
       maskFetchDone,
       tarCacheReady,
       tarCacheError,

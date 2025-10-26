@@ -56,7 +56,7 @@ import * as ProjectTypes from "@/types/project";
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
-  const { loading, projectData, error, hasMasks, undecodedMasks, jobs, jobsError, refreshMasks, hasReconstructions, reconstructionMetadata, refreshReconstructions } = useProject();
+  const { loading, projectData, error, hasMasks, undecodedMasks, jobs, reconstructionJobs, jobsError, refreshMasks, hasReconstructions, reconstructionMetadata, refreshReconstructions } = useProject();
 
   // Update page title dynamically
   useEffect(() => {
@@ -103,6 +103,7 @@ export default function ProjectPage() {
 
   // Polling state
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const reconstructionPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Helper function to check if we should poll for masks
   const shouldPollForMasks = useCallback((): boolean => {
@@ -156,6 +157,59 @@ export default function ProjectPage() {
       stopPolling();
     };
   }, [shouldPollForMasks, refreshMasks]);
+
+  // Helper function to check if we should poll for reconstructions
+  const shouldPollForReconstructions = useCallback((): boolean => {
+    // Poll if: no reconstructions exist AND there are reconstruction jobs (indicating reconstruction might be in progress)
+    return !hasReconstructions && reconstructionJobs !== null && reconstructionJobs.length > 0 && loading === "done";
+  }, [hasReconstructions, reconstructionJobs, loading]);
+
+  // Polling effect - check for reconstructions every 1 minute when conditions are met
+  useEffect(() => {
+    const startPolling = () => {
+      if (shouldPollForReconstructions()) {
+        console.log("[Project] Starting reconstruction polling - no reconstructions found but jobs exist");
+
+        reconstructionPollIntervalRef.current = setInterval(async () => {
+          if (shouldPollForReconstructions()) {
+            console.log("[Project] Polling for reconstructions...");
+            try {
+              await refreshReconstructions();
+            } catch (error) {
+              console.error("[Project] Error during reconstruction polling:", error);
+            }
+          } else {
+            // Stop polling if conditions no longer met
+            if (reconstructionPollIntervalRef.current) {
+              console.log("[Project] Stopping reconstruction polling - reconstructions found or no jobs");
+              clearInterval(reconstructionPollIntervalRef.current);
+              reconstructionPollIntervalRef.current = null;
+            }
+          }
+        }, 60000); // Poll every 1 minute (60000ms)
+      }
+    };
+
+    const stopPolling = () => {
+      if (reconstructionPollIntervalRef.current) {
+        console.log("[Project] Stopping reconstruction polling");
+        clearInterval(reconstructionPollIntervalRef.current);
+        reconstructionPollIntervalRef.current = null;
+      }
+    };
+
+    // Start or stop polling based on conditions
+    if (shouldPollForReconstructions()) {
+      startPolling();
+    } else {
+      stopPolling();
+    }
+
+    // Cleanup function
+    return () => {
+      stopPolling();
+    };
+  }, [shouldPollForReconstructions, refreshReconstructions]);
 
   // Missing projectId handling
   if (!projectId) return <NoProjectFound message="Project ID is missing." />;
@@ -399,6 +453,9 @@ export default function ProjectPage() {
 
   // Check if there are any active jobs (pending or in progress)
   const hasActiveJobs = (jobs || []).some((job) => job.status === ProjectTypes.JobStatus.PENDING || job.status === ProjectTypes.JobStatus.IN_PROGRESS);
+  
+  // Check if there are any active reconstruction jobs
+  const hasActiveReconstructionJobs = (reconstructionJobs || []).some((job) => job.status === ProjectTypes.JobStatus.PENDING || job.status === ProjectTypes.JobStatus.IN_PROGRESS);
 
   // Get editable mask (the one users interact with)
   const editableMask = undecodedMasks?.find((mask) => !mask.isMedSAMOutput);
@@ -560,18 +617,20 @@ export default function ProjectPage() {
                 <div className={`h-8 w-8 rounded-full flex items-center justify-center border ${
                   hasReconstructions 
                     ? 'bg-green-100 dark:bg-green-950/30 border-green-500' 
+                    : hasActiveReconstructionJobs
+                    ? 'bg-blue-100 dark:bg-blue-950/30 border-blue-500 animate-pulse'
                     : hasMasks
                     ? 'bg-amber-100 dark:bg-amber-950/30 border-amber-500'
                     : 'bg-muted border-muted-foreground/30'
                 }`}>
                   <Box className={`h-4 w-4 ${
-                    hasReconstructions ? 'text-green-600' : hasMasks ? 'text-amber-600' : 'text-muted-foreground'
+                    hasReconstructions ? 'text-green-600' : hasActiveReconstructionJobs ? 'text-blue-600' : hasMasks ? 'text-amber-600' : 'text-muted-foreground'
                   }`} />
                 </div>
                 <div className="hidden sm:block">
                   <p className="text-xs font-medium">4D Model</p>
                   <p className="text-xs text-muted-foreground">
-                    {hasReconstructions ? 'Complete' : hasMasks ? 'Available' : 'Locked'}
+                    {hasReconstructions ? 'Complete' : hasActiveReconstructionJobs ? 'Processing' : hasMasks ? 'Available' : 'Locked'}
                   </p>
                 </div>
               </div>
@@ -738,37 +797,57 @@ export default function ProjectPage() {
                       </Tooltip>
 
                       {/* Start Reconstruction */}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            onClick={() => setShowReconstructionDialog(true)}
-                            size="lg"
-                            className="justify-start h-auto py-4"
-                            disabled={hasReconstructions}
-                          >
-                            <div className="flex items-center gap-3 w-full">
-                              <Sparkles className="h-5 w-5" />
-                              <div className="text-left flex-1">
-                                <p className="font-semibold">
-                                  {hasReconstructions ? 'Reconstruction Exists' : 'Create 4D Reconstruction'}
-                                </p>
-                                <p className="text-xs opacity-90">
-                                  {hasReconstructions 
-                                    ? 'Delete existing reconstruction to create a new one' 
-                                    : 'Generate 3D mesh models from segmentation'}
-                                </p>
-                              </div>
+                      {hasActiveReconstructionJobs ? (
+                        <Button disabled variant="secondary" size="lg" className="justify-start h-auto py-4">
+                          <div className="flex items-center gap-3 w-full">
+                            <RefreshCw className="h-5 w-5 animate-spin" />
+                            <div className="text-left flex-1">
+                              <p className="font-semibold">Reconstruction in Progress</p>
+                              <p className="text-xs text-muted-foreground">Your 4D model is being generated - this may take several minutes</p>
                             </div>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>
-                            {hasReconstructions 
-                              ? 'Only one reconstruction allowed - delete the existing one first' 
-                              : 'Build animated 4D cardiac models for visualization and analysis'}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
+                          </div>
+                        </Button>
+                      ) : (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              onClick={() => setShowReconstructionDialog(true)}
+                              size="lg"
+                              className="justify-start h-auto py-4"
+                              disabled={hasReconstructions || isStartingReconstruction}
+                            >
+                              <div className="flex items-center gap-3 w-full">
+                                {isStartingReconstruction ? (
+                                  <RefreshCw className="h-5 w-5 animate-spin" />
+                                ) : (
+                                  <Sparkles className="h-5 w-5" />
+                                )}
+                                <div className="text-left flex-1">
+                                  <p className="font-semibold">
+                                    {isStartingReconstruction 
+                                      ? 'Starting Reconstruction...' 
+                                      : hasReconstructions 
+                                      ? 'Reconstruction Exists' 
+                                      : 'Create 4D Reconstruction'}
+                                  </p>
+                                  <p className="text-xs opacity-90">
+                                    {hasReconstructions 
+                                      ? 'Delete existing reconstruction to create a new one' 
+                                      : 'Generate 3D mesh models from segmentation'}
+                                  </p>
+                                </div>
+                              </div>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              {hasReconstructions 
+                                ? 'Only one reconstruction allowed - delete the existing one first' 
+                                : 'Build animated 4D cardiac models for visualization and analysis'}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                     </div>
                   </TooltipProvider>
 
