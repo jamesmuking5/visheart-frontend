@@ -558,24 +558,22 @@ export default function SegmentationResultsPage() {
               {hasReconstructions && (
                 <>
                   <ResizablePanel defaultSize={35} minSize={0} maxSize={70}>
-                    <div className="h-full w-full bg-background p-4">
-                      <div className="h-full w-full flex flex-col">
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-sm font-semibold">3D Reconstruction of Left Ventricle Myocardium</h3>
-                          {isLoadingModel && (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                              Loading model...
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-h-0">
-                          <ReconstructionGLBViewer
-                            modelUrl={reconstructionModelUrl}
-                            frame={currentFrame+1} // 1-based index for user friendliness
-                            className="w-full h-full"
-                          />
-                        </div>
+                    <div className="w-full bg-background p-4 flex flex-col" style={{ height: 'calc(100vh - 120px)' }}>
+                      <div className="flex items-center justify-between mb-2 flex-shrink-0">
+                        <h3 className="text-sm font-semibold">3D Reconstruction of Left Ventricle Myocardium</h3>
+                        {isLoadingModel && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            Loading model...
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-h-0 max-h-full">
+                        <ReconstructionGLBViewer
+                          modelUrl={reconstructionModelUrl}
+                          frame={currentFrame+1} // 1-based index for user friendliness
+                          className="w-full h-full"
+                        />
                       </div>
                     </div>
                   </ResizablePanel>
@@ -585,7 +583,7 @@ export default function SegmentationResultsPage() {
 
               {/* 2D Canvas (Right) */}
               <ResizablePanel defaultSize={hasReconstructions ? 65 : 100} minSize={0}>
-                <div className="h-full w-full relative bg-muted/40 p-4 flex items-center justify-center">
+                <div className="w-full relative bg-muted/40 p-4 flex items-center justify-center" style={{ height: 'calc(100vh - 120px)' }}>
                   <ImageCanvas
                     projectData={projectData}
                     decodedMasks={safeDecodedMasks}
