@@ -1053,9 +1053,9 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     };
   }, [projectId, reconstructionMetadata, preloadReconstructionModels]);
 
-  // 4d. Auto-preload model URLs when reconstruction cache is ready - NEW (Phase 3)
+  // 4d. Auto-preload ALL models (URLs + Three.js cache) when reconstruction cache is ready - ZERO-LAG SYSTEM
   useEffect(() => {
-    if (!reconstructionCacheReady || isFullyPreloaded || isPreloading) {
+    if (!reconstructionCacheReady || isPreloading || isThreeJSPreloading) {
       return;
     }
 
@@ -1063,22 +1063,31 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       return;
     }
 
-    // Auto-preload URLs in background for smooth playback
-    const autoPreload = async () => {
-      console.log(`[ProjectContext] 🚀 Auto-preloading model URLs for smooth playback...`);
+    // Auto-preload everything for instant, zero-lag frame switching
+    const autoPreloadComplete = async () => {
+      console.log(`[ProjectContext] 🚀 Auto-preloading all models for zero-lag playback...`);
       try {
-        const count = await preloadAllModelURLs();
-        console.log(`[ProjectContext] ✅ Auto-preload complete: ${count} URLs cached in memory`);
+        // Step 1: Preload URLs (fast - just creates blob URLs)
+        console.log(`[ProjectContext] 📦 Step 1/2: Preloading URLs...`);
+        const urlCount = await preloadAllModelURLs();
+        console.log(`[ProjectContext] ✅ Step 1 complete: ${urlCount} URLs cached`);
+        
+        // Step 2: Preload Three.js models (slower - parses GLB files)
+        console.log(`[ProjectContext] 🎮 Step 2/2: Preloading Three.js models...`);
+        const threeJSCount = await preloadAllThreeJSModels();
+        console.log(`[ProjectContext] ✅ Step 2 complete: ${threeJSCount} models parsed`);
+        
+        console.log(`[ProjectContext] 🎯 ZERO-LAG PRELOAD COMPLETE! All frames will load instantly.`);
       } catch (error) {
         console.error(`[ProjectContext] ❌ Auto-preload failed:`, error);
       }
     };
 
     // Small delay to allow UI to render first
-    const timeoutId = setTimeout(autoPreload, 500);
+    const timeoutId = setTimeout(autoPreloadComplete, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [reconstructionCacheReady, isFullyPreloaded, isPreloading, projectId, reconstructionMetadata, preloadAllModelURLs]);
+  }, [reconstructionCacheReady, isPreloading, isThreeJSPreloading, projectId, reconstructionMetadata, preloadAllModelURLs, preloadAllThreeJSModels]);
 
   // 5. Optimized final loading state management - set to done when all components are ready or there's an error
   useEffect(() => {

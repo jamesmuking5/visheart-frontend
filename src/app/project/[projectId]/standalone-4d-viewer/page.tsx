@@ -22,8 +22,7 @@ import {
   SkipBack, 
   SkipForward, 
   Loader2,
-  AlertCircle,
-  Zap
+  AlertCircle 
 } from "lucide-react";
 
 export default function Standalone4DViewerPage() {
@@ -40,11 +39,6 @@ export default function Standalone4DViewerPage() {
     reconstructionCacheError,
     getReconstructionGLB,
     reconstructionMetadata,
-    preloadAllModelURLs,
-    isPreloading,
-    preloadProgress,
-    isFullyPreloaded,
-    preloadAllThreeJSModels,
     isThreeJSPreloading,
     threeJSPreloadProgress,
   } = useProject();
@@ -70,17 +64,6 @@ export default function Standalone4DViewerPage() {
   const [playbackSpeed, setPlaybackSpeed] = useState(500); // ms per frame
 
   const totalFrames = projectData?.dimensions?.frames || 0;
-
-  // Handle aggressive Three.js preload (loads all models into Three.js cache)
-  const handleAggressivePreload = async () => {
-    console.log("[Standalone4DViewer] Aggressive Three.js preload triggered");
-    try {
-      const count = await preloadAllThreeJSModels();
-      console.log(`[Standalone4DViewer] ✅ Preloaded ${count} models into Three.js cache`);
-    } catch (error) {
-      console.error("[Standalone4DViewer] ❌ Three.js preload failed:", error);
-    }
-  };
 
   // Load 3D reconstruction model when frame changes
   useEffect(() => {
@@ -402,32 +385,6 @@ export default function Standalone4DViewerPage() {
                     step={100}
                     className="w-full"
                   />
-                </div>
-
-                {/* Preload Button - NEW */}
-                <div className="pt-2 border-t">
-                  <Button
-                    onClick={handleAggressivePreload}
-                    disabled={isThreeJSPreloading || !reconstructionCacheReady}
-                    variant="outline"
-                    size="sm"
-                    className="w-full"
-                  >
-                    {isThreeJSPreloading ? (
-                      <>
-                        <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-                        Loading {threeJSPreloadProgress?.current || 0}/{threeJSPreloadProgress?.total || totalFrames}...
-                      </>
-                    ) : (
-                      <>
-                        <Zap className="h-3.5 w-3.5 mr-2" />
-                        Preload All Models (Instant Playback)
-                      </>
-                    )}
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Loads all models into memory for zero-lag frame switching
-                  </p>
                 </div>
 
                 {/* Reconstruction Info */}
