@@ -56,7 +56,14 @@ export function DrawingPanel({
   // Optimized keyboard shortcut handler with cleanup
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle if no modifier keys except Ctrl/Cmd
+      // Handle Delete key for clear action (no modifier keys)
+      if (e.key === "Delete" && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && canClear) {
+        e.preventDefault();
+        handleClear();
+        return;
+      }
+      
+      // Only handle Ctrl/Cmd shortcuts if no other modifier keys
       if (e.altKey || e.shiftKey) return;
       
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && canUndo) {
@@ -70,7 +77,7 @@ export function DrawingPanel({
     
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [canUndo, canRedo, handleUndo, handleRedo]);
+  }, [canUndo, canRedo, canClear, handleUndo, handleRedo, handleClear]);
 
   return (
     <div className="space-y-6">
