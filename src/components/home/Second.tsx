@@ -506,7 +506,8 @@ export default function SecondSection({ className = '' }: SecondSectionProps) {
                           src="/images/home/Second/sample_segmented_image.gif" 
                           alt="Segmentation Result"
                           fill
-                          className="object-cover"
+                        className="object-cover"
+                        unoptimized
                         />
                       </div>
                     </div>
@@ -614,6 +615,7 @@ export default function SecondSection({ className = '' }: SecondSectionProps) {
                           alt="3D Cardiac Mesh"
                           fill
                           className="object-cover"
+                          unoptimized
                         />
                       </div>
                     </div>
