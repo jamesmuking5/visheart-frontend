@@ -27,13 +27,14 @@ const DEFAULT_SETTINGS: ViewerSettings = {
   modelColor: '#c41e3a', // Cardiac tissue color
   background: 'responsive',
   showGrid: true,
-  roughness: 0.2,
-  metalness: 0.6,
+  roughness: 0.25,
+  metalness: 0.65,
   opacity: 1.0,
 };
 
 // Preset color palette for cardiac structures
 const COLOR_PRESETS = {
+  'White': '#ffffff',
   'Red': '#c41e3a',
   'Blue': '#4a90e2',
   'Green': '#09af00',
@@ -601,36 +602,36 @@ export function ReconstructionGLBViewer({
             </mesh>
           }
         >
-          {/* Fixed Bright Lighting Setup for Medical Visualization */}
-          {/* Key Light - Main light source (front-top-right) */}
+          {/* Balanced Lighting Setup for Medical Visualization */}
+          {/* Key Light - Main light source (front-top) */}
           <directionalLight 
-            position={[50, 50, 50]} 
-            intensity={2.5} 
+            position={[30, 80, 60]} 
+            intensity={2.8} 
             castShadow
             shadow-mapSize={[2048, 2048]}
           />
           
-          {/* Fill Light - Soften shadows (front-top-left) */}
+          {/* Fill Light - Soften shadows (left-front) */}
           <directionalLight 
-            position={[-30, 30, 30]} 
-            intensity={2.5} 
+            position={[-50, 40, 50]} 
+            intensity={1.8} 
           />
           
-          {/* Rim Light - Edge highlighting (back-top) */}
+          {/* Back Light - Depth and separation (back-top) */}
           <directionalLight 
-            position={[0, 20, -50]} 
-            intensity={2.2} 
+            position={[-20, 50, -60]} 
+            intensity={1.4} 
             color="#ffffff"
           />
           
           {/* Ambient Light - Overall scene illumination */}
           <ambientLight intensity={1.0} />
           
-          {/* Hemisphere Light - Subtle gradient lighting */}
+          {/* Hemisphere Light - Natural sky/ground gradient */}
           <hemisphereLight 
             color="#ffffff" 
-            groundColor="#888888" 
-            intensity={0.1} 
+            groundColor="#aaaaaa" 
+            intensity={0.6} 
           />
           
           {/* Ground Grid for spatial reference - toggleable */}
