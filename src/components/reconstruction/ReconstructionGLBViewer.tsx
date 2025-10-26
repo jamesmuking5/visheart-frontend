@@ -101,12 +101,14 @@ function Model({ url, settings }: ModelProps) {
 
 function GLBModel({ url, settings }: ModelProps) {
   const { scene } = useGLTF(url);
+  const sceneRef = useRef<THREE.Group | null>(null);
   
   useEffect(() => { 
-    console.log("[GLBViewer] GLB/GLTF Model loaded");
+    console.log("[GLBViewer] GLB/GLTF Model loaded or settings changed");
     
     // Apply customizable materials to all meshes
-    scene.traverse((child) => {
+    const targetScene = sceneRef.current || scene;
+    targetScene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         if (mesh.material) {
@@ -119,10 +121,18 @@ function GLBModel({ url, settings }: ModelProps) {
           material.transparent = settings.opacity < 1;
           material.opacity = settings.opacity;
           material.envMapIntensity = 1.2;
+          material.needsUpdate = true; // Force material update
         }
       }
     });
-  }, [scene, settings]);
+  }, [scene, settings, url]); // Added url to dependencies
+  
+  useEffect(() => {
+    // Store the scene reference
+    if (scene) {
+      sceneRef.current = scene;
+    }
+  }, [scene]);
   
   return (
     <Center>
@@ -135,6 +145,7 @@ function OBJModel({ url, settings }: ModelProps) {
   const [obj, setObj] = useState<THREE.Group | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Load OBJ file
   useEffect(() => {
     console.log("[OBJViewer] Starting OBJ load from URL:", url);
     const loader = new OBJLoader();
@@ -143,28 +154,6 @@ function OBJModel({ url, settings }: ModelProps) {
       url,
       (loadedObj) => {
         console.log("[OBJViewer] OBJ Model loaded successfully", loadedObj);
-        
-        // Apply customizable materials to OBJ
-        loadedObj.traverse((child) => {
-          if ((child as THREE.Mesh).isMesh) {
-            const mesh = child as THREE.Mesh;
-            
-            console.log("[OBJViewer] Applying material to mesh:", mesh.name || "unnamed");
-            
-            mesh.material = new THREE.MeshStandardMaterial({
-              color: new THREE.Color(settings.modelColor),
-              roughness: settings.roughness,
-              metalness: settings.metalness,
-              transparent: settings.opacity < 1,
-              opacity: settings.opacity,
-              envMapIntensity: 1.2,
-            });
-            
-            mesh.castShadow = true;
-            mesh.receiveShadow = true;
-          }
-        });
-        
         setObj(loadedObj);
         setError(null);
       },
@@ -177,7 +166,35 @@ function OBJModel({ url, settings }: ModelProps) {
         setError(errorMessage);
       }
     );
-  }, [url, settings]);
+  }, [url]);
+
+  // Apply settings whenever they change
+  useEffect(() => {
+    if (!obj) return;
+
+    console.log("[OBJViewer] Applying material settings to OBJ");
+    
+    // Apply customizable materials to OBJ
+    obj.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        
+        console.log("[OBJViewer] Updating material for mesh:", mesh.name || "unnamed");
+        
+        mesh.material = new THREE.MeshStandardMaterial({
+          color: new THREE.Color(settings.modelColor),
+          roughness: settings.roughness,
+          metalness: settings.metalness,
+          transparent: settings.opacity < 1,
+          opacity: settings.opacity,
+          envMapIntensity: 1.2,
+        });
+        
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+      }
+    });
+  }, [obj, settings]);
 
   if (error) {
     console.error("[OBJViewer] Render error:", error);
