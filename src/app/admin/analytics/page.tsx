@@ -20,7 +20,8 @@ import {
   Info,
   Zap,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  RefreshCw
 } from 'lucide-react';
 import {
   ResourceAmazonEC2Instance,
@@ -30,6 +31,8 @@ import {
   ArchitectureServiceAWSAutoScaling,
   ArchitectureServiceAWSCostExplorer
 } from 'aws-react-icons';
+import { analyticsApi } from '@/lib/api';
+import { MetricData, CostData } from '@/types/system-monitor';
 
 export default function AnalyticsDashboard() {
   const pathname = usePathname();
@@ -37,6 +40,16 @@ export default function AnalyticsDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
   const [showQuickActions, setShowQuickActions] = useState(false);
+
+  // Quick stats state
+  const [cpuMetrics, setCpuMetrics] = useState<MetricData | null>(null);
+  const [ecrFrontendImageCount, setEcrFrontendImageCount] = useState<MetricData | null>(null);
+  const [ecrBackendImageCount, setEcrBackendImageCount] = useState<MetricData | null>(null);
+  const [s3StorageSize, setS3StorageSize] = useState<MetricData | null>(null);
+  const [albRequestCount, setAlbRequestCount] = useState<MetricData | null>(null);
+  const [asgHealthyInstances, setAsgHealthyInstances] = useState<MetricData | null>(null);
+  const [totalCosts, setTotalCosts] = useState<CostData[] | null>(null);
+  const [quickStatsLoading, setQuickStatsLoading] = useState(true);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -63,6 +76,69 @@ export default function AnalyticsDashboard() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [sidebarCollapsed, searchQuery]);
+
+  // Fetch quick stats data
+  useEffect(() => {
+    const fetchQuickStats = async () => {
+      setQuickStatsLoading(true);
+      try {
+        // Fetch all metrics in parallel
+        const [
+          cpuData,
+          ecrFrontendImageData,
+          ecrBackendImageData,
+          albRequestData,
+          asgHealthyData,
+          costData
+        ] = await Promise.all([
+          analyticsApi.getCpuMetrics(),
+          analyticsApi.getEcrFrontendImageCountMetrics(),
+          analyticsApi.getEcrBackendImageCountMetrics(),
+          analyticsApi.getALBRequestCountMetrics(),
+          analyticsApi.getASGGroupInServiceInstancesMetrics(),
+          analyticsApi.getTotalCosts()
+        ]);
+
+        setCpuMetrics(cpuData);
+        setEcrFrontendImageCount(ecrFrontendImageData);
+        setEcrBackendImageCount(ecrBackendImageData);
+        setAlbRequestCount(albRequestData);
+        setAsgHealthyInstances(asgHealthyData);
+        setTotalCosts(costData);
+      } catch (error) {
+        console.error('Failed to fetch quick stats:', error);
+      } finally {
+        setQuickStatsLoading(false);
+      }
+    };
+
+    fetchQuickStats();
+  }, []);
+
+  // Helper functions to format data
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  const getLatestValue = (data: MetricData | null): number => {
+    if (!data || !data.values || data.values.length === 0) return 0;
+    return data.values[data.values.length - 1] || 0;
+  };
+
+  const getTotalEcrImages = (): number => {
+    const frontendCount = getLatestValue(ecrFrontendImageCount);
+    const backendCount = getLatestValue(ecrBackendImageCount);
+    return frontendCount + backendCount;
+  };
+
+  const getTotalCost = (costData: CostData[] | null): number => {
+    if (!costData || costData.length === 0) return 0;
+    return costData.reduce((sum, item) => sum + item.amount, 0);
+  };
 
   const navItems = [
     { name: 'EC2', path: '/admin/analytics/ec2', active: pathname === '/admin/analytics/ec2', icon: ResourceAmazonEC2Instance, color: 'text-orange-400' },
@@ -300,14 +376,56 @@ export default function AnalyticsDashboard() {
             {/* Quick Stats */}
             {!sidebarCollapsed && (
               <div className="mt-10 space-y-3">
-                <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3">Quick Stats</h3>
+                <div className="flex items-center justify-between px-3">
+                  <h3 className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Quick Stats</h3>
+                  <button
+                    onClick={async () => {
+                      setQuickStatsLoading(true);
+                      try {
+                        const [
+                          cpuData,
+                          ecrFrontendImageData,
+                          ecrBackendImageData,
+                          albRequestData,
+                          asgHealthyData,
+                          costData
+                        ] = await Promise.all([
+                          analyticsApi.getCpuMetrics(),
+                          analyticsApi.getEcrFrontendImageCountMetrics(),
+                          analyticsApi.getEcrBackendImageCountMetrics(),
+                          analyticsApi.getALBRequestCountMetrics(),
+                          analyticsApi.getASGGroupInServiceInstancesMetrics(),
+                          analyticsApi.getTotalCosts()
+                        ]);
+
+                        setCpuMetrics(cpuData);
+                        setEcrFrontendImageCount(ecrFrontendImageData);
+                        setEcrBackendImageCount(ecrBackendImageData);
+                        setAlbRequestCount(albRequestData);
+                        setAsgHealthyInstances(asgHealthyData);
+                        setTotalCosts(costData);
+                      } catch (error) {
+                        console.error('Failed to refresh quick stats:', error);
+                      } finally {
+                        setQuickStatsLoading(false);
+                      }
+                    }}
+                    disabled={quickStatsLoading}
+                    className="text-gray-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Refresh quick stats"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${quickStatsLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
                 <div className="space-y-2">
                   {/* EC2 Stats */}
                   <div className="flex items-center justify-between px-3 py-2 rounded-md hover:bg-gray-700 dark:hover:bg-[#2D3748] transition-colors cursor-pointer group">
                     <span className="text-sm text-gray-300 dark:text-gray-300 group-hover:text-white">
                       <span className="text-orange-400 font-medium">EC2</span> | CPU Utilization
                     </span>
-                    <span className="text-sm font-medium text-orange-400 group-hover:text-orange-300">68%</span>
+                    <span className="text-sm font-medium text-orange-400 group-hover:text-orange-300">
+                      {quickStatsLoading ? '...' : `${getLatestValue(cpuMetrics).toFixed(1)}%`}
+                    </span>
                   </div>
 
                   {/* ECR Stats */}
@@ -315,7 +433,9 @@ export default function AnalyticsDashboard() {
                     <span className="text-sm text-gray-300 dark:text-gray-300 group-hover:text-white">
                       <span className="text-blue-400 font-medium">ECR</span> | Images
                     </span>
-                    <span className="text-sm font-medium text-blue-400 group-hover:text-blue-300">127</span>
+                    <span className="text-sm font-medium text-blue-400 group-hover:text-blue-300">
+                      {quickStatsLoading ? '...' : Math.round(getTotalEcrImages())}
+                    </span>
                   </div>
 
                   {/* S3 Stats */}
@@ -323,7 +443,9 @@ export default function AnalyticsDashboard() {
                     <span className="text-sm text-gray-300 dark:text-gray-300 group-hover:text-white">
                       <span className="text-green-400 font-medium">S3</span> | Storage Used
                     </span>
-                    <span className="text-sm font-medium text-green-400 group-hover:text-green-300">2.4 TB</span>
+                    <span className="text-sm font-medium text-green-400 group-hover:text-green-300">
+                      {quickStatsLoading ? '...' : 'N/A'}
+                    </span>
                   </div>
 
                   {/* ALB Stats */}
@@ -331,7 +453,9 @@ export default function AnalyticsDashboard() {
                     <span className="text-sm text-gray-300 dark:text-gray-300 group-hover:text-white">
                       <span className="text-purple-400 font-medium">ALB</span> | Requests/min
                     </span>
-                    <span className="text-sm font-medium text-purple-400 group-hover:text-purple-300">1.2K</span>
+                    <span className="text-sm font-medium text-purple-400 group-hover:text-purple-300">
+                      {quickStatsLoading ? '...' : `${(getLatestValue(albRequestCount) / 60).toFixed(1)}K`}
+                    </span>
                   </div>
 
                   {/* ASG Stats */}
@@ -339,7 +463,9 @@ export default function AnalyticsDashboard() {
                     <span className="text-sm text-gray-300 dark:text-gray-300 group-hover:text-white">
                       <span className="text-red-400 font-medium">ASG</span> | Healthy Instances
                     </span>
-                    <span className="text-sm font-medium text-red-400 group-hover:text-red-300">3</span>
+                    <span className="text-sm font-medium text-red-400 group-hover:text-red-300">
+                      {quickStatsLoading ? '...' : Math.round(getLatestValue(asgHealthyInstances))}
+                    </span>
                   </div>
 
                   {/* Cost Stats */}
@@ -347,7 +473,9 @@ export default function AnalyticsDashboard() {
                     <span className="text-sm text-gray-300 dark:text-gray-300 group-hover:text-white">
                       <span className="text-yellow-400 font-medium">Cost</span> | Monthly Bill
                     </span>
-                    <span className="text-sm font-medium text-yellow-400 group-hover:text-yellow-300">$2,500</span>
+                    <span className="text-sm font-medium text-yellow-400 group-hover:text-yellow-300">
+                      {quickStatsLoading ? '...' : `$${getTotalCost(totalCosts).toFixed(0)}`}
+                    </span>
                   </div> 
                 </div>
               </div>
