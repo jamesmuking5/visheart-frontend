@@ -1,7 +1,7 @@
 ﻿"use client";
 import { useEffect, useRef, Suspense, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, Environment, useGLTF, Center } from "@react-three/drei";
+import { OrbitControls, useGLTF, Center } from "@react-three/drei";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { AlertCircle, Settings, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,39 +15,29 @@ import * as THREE from "three";
 // Visualization settings interface
 interface ViewerSettings {
   modelColor: string;
-  wireframe: boolean;
-  showEdges: boolean;
   background: 'gradient' | 'solid-dark' | 'solid-light' | 'white' | 'responsive';
   showGrid: boolean;
   roughness: number;
   metalness: number;
   opacity: number;
-  environmentPreset: 'studio' | 'sunset' | 'dawn' | 'night' | 'warehouse' | 'forest' | 'apartment' | 'city' | 'park' | 'lobby';
 }
 
 // Default settings
 const DEFAULT_SETTINGS: ViewerSettings = {
-  modelColor: '#d4726d', // Cardiac tissue color
-  wireframe: false,
-  showEdges: false,
-  background: 'gradient',
+  modelColor: '#c41e3a', // Cardiac tissue color
+  background: 'responsive',
   showGrid: true,
-  roughness: 0.4,
-  metalness: 0.1,
+  roughness: 0.2,
+  metalness: 0.6,
   opacity: 1.0,
-  environmentPreset: 'studio',
 };
 
 // Preset color palette for cardiac structures
 const COLOR_PRESETS = {
-  'Cardiac Tissue': '#d4726d',
-  'Blood Red': '#c41e3a',
-  'Medical Blue': '#4a90e2',
-  'Gray Scale': '#888888',
-  'Bone White': '#f5f5dc',
-  'Soft Pink': '#ffb6c1',
-  'Deep Purple': '#6a0dad',
-  'Ocean Teal': '#008080',
+  'Red': '#c41e3a',
+  'Blue': '#4a90e2',
+  'Green': '#09af00',
+  'Purple': '#4a26fd',
 };
 
 // Model loader that supports both GLB/GLTF and OBJ formats
@@ -126,20 +116,9 @@ function GLBModel({ url, settings }: ModelProps) {
           material.color = new THREE.Color(settings.modelColor);
           material.roughness = settings.roughness;
           material.metalness = settings.metalness;
-          material.wireframe = settings.wireframe;
           material.transparent = settings.opacity < 1;
           material.opacity = settings.opacity;
           material.envMapIntensity = 1.2;
-          
-          // Edge wireframe overlay
-          if (settings.showEdges && !settings.wireframe) {
-            const edges = new THREE.EdgesGeometry(mesh.geometry);
-            const line = new THREE.LineSegments(
-              edges, 
-              new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 })
-            );
-            mesh.add(line);
-          }
         }
       }
     });
@@ -176,7 +155,6 @@ function OBJModel({ url, settings }: ModelProps) {
               color: new THREE.Color(settings.modelColor),
               roughness: settings.roughness,
               metalness: settings.metalness,
-              wireframe: settings.wireframe,
               transparent: settings.opacity < 1,
               opacity: settings.opacity,
               envMapIntensity: 1.2,
@@ -184,16 +162,6 @@ function OBJModel({ url, settings }: ModelProps) {
             
             mesh.castShadow = true;
             mesh.receiveShadow = true;
-            
-            // Edge wireframe overlay
-            if (settings.showEdges && !settings.wireframe) {
-              const edges = new THREE.EdgesGeometry(mesh.geometry);
-              const line = new THREE.LineSegments(
-                edges, 
-                new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 })
-              );
-              mesh.add(line);
-            }
           }
         });
         
@@ -523,31 +491,6 @@ export function ReconstructionGLBViewer({
               </Select>
             </div>
 
-            {/* Environment Lighting */}
-            <div className="space-y-2">
-              <Label className="text-white text-xs">Environment</Label>
-              <Select
-                value={settings.environmentPreset}
-                onValueChange={(value) => setSettings({ ...settings, environmentPreset: value as ViewerSettings['environmentPreset'] })}
-              >
-                <SelectTrigger className="w-full bg-white/10 border-white/20 text-white text-xs h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="studio">Studio</SelectItem>
-                  <SelectItem value="sunset">Sunset</SelectItem>
-                  <SelectItem value="dawn">Dawn</SelectItem>
-                  <SelectItem value="night">Night</SelectItem>
-                  <SelectItem value="warehouse">Warehouse</SelectItem>
-                  <SelectItem value="forest">Forest</SelectItem>
-                  <SelectItem value="apartment">Apartment</SelectItem>
-                  <SelectItem value="city">City</SelectItem>
-                  <SelectItem value="park">Park</SelectItem>
-                  <SelectItem value="lobby">Lobby</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
             {/* Roughness */}
             <div className="space-y-2">
               <div className="flex justify-between">
@@ -596,24 +539,6 @@ export function ReconstructionGLBViewer({
               />
             </div>
 
-            {/* Wireframe Toggle */}
-            <div className="flex items-center justify-between">
-              <Label className="text-white text-xs">Wireframe</Label>
-              <Switch
-                checked={settings.wireframe}
-                onCheckedChange={(checked) => setSettings({ ...settings, wireframe: checked })}
-              />
-            </div>
-
-            {/* Edge Lines Toggle */}
-            <div className="flex items-center justify-between">
-              <Label className="text-white text-xs">Show Edges</Label>
-              <Switch
-                checked={settings.showEdges}
-                onCheckedChange={(checked) => setSettings({ ...settings, showEdges: checked })}
-              />
-            </div>
-
             {/* Grid Toggle */}
             <div className="flex items-center justify-between">
               <Label className="text-white text-xs">Ground Grid</Label>
@@ -659,11 +584,11 @@ export function ReconstructionGLBViewer({
             </mesh>
           }
         >
-          {/* Three-Point Lighting Setup (Medical Visualization Standard) */}
+          {/* Fixed Bright Lighting Setup for Medical Visualization */}
           {/* Key Light - Main light source (front-top-right) */}
           <directionalLight 
             position={[50, 50, 50]} 
-            intensity={1.5} 
+            intensity={2.5} 
             castShadow
             shadow-mapSize={[2048, 2048]}
           />
@@ -671,24 +596,24 @@ export function ReconstructionGLBViewer({
           {/* Fill Light - Soften shadows (front-top-left) */}
           <directionalLight 
             position={[-30, 30, 30]} 
-            intensity={0.6} 
+            intensity={2.5} 
           />
           
           {/* Rim Light - Edge highlighting (back-top) */}
           <directionalLight 
             position={[0, 20, -50]} 
-            intensity={0.8} 
-            color="#e8f4ff"
+            intensity={2.2} 
+            color="#ffffff"
           />
           
           {/* Ambient Light - Overall scene illumination */}
-          <ambientLight intensity={0.3} />
+          <ambientLight intensity={1.0} />
           
           {/* Hemisphere Light - Subtle gradient lighting */}
           <hemisphereLight 
             color="#ffffff" 
-            groundColor="#444444" 
-            intensity={0.4} 
+            groundColor="#888888" 
+            intensity={0.1} 
           />
           
           {/* Ground Grid for spatial reference - toggleable */}
@@ -698,9 +623,6 @@ export function ReconstructionGLBViewer({
           
           {/* Model with settings */}
           <Model url={modelUrl} settings={settings} />
-          
-          {/* Environment Map for reflections - customizable preset */}
-          <Environment preset={settings.environmentPreset} />
           
           <CameraController 
             onCameraChange={handleCameraChange} 
