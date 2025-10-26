@@ -1,7 +1,7 @@
 ﻿"use client";
 import { useEffect, useRef, Suspense, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { OrbitControls, useGLTF, Center } from "@react-three/drei";
+import { OrbitControls, Environment, useGLTF, Center } from "@react-three/drei";
 import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { AlertCircle, Settings, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,26 +15,31 @@ import * as THREE from "three";
 // Visualization settings interface
 interface ViewerSettings {
   modelColor: string;
+  wireframe: boolean;
+  showEdges: boolean;
   background: 'gradient' | 'solid-dark' | 'solid-light' | 'white' | 'responsive';
   showGrid: boolean;
   roughness: number;
   metalness: number;
   opacity: number;
+  environmentPreset: 'studio' | 'sunset' | 'dawn' | 'night' | 'warehouse' | 'forest' | 'apartment' | 'city' | 'park' | 'lobby';
 }
 
 // Default settings
 const DEFAULT_SETTINGS: ViewerSettings = {
   modelColor: '#c41e3a', // Cardiac tissue color
+  wireframe: false,
+  showEdges: false,
   background: 'responsive',
   showGrid: true,
-  roughness: 0.25,
-  metalness: 0.65,
+  roughness: 0.4,
+  metalness: 0.1,
   opacity: 1.0,
+  environmentPreset: 'studio',
 };
 
 // Preset color palette for cardiac structures
 const COLOR_PRESETS = {
-  'White': '#ffffff',
   'Red': '#c41e3a',
   'Blue': '#4a90e2',
   'Green': '#09af00',
@@ -102,14 +107,12 @@ function Model({ url, settings }: ModelProps) {
 
 function GLBModel({ url, settings }: ModelProps) {
   const { scene } = useGLTF(url);
-  const sceneRef = useRef<THREE.Group | null>(null);
   
   useEffect(() => { 
-    console.log("[GLBViewer] GLB/GLTF Model loaded or settings changed");
+    console.log("[GLBViewer] GLB/GLTF Model loaded");
     
     // Apply customizable materials to all meshes
-    const targetScene = sceneRef.current || scene;
-    targetScene.traverse((child) => {
+    scene.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         if (mesh.material) {
@@ -119,21 +122,25 @@ function GLBModel({ url, settings }: ModelProps) {
           material.color = new THREE.Color(settings.modelColor);
           material.roughness = settings.roughness;
           material.metalness = settings.metalness;
+          material.wireframe = settings.wireframe;
           material.transparent = settings.opacity < 1;
           material.opacity = settings.opacity;
           material.envMapIntensity = 1.2;
           material.needsUpdate = true; // Force material update
+          
+          // Edge wireframe overlay
+          if (settings.showEdges && !settings.wireframe) {
+            const edges = new THREE.EdgesGeometry(mesh.geometry);
+            const line = new THREE.LineSegments(
+              edges, 
+              new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 })
+            );
+            mesh.add(line);
+          }
         }
       }
     });
-  }, [scene, settings, url]); // Added url to dependencies
-  
-  useEffect(() => {
-    // Store the scene reference
-    if (scene) {
-      sceneRef.current = scene;
-    }
-  }, [scene]);
+  }, [scene, settings, url]); // Include url to trigger reapplication when frame changes
   
   return (
     <Center>
@@ -146,7 +153,6 @@ function OBJModel({ url, settings }: ModelProps) {
   const [obj, setObj] = useState<THREE.Group | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Load OBJ file
   useEffect(() => {
     console.log("[OBJViewer] Starting OBJ load from URL:", url);
     const loader = new OBJLoader();
@@ -155,6 +161,39 @@ function OBJModel({ url, settings }: ModelProps) {
       url,
       (loadedObj) => {
         console.log("[OBJViewer] OBJ Model loaded successfully", loadedObj);
+        
+        // Apply customizable materials to OBJ
+        loadedObj.traverse((child) => {
+          if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            
+            console.log("[OBJViewer] Applying material to mesh:", mesh.name || "unnamed");
+            
+            mesh.material = new THREE.MeshStandardMaterial({
+              color: new THREE.Color(settings.modelColor),
+              roughness: settings.roughness,
+              metalness: settings.metalness,
+              wireframe: settings.wireframe,
+              transparent: settings.opacity < 1,
+              opacity: settings.opacity,
+              envMapIntensity: 1.2,
+            });
+            
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            
+            // Edge wireframe overlay
+            if (settings.showEdges && !settings.wireframe) {
+              const edges = new THREE.EdgesGeometry(mesh.geometry);
+              const line = new THREE.LineSegments(
+                edges, 
+                new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 })
+              );
+              mesh.add(line);
+            }
+          }
+        });
+        
         setObj(loadedObj);
         setError(null);
       },
@@ -167,35 +206,7 @@ function OBJModel({ url, settings }: ModelProps) {
         setError(errorMessage);
       }
     );
-  }, [url]);
-
-  // Apply settings whenever they change
-  useEffect(() => {
-    if (!obj) return;
-
-    console.log("[OBJViewer] Applying material settings to OBJ");
-    
-    // Apply customizable materials to OBJ
-    obj.traverse((child) => {
-      if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        
-        console.log("[OBJViewer] Updating material for mesh:", mesh.name || "unnamed");
-        
-        mesh.material = new THREE.MeshStandardMaterial({
-          color: new THREE.Color(settings.modelColor),
-          roughness: settings.roughness,
-          metalness: settings.metalness,
-          transparent: settings.opacity < 1,
-          opacity: settings.opacity,
-          envMapIntensity: 1.2,
-        });
-        
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-      }
-    });
-  }, [obj, settings]);
+  }, [url, settings]);
 
   if (error) {
     console.error("[OBJViewer] Render error:", error);
@@ -509,6 +520,31 @@ export function ReconstructionGLBViewer({
               </Select>
             </div>
 
+            {/* Environment Lighting */}
+            <div className="space-y-2">
+              <Label className="text-white text-xs">Environment</Label>
+              <Select
+                value={settings.environmentPreset}
+                onValueChange={(value) => setSettings({ ...settings, environmentPreset: value as ViewerSettings['environmentPreset'] })}
+              >
+                <SelectTrigger className="w-full bg-white/10 border-white/20 text-white text-xs h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="studio">Studio</SelectItem>
+                  <SelectItem value="sunset">Sunset</SelectItem>
+                  <SelectItem value="dawn">Dawn</SelectItem>
+                  <SelectItem value="night">Night</SelectItem>
+                  <SelectItem value="warehouse">Warehouse</SelectItem>
+                  <SelectItem value="forest">Forest</SelectItem>
+                  <SelectItem value="apartment">Apartment</SelectItem>
+                  <SelectItem value="city">City</SelectItem>
+                  <SelectItem value="park">Park</SelectItem>
+                  <SelectItem value="lobby">Lobby</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Roughness */}
             <div className="space-y-2">
               <div className="flex justify-between">
@@ -557,6 +593,24 @@ export function ReconstructionGLBViewer({
               />
             </div>
 
+            {/* Wireframe Toggle */}
+            <div className="flex items-center justify-between">
+              <Label className="text-white text-xs">Wireframe</Label>
+              <Switch
+                checked={settings.wireframe}
+                onCheckedChange={(checked) => setSettings({ ...settings, wireframe: checked })}
+              />
+            </div>
+
+            {/* Edge Lines Toggle */}
+            <div className="flex items-center justify-between">
+              <Label className="text-white text-xs">Show Edges</Label>
+              <Switch
+                checked={settings.showEdges}
+                onCheckedChange={(checked) => setSettings({ ...settings, showEdges: checked })}
+              />
+            </div>
+
             {/* Grid Toggle */}
             <div className="flex items-center justify-between">
               <Label className="text-white text-xs">Ground Grid</Label>
@@ -602,36 +656,36 @@ export function ReconstructionGLBViewer({
             </mesh>
           }
         >
-          {/* Balanced Lighting Setup for Medical Visualization */}
-          {/* Key Light - Main light source (front-top) */}
+          {/* Three-Point Lighting Setup (Medical Visualization Standard) */}
+          {/* Key Light - Main light source (front-top-right) */}
           <directionalLight 
-            position={[30, 80, 60]} 
-            intensity={2.8} 
+            position={[50, 50, 50]} 
+            intensity={1.5} 
             castShadow
             shadow-mapSize={[2048, 2048]}
           />
           
-          {/* Fill Light - Soften shadows (left-front) */}
+          {/* Fill Light - Soften shadows (front-top-left) */}
           <directionalLight 
-            position={[-50, 40, 50]} 
-            intensity={1.8} 
+            position={[-30, 30, 30]} 
+            intensity={0.6} 
           />
           
-          {/* Back Light - Depth and separation (back-top) */}
+          {/* Rim Light - Edge highlighting (back-top) */}
           <directionalLight 
-            position={[-20, 50, -60]} 
-            intensity={1.4} 
-            color="#ffffff"
+            position={[0, 20, -50]} 
+            intensity={0.8} 
+            color="#e8f4ff"
           />
           
           {/* Ambient Light - Overall scene illumination */}
-          <ambientLight intensity={1.0} />
+          <ambientLight intensity={0.3} />
           
-          {/* Hemisphere Light - Natural sky/ground gradient */}
+          {/* Hemisphere Light - Subtle gradient lighting */}
           <hemisphereLight 
             color="#ffffff" 
-            groundColor="#aaaaaa" 
-            intensity={0.6} 
+            groundColor="#444444" 
+            intensity={0.4} 
           />
           
           {/* Ground Grid for spatial reference - toggleable */}
@@ -641,6 +695,9 @@ export function ReconstructionGLBViewer({
           
           {/* Model with settings */}
           <Model url={modelUrl} settings={settings} />
+          
+          {/* Environment Map for reflections - customizable preset */}
+          <Environment preset={settings.environmentPreset} />
           
           <CameraController 
             onCameraChange={handleCameraChange} 
