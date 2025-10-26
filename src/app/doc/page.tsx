@@ -42,7 +42,13 @@ const DocPage = () => {
               <TabsTrigger value="how-it-works" className="w-full justify-start text-left h-auto py-2 px-3 data-[state=active]:bg-secondary">
                 <div className="flex items-center gap-2">
                   <Play className="w-4 h-4" />
-                  <span className="text-sm">How It Works</span>
+                  <span className="text-sm">How Segmentation Works</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger value="reconstruction" className="w-full justify-start text-left h-auto py-2 px-3 data-[state=active]:bg-secondary">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4" />
+                  <span className="text-sm">How Reconstruction Works</span>
                 </div>
               </TabsTrigger>
             </TabsList>
@@ -87,9 +93,6 @@ const DocPage = () => {
                           <div>
                             <h4 className="font-semibold">
                               3D Visualization{" "}
-                              <Badge variant="outline" className="ml-2">
-                                Upcoming
-                              </Badge>
                             </h4>
                             <p className="text-sm text-muted-foreground">Interactive 3D rendering of cardiac structures for comprehensive analysis.</p>
                           </div>
@@ -115,9 +118,6 @@ const DocPage = () => {
                           <li>• Automated cardiac segmentation</li>
                           <li>
                             • Real-time 3D visualization{" "}
-                            <Badge variant="outline" className="ml-2">
-                              Upcoming
-                            </Badge>
                           </li>
                           <li>• Multi-format support</li>
                           <li>• Cloud-based processing</li>
@@ -276,12 +276,7 @@ const DocPage = () => {
                             <TableCell className="text-center">✓</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell className="font-medium">
-                              3D Visualization{" "}
-                              <Badge variant="outline" className="ml-2">
-                                Upcoming
-                              </Badge>
-                            </TableCell>
+                            <TableCell className="font-medium">3D/4D Visualization</TableCell>
                             <TableCell className="text-center">✓</TableCell>
                             <TableCell className="text-center">✓</TableCell>
                           </TableRow>
@@ -674,6 +669,273 @@ const DocPage = () => {
                         <p className="text-sm text-muted-foreground">
                           <strong>MRI Viewer:</strong> Available immediately after upload for image preview and examination.<br/>
                           <strong>Segmentation Viewer:</strong> Available only after AI processing completes, includes all MRI viewer features plus advanced editing tools.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="reconstruction" className="flex-1 m-0 h-full">
+            <ScrollArea className="h-full w-full">
+              <div className="p-8 w-full">
+                <div className="space-y-8 max-w-none">
+                  <div>
+                    <h1 className="text-3xl font-bold mb-4">3D/4D Reconstruction</h1>
+                    <p className="text-muted-foreground mb-6">
+                      Follow this comprehensive guide to run 3D/4D reconstructions. It walks you through preparing your project,
+                      choosing a reference frame, submitting a reconstruction job, monitoring progress, and downloading results.
+                    </p>
+                  </div>
+
+                  {/* Overview */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Zap className="w-5 h-5" />
+                        Overview
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Reconstruction converts segmentation masks into 3D meshes of cardiac structures (myocardium). 4D reconstruction produces
+                        time-resolved mesh sequences across cardiac frames to represent motion. The system runs reconstructions on
+                        the GPU inference service and stores results in cloud storage for download and further analysis.
+                      </p>
+
+                      <div className="grid gap-4">
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm font-medium">3D</div>
+                          <div>
+                            <h4 className="font-semibold">3D Reconstruction</h4>
+                            <p className="text-sm text-muted-foreground">Single mesh reconstruction generated from a mri scan with only one frame.</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-medium">4D</div>
+                          <div>
+                            <h4 className="font-semibold">4D (Time-series) Reconstruction</h4>
+                            <p className="text-sm text-muted-foreground">Mesh sequence generated for multiple frames to capture cardiac motion across time.</p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Step 1: Starting Reconstruction */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">1</div>
+                        Starting a Reconstruction Job
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Ensure segmentation has been completed for your project first — reconstruction uses those results. Open the project and click <strong>Create 4D Reconstruction</strong>.
+                      </p>
+                      <div className="rounded-lg border bg-muted/30 p-4">
+                        <Image
+                          src="/images/doc/project-reconstruction-overview.png"
+                          alt="Project reconstruction overview showing Create 4D Reconstruction button"
+                          width={1200}
+                          height={800}
+                          className="w-full rounded-md border shadow-sm"
+                        />
+                        <p className="text-xs text-muted-foreground mt-2">Project overview with Create 4D Reconstruction button to start the process.</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Step 2: Configure Parameters */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">2</div>
+                        Configure 4D Reconstruction
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Configure the parameters for generating your 4D cardiac reconstruction. Defaults are optimized to balance quality and speed.
+                      </p>
+                      
+                      <div className="grid gap-3">
+                        <div>
+                          <h4 className="font-semibold text-sm">Export format</h4>
+                          <div className="text-sm text-muted-foreground space-y-2 pl-3">
+                            <p>• <strong>GLB (Recommended)</strong> — Binary glTF 2.0 optimized for web viewing with smaller file sizes and better performance.</p>
+                            <p>• <strong>OBJ (Wavefront)</strong> — Plain text format, widely supported and human-readable.</p>
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="font-semibold text-sm">End-diastole frame</h4>
+                          <p className="text-sm text-muted-foreground">Default: <strong>Frame 1</strong>. Select the cardiac end-diastole frame representing the relaxed state of the heart.</p>
+                        </div>
+
+                        <div>
+                          <h4 className="font-semibold text-sm">Advanced settings</h4>
+                          <div className="text-sm text-muted-foreground space-y-2 pl-3">
+                            <p>• <strong>SDF optimizer iterations:</strong> Default 30 (range 10–200). Higher values improve accuracy but increase processing time.</p>
+                            <p>• <strong>Marching cubes resolution:</strong> Default 32 (range 32–256). Higher values create more detailed meshes but increase file size.</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid md:grid-cols-2 gap-4 mt-4">
+                        <div className="rounded-lg border bg-muted/30 p-4">
+                          <Image
+                            src="/images/doc/project-reconstruction-configuration.png"
+                            alt="Configure modal with export format and ED frame settings"
+                            width={600}
+                            height={400}
+                            className="w-full rounded-md border shadow-sm"
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">Configuration panel with export format, ED frame selector, and basic parameters.</p>
+                        </div>
+                        <div className="rounded-lg border bg-muted/30 p-4">
+                          <Image
+                            src="/images/doc/project-reconstruction-configuration-advanced.png"
+                            alt="Advanced settings panel with SDF optimizer and marching cubes controls"
+                            width={600}
+                            height={400}
+                            className="w-full rounded-md border shadow-sm"
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">Advanced settings panel with SDF optimizer iterations and marching cubes resolution controls.</p>
+                        </div>
+                      </div>
+                      
+                      <p className="text-sm text-muted-foreground">Click <strong>Start Reconstruction</strong> to submit. The UI returns to the Jobs panel to monitor progress.</p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Step 3: View Results */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold">3</div>
+                        Inspect & Visualize Results
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        After reconstruction completes, you can visualize the 4D model with playback controls and compare it side-by-side with segmentation.
+                      </p>
+                      
+                      <ul className="text-sm text-muted-foreground space-y-1">
+                        <li>• Inspect the 4D model with playback controls to review cardiac motion frame-by-frame</li>
+                        <li>• Toggle side-by-side view to compare segmentation masks and reconstructed mesh</li>
+                        <li>• Focus on full-screen 4D viewer with timeline controls for detailed analysis</li>
+                        <li>• If you re-edit segmentation masks, re-run reconstruction to update the 4D model</li>
+                      </ul>
+
+                      <div className="rounded-lg border bg-muted/30 p-4 mt-4">
+                        <Image
+                          src="/images/doc/project-reconstruction.png"
+                          alt="Reconstruction results list with completed reconstruction and download options"
+                          width={1200}
+                          height={800}
+                          className="w-full rounded-md border shadow-sm"
+                        />
+                        <p className="text-xs text-muted-foreground mt-2">Reconstruction results showing completed 4D reconstruction with metadata and view options.</p>
+                      </div>
+
+                      <div className="rounded-lg border bg-muted/30 p-4 mt-4">
+                        <Image
+                          src="/images/doc/project-reconsturction-view.png"
+                          alt="4D reconstruction viewer with side-by-side comparison and playback controls"
+                          width={1200}
+                          height={800}
+                          className="w-full rounded-md border shadow-sm"
+                        />
+                        <p className="text-xs text-muted-foreground mt-2">Interactive 4D viewer with side-by-side segmentation comparison and playback timeline controls.</p>
+                      </div>
+
+                      <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 mt-4">
+                        <p className="text-sm font-medium mb-1">💡 Important Note</p>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• If you make changes to your segmentation masks, you can <strong>re-run reconstruction</strong> to update the 4D model with the new segmentation data.</li>
+                          <li>• You can also <strong>delete existing reconstructions</strong> and create new ones with different parameters or updated segmentation results.</li>
+                          <li>• Reconstruction models are regenerated based on the current segmentation state, ensuring your 3D/4D meshes always reflect the latest edits.</li>
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Step 4: Project Details & Management */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">4</div>
+                        Complete Project Details & Management
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <p className="text-sm text-muted-foreground">
+                        Access comprehensive project information including segmentation masks, reconstruction details, job history, metadata, and storage statistics all in one place.
+                      </p>
+                      
+                      <div className="grid gap-3">
+                        <div>
+                          <h4 className="font-semibold text-sm">Project Information</h4>
+                          <ul className="text-sm text-muted-foreground space-y-1 pl-3">
+                            <li>• View complete project metadata (dimensions, voxel size, affine matrix)</li>
+                            <li>• Check dataset size and storage usage</li>
+                            <li>• Review project creation date and last modified timestamp</li>
+                          </ul>
+                        </div>
+
+                        <div>
+                          <h4 className="font-semibold text-sm">Segmentation & Reconstruction Details</h4>
+                          <ul className="text-sm text-muted-foreground space-y-1 pl-3">
+                            <li>• View all segmentation masks with frame and slice information</li>
+                            <li>• Check reconstruction job status and details</li>
+                            <li>• Access job history and processing logs</li>
+                          </ul>
+                        </div>
+
+                        <div>
+                          <h4 className="font-semibold text-sm">Export & Management Options</h4>
+                          <ul className="text-sm text-muted-foreground space-y-1 pl-3">
+                            <li>• <strong>Export Masks</strong> — Download segmentation masks in NIfTI format</li>
+                            <li>• <strong>Export Project</strong> — Download complete project data including images and masks</li>
+                            <li>• <strong>Reset Masks</strong> — Clear all segmentation masks to start fresh</li>
+                            <li>• Simple one-click actions for all management tasks</li>
+                          </ul>
+                        </div>
+                      </div>
+
+                      <div className="grid md:grid-cols-2 gap-4 mt-4">
+                        <div className="rounded-lg border bg-muted/30 p-4">
+                          <Image
+                            src="/images/doc/project-reconstruction-details.png"
+                            alt="Project details overview showing metadata, segmentation masks, and reconstruction information"
+                            width={600}
+                            height={400}
+                            className="w-full rounded-md border shadow-sm"
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">Comprehensive project details with metadata, storage statistics, and segmentation/reconstruction information.</p>
+                        </div>
+                        <div className="rounded-lg border bg-muted/30 p-4">
+                          <Image
+                            src="/images/doc/project-reconstruction-details2.png"
+                            alt="Project management actions including export masks, export project, and reset options"
+                            width={600}
+                            height={400}
+                            className="w-full rounded-md border shadow-sm"
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">Project management panel with export and reset options for easy data management.</p>
+                        </div>
+                      </div>
+
+                      <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 mt-4">
+                        <p className="text-sm font-medium mb-1">⚠️ Reset Masks Warning</p>
+                        <p className="text-sm text-muted-foreground">
+                          Using the <strong>Reset Masks</strong> option will permanently delete all segmentation masks and reconstruction data. 
+                          This action cannot be undone. Use this feature when you need to start the segmentation process completely fresh.
                         </p>
                       </div>
                     </CardContent>
