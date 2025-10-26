@@ -27,13 +27,13 @@ interface ViewerSettings {
 
 // Default settings
 const DEFAULT_SETTINGS: ViewerSettings = {
-  modelColor: '#d4726d', // Cardiac tissue color
+  modelColor: '#c41e3a', // Blood Red
   wireframe: false,
   showEdges: false,
-  background: 'gradient',
+  background: 'responsive',
   showGrid: true,
-  roughness: 0.4,
-  metalness: 0.1,
+  roughness: 0.05,
+  metalness: 0.70,
   opacity: 1.0,
   environmentPreset: 'studio',
 };
@@ -560,36 +560,11 @@ export function ReconstructionGLBViewer({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="responsive">Responsive (Theme)</SelectItem>
                   <SelectItem value="gradient">Gradient (Slate)</SelectItem>
                   <SelectItem value="solid-dark">Solid Dark</SelectItem>
                   <SelectItem value="solid-light">Solid Light</SelectItem>
                   <SelectItem value="white">White</SelectItem>
-                  <SelectItem value="responsive">Responsive (Theme)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Environment Lighting */}
-            <div className="space-y-2">
-              <Label className="text-white text-xs">Environment</Label>
-              <Select
-                value={settings.environmentPreset}
-                onValueChange={(value) => setSettings({ ...settings, environmentPreset: value as ViewerSettings['environmentPreset'] })}
-              >
-                <SelectTrigger className="w-full bg-white/10 border-white/20 text-white text-xs h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="studio">Studio</SelectItem>
-                  <SelectItem value="sunset">Sunset</SelectItem>
-                  <SelectItem value="dawn">Dawn</SelectItem>
-                  <SelectItem value="night">Night</SelectItem>
-                  <SelectItem value="warehouse">Warehouse</SelectItem>
-                  <SelectItem value="forest">Forest</SelectItem>
-                  <SelectItem value="apartment">Apartment</SelectItem>
-                  <SelectItem value="city">City</SelectItem>
-                  <SelectItem value="park">Park</SelectItem>
-                  <SelectItem value="lobby">Lobby</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -639,24 +614,6 @@ export function ReconstructionGLBViewer({
                 max={1}
                 step={0.05}
                 className="[&>span:first-child]:bg-white/20"
-              />
-            </div>
-
-            {/* Wireframe Toggle */}
-            <div className="flex items-center justify-between">
-              <Label className="text-white text-xs">Wireframe</Label>
-              <Switch
-                checked={settings.wireframe}
-                onCheckedChange={(checked) => setSettings({ ...settings, wireframe: checked })}
-              />
-            </div>
-
-            {/* Edge Lines Toggle */}
-            <div className="flex items-center justify-between">
-              <Label className="text-white text-xs">Show Edges</Label>
-              <Switch
-                checked={settings.showEdges}
-                onCheckedChange={(checked) => setSettings({ ...settings, showEdges: checked })}
               />
             </div>
 

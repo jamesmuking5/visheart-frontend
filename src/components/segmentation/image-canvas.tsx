@@ -1055,7 +1055,7 @@ export function ImageCanvas({
     onMouseMove={handleContainerMouseMove}
     onMouseUp={handleContainerMouseUp}
     onContextMenu={(e) => e.preventDefault()}
-    className="w-full h-[70vh] min-h-[400px] max-h-[700px] bg-background rounded-lg overflow-hidden relative mx-auto border flex flex-col"
+    className="w-full h-[80vh] min-h-[500px] max-h-[800px] bg-background rounded-lg overflow-hidden relative mx-auto border flex flex-col"
   >
         {/* Top info bar (frame/slice + zoom) */}
         <div 
@@ -1204,28 +1204,6 @@ export function ImageCanvas({
           </Layer>
         </Stage>
         </div>
-      </div>
-
-      {/* Image Status Indicators */}
-      <div className="mt-2 flex flex-col items-center gap-1">
-        {imageStatus === "error" && (
-          <div className="text-sm text-destructive flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-destructive"></div>
-            Failed to load image for Frame {currentFrame + 1}, Slice {currentSlice + 1}
-            {!tarCacheReady && tarCacheError && (
-              <span className="text-muted-foreground text-xs">(Cache error: {tarCacheError})</span>
-            )}
-            {!tarCacheReady && !tarCacheError && (
-              <span className="text-muted-foreground text-xs">(Cache not ready)</span>
-            )}
-          </div>
-        )}
-        
-        {imageStatus === "loaded" && imageLoadMethod && (
-          <div className="text-xs text-muted-foreground">
-            Frame {currentFrame + 1}/{totalFrames}, Slice {currentSlice + 1}/{totalSlices}
-          </div>
-        )}
       </div>
     </div>
   );
