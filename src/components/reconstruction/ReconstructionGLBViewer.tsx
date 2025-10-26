@@ -111,12 +111,45 @@ function Model({ url, settings }: ModelProps) {
 
 function GLBModel({ url, settings }: ModelProps) {
   const { scene } = useGLTF(url);
+  const sceneRef = useRef<THREE.Group | null>(null);
   
+  // Clone the scene and initialize materials when scene loads
+  useEffect(() => {
+    if (scene) {
+      const clonedScene = scene.clone(true);
+      
+      // Initialize materials immediately after cloning
+      clonedScene.traverse((child) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          if (mesh.material) {
+            const material = mesh.material as THREE.MeshStandardMaterial;
+            
+            // Apply initial settings
+            material.color = new THREE.Color(settings.modelColor);
+            material.roughness = settings.roughness;
+            material.metalness = settings.metalness;
+            material.wireframe = settings.wireframe;
+            material.transparent = settings.opacity < 1;
+            material.opacity = settings.opacity;
+            material.envMapIntensity = 1.2;
+            material.needsUpdate = true;
+          }
+        }
+      });
+      
+      sceneRef.current = clonedScene;
+    }
+  }, [scene, settings.modelColor, settings.roughness, settings.metalness, settings.wireframe, settings.opacity]);
+  
+  // Update materials whenever settings change (for subsequent changes after initial load)
   useEffect(() => { 
-    console.log("[GLBViewer] GLB/GLTF Model loaded");
+    if (!sceneRef.current) return;
+    
+    console.log("[GLBViewer] Updating materials with new settings");
     
     // Apply customizable materials to all meshes
-    scene.traverse((child) => {
+    sceneRef.current.traverse((child) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         if (mesh.material) {
@@ -130,6 +163,7 @@ function GLBModel({ url, settings }: ModelProps) {
           material.transparent = settings.opacity < 1;
           material.opacity = settings.opacity;
           material.envMapIntensity = 1.2;
+          material.needsUpdate = true; // Force material update
           
           // Edge wireframe overlay
           if (settings.showEdges && !settings.wireframe) {
@@ -143,19 +177,22 @@ function GLBModel({ url, settings }: ModelProps) {
         }
       }
     });
-  }, [scene, settings]);
+  }, [settings]);
+  
+  if (!sceneRef.current) return null;
   
   return (
     <Center>
-      <primitive object={scene} />
+      <primitive object={sceneRef.current} />
     </Center>
   );
 }
 
 function OBJModel({ url, settings }: ModelProps) {
-  const [obj, setObj] = useState<THREE.Group | null>(null);
+  const objRef = useRef<THREE.Group | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Load OBJ only when URL changes (but use current settings for initialization)
   useEffect(() => {
     console.log("[OBJViewer] Starting OBJ load from URL:", url);
     const loader = new OBJLoader();
@@ -165,12 +202,12 @@ function OBJModel({ url, settings }: ModelProps) {
       (loadedObj) => {
         console.log("[OBJViewer] OBJ Model loaded successfully", loadedObj);
         
-        // Apply customizable materials to OBJ
+        // Initialize materials with current settings
         loadedObj.traverse((child) => {
           if ((child as THREE.Mesh).isMesh) {
             const mesh = child as THREE.Mesh;
             
-            console.log("[OBJViewer] Applying material to mesh:", mesh.name || "unnamed");
+            console.log("[OBJViewer] Initializing material for mesh:", mesh.name || "unnamed");
             
             mesh.material = new THREE.MeshStandardMaterial({
               color: new THREE.Color(settings.modelColor),
@@ -184,20 +221,10 @@ function OBJModel({ url, settings }: ModelProps) {
             
             mesh.castShadow = true;
             mesh.receiveShadow = true;
-            
-            // Edge wireframe overlay
-            if (settings.showEdges && !settings.wireframe) {
-              const edges = new THREE.EdgesGeometry(mesh.geometry);
-              const line = new THREE.LineSegments(
-                edges, 
-                new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 })
-              );
-              mesh.add(line);
-            }
           }
         });
         
-        setObj(loadedObj);
+        objRef.current = loadedObj;
         setError(null);
       },
       (progress) => {
@@ -209,7 +236,31 @@ function OBJModel({ url, settings }: ModelProps) {
         setError(errorMessage);
       }
     );
-  }, [url, settings]);
+  }, [url, settings.modelColor, settings.roughness, settings.metalness, settings.wireframe, settings.opacity]);
+
+  // Update materials when settings change
+  useEffect(() => {
+    if (!objRef.current) return;
+
+    console.log("[OBJViewer] Updating materials with new settings:", settings);
+    
+    objRef.current.traverse((child) => {
+      if ((child as THREE.Mesh).isMesh) {
+        const mesh = child as THREE.Mesh;
+        const material = mesh.material as THREE.MeshStandardMaterial;
+        
+        if (material && material.isMeshStandardMaterial) {
+          material.color.set(settings.modelColor);
+          material.roughness = settings.roughness;
+          material.metalness = settings.metalness;
+          material.wireframe = settings.wireframe;
+          material.transparent = settings.opacity < 1;
+          material.opacity = settings.opacity;
+          material.needsUpdate = true;
+        }
+      }
+    });
+  }, [settings]);
 
   if (error) {
     console.error("[OBJViewer] Render error:", error);
@@ -221,7 +272,7 @@ function OBJModel({ url, settings }: ModelProps) {
     );
   }
 
-  if (!obj) {
+  if (!objRef.current) {
     console.log("[OBJViewer] Waiting for OBJ to load...");
     return (
       <mesh>
@@ -233,7 +284,7 @@ function OBJModel({ url, settings }: ModelProps) {
   
   return (
     <Center>
-      <primitive object={obj} />
+      <primitive object={objRef.current} />
     </Center>
   );
 }
