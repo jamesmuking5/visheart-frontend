@@ -942,9 +942,8 @@ console.log('[GPU] Server status:', {
 ### Long-term Vision
 
 - **Machine Learning Integration** - Model training interface
-- **DICOM Support** - Expanded medical imaging format support
+<!-- - **DICOM Support** - Expanded medical imaging format support -->
 - **Cloud Integration** - Multi-cloud deployment options
-- **Regulatory Compliance** - HIPAA and medical device standards
 - **Research Tools** - Advanced analysis and reporting features
 
 ---

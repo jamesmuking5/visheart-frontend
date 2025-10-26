@@ -190,7 +190,7 @@ const DocPage = () => {
                           <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">2</div>
                           <div>
                             <h4 className="font-semibold">Upload Medical Images</h4>
-                            <p className="text-sm text-muted-foreground">Upload your DICOM or NIfTI files for analysis.</p>
+                            <p className="text-sm text-muted-foreground">Upload your NIfTI files for analysis.</p>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
@@ -231,10 +231,8 @@ const DocPage = () => {
                       </CardHeader>
                       <CardContent>
                         <div className="flex flex-wrap gap-2">
-                          <Badge variant="secondary">DICOM</Badge>
                           <Badge variant="secondary">NIfTI</Badge>
                           <Badge variant="secondary">.nii.gz</Badge>
-                          <Badge variant="secondary">.dcm</Badge>
                         </div>
                       </CardContent>
                     </Card>
@@ -649,7 +647,7 @@ const DocPage = () => {
                         </div>
                         <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
                           <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">2</div>
-                          <span className="text-sm">Upload your medical imaging files (NIfTI, DICOM)</span>
+                          <span className="text-sm">Upload your medical imaging files (NIfTI)</span>
                         </div>
                         <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
                           <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold">3</div>

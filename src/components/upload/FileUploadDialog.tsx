@@ -56,8 +56,6 @@ export function FileUploadDialog({
   const supportedTypes = [
     ".nii",
     ".nii.gz",
-    ".dcm",
-    ".dicom",
     "application/gzip",
     "application/x-gzip",
   ];
@@ -85,7 +83,7 @@ export function FileUploadDialog({
     );
 
     if (!isValidType) {
-      return "Please select a valid medical imaging file (.nii, .nii.gz, .dcm, .dicom)";
+      return "Please select a valid medical imaging file (.nii, .nii.gz)";
     }
 
     return null;
@@ -110,7 +108,7 @@ export function FileUploadDialog({
     // Auto-fill project name from filename
     if (!projectName) {
       const nameWithoutExt = file.name.replace(
-        /\.(nii|nii\.gz|dcm|dicom)$/i,
+        /\.(nii|nii\.gz)$/i,
         "",
       );
       setProjectName(nameWithoutExt);
@@ -244,7 +242,7 @@ export function FileUploadDialog({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".nii,.nii.gz,.dcm,.dicom"
+                accept=".nii,.nii.gz"
                 onChange={handleFileInputChange}
                 className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
               />
