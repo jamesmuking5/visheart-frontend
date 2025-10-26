@@ -215,41 +215,7 @@ export default function Standalone4DViewerPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Header */}
-      <div className="border-b bg-background p-4">
-        <div className="container mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => router.back()}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            <div>
-              <h1 className="text-xl font-bold">{projectData.name}</h1>
-              <p className="text-xs text-muted-foreground">4D Cardiac Reconstruction Viewer</p>
-            </div>
-          </div>
-          
-          {reconstructionMetadata && (
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-xs">
-                {reconstructionMetadata.name || "Reconstruction"}
-              </Badge>
-              {!reconstructionCacheReady && (
-                <Badge variant="secondary" className="text-xs">
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  Loading cache...
-                </Badge>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
+    <div className="h-[90vh] flex flex-col">
       {/* Resizable Layout */}
       <ResizablePanelGroup 
         direction="horizontal" 
@@ -257,7 +223,18 @@ export default function Standalone4DViewerPage() {
       >
         {/* Main Viewer Panel */}
         <ResizablePanel defaultSize={70} minSize={40}>
-          <div className="h-full w-full p-4">
+          <div className="h-full w-full p-4 relative">
+            {/* Back Button - Positioned in bottom-left to avoid overlap with frame badge */}
+            <Button 
+              variant="secondary" 
+              size="sm"
+              onClick={() => router.push(`/project/${projectId}`)}
+              className="absolute bottom-6 left-6 z-20 bg-black/70 hover:bg-black/90 text-white"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Project
+            </Button>
+            
             <ReconstructionGLBViewer
               modelUrl={reconstructionModelUrl}
               frame={currentFrame + 1} // 1-based index for user friendliness
