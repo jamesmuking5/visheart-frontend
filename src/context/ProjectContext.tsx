@@ -50,6 +50,17 @@ interface ProjectContextType {
   clearReconstructionCache: () => Promise<void>;
   refreshReconstructions: () => Promise<void>;
   
+  // NEW: URL Preloading for smooth playback
+  preloadAllModelURLs: (onProgress?: (current: number, total: number) => void) => Promise<number>;
+  isPreloading: boolean;
+  preloadProgress: { current: number; total: number } | null;
+  isFullyPreloaded: boolean;
+  
+  // NEW: Three.js Aggressive Preloading (parse all GLB models)
+  preloadAllThreeJSModels: (onProgress?: (current: number, total: number) => void) => Promise<number>;
+  isThreeJSPreloading: boolean;
+  threeJSPreloadProgress: { current: number; total: number } | null;
+  
   // Cache invalidation
   refreshMasks: () => Promise<void>;
   
@@ -117,6 +128,15 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
   const [reconstructionMetadata, setReconstructionMetadata] = useState<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [reconstructionCacheReady, setReconstructionCacheReady] = useState<boolean>(false);
   const [reconstructionCacheError, setReconstructionCacheError] = useState<string | null>(null);
+
+  // 6. URL Preloading state - NEW
+  const [isPreloading, setIsPreloading] = useState<boolean>(false);
+  const [preloadProgress, setPreloadProgress] = useState<{ current: number; total: number } | null>(null);
+  const [isFullyPreloaded, setIsFullyPreloaded] = useState<boolean>(false);
+
+  // 7. Three.js Aggressive Preloading state - NEW
+  const [isThreeJSPreloading, setIsThreeJSPreloading] = useState<boolean>(false);
+  const [threeJSPreloadProgress, setThreeJSPreloadProgress] = useState<{ current: number; total: number } | null>(null);
 
   // Performance optimization: Use refs to track loading states and prevent race conditions
   const loadingRef = useRef<LoadingStage>("idle");
@@ -405,12 +425,177 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       await reconstructionCache.clearProjectModels(projectId);
       setReconstructionCacheReady(false);
       setReconstructionCacheError(null);
+      setIsFullyPreloaded(false); // Reset preload status
       console.log(`[ProjectContext] Cleared reconstruction cache for project ${projectId}`);
     } catch (error) {
       console.error("[ProjectContext] Failed to clear reconstruction cache:", error);
       setReconstructionCacheError(`Failed to clear reconstruction cache: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
   }, [projectId]);
+
+  // NEW: Preload all model URLs for smooth playback
+  const preloadAllModelURLs = useCallback(
+    async (onProgress?: (current: number, total: number) => void): Promise<number> => {
+      if (!projectId || !reconstructionMetadata?.reconstructionId) {
+        console.warn("[ProjectContext] ⚠️ Cannot preload URLs: missing projectId or reconstructionId");
+        return 0;
+      }
+
+      if (!reconstructionCacheReady) {
+        console.warn("[ProjectContext] ⚠️ Cannot preload URLs: reconstruction cache not ready yet");
+        return 0;
+      }
+
+      setIsPreloading(true);
+      setPreloadProgress({ current: 0, total: 0 });
+
+      try {
+        console.log(`[ProjectContext] 🚀 Starting URL preload for all frames...`);
+
+        const count = await reconstructionCache.preloadAllModelURLs(
+          projectId,
+          reconstructionMetadata.reconstructionId,
+          (current, total) => {
+            // Update internal progress state
+            setPreloadProgress({ current, total });
+            
+            // Call external progress callback if provided
+            if (onProgress) {
+              onProgress(current, total);
+            }
+          }
+        );
+
+        console.log(`[ProjectContext] ✅ Preloaded ${count} model URLs`);
+        setIsFullyPreloaded(true);
+        setPreloadProgress(null);
+        
+        return count;
+      } catch (error) {
+        console.error("[ProjectContext] ❌ Failed to preload model URLs:", error);
+        setPreloadProgress(null);
+        return 0;
+      } finally {
+        setIsPreloading(false);
+      }
+    },
+    [projectId, reconstructionMetadata, reconstructionCacheReady]
+  );
+
+  // NEW: Aggressive Three.js preloading - parse all GLB models into Three.js cache
+  const preloadAllThreeJSModels = useCallback(
+    async (onProgress?: (current: number, total: number) => void): Promise<number> => {
+      if (!projectId || !reconstructionMetadata?.reconstructionId) {
+        console.warn("[ProjectContext] ⚠️ Cannot preload Three.js models: missing projectId or reconstructionId");
+        return 0;
+      }
+
+      if (!reconstructionCacheReady) {
+        console.warn("[ProjectContext] ⚠️ Cannot preload Three.js models: reconstruction cache not ready yet");
+        return 0;
+      }
+
+      setIsThreeJSPreloading(true);
+      setThreeJSPreloadProgress({ current: 0, total: 0 });
+
+      try {
+        console.log(`[ProjectContext] 🎮 Starting Three.js aggressive preload for all models...`);
+
+        // First, ensure all URLs are preloaded
+        await preloadAllModelURLs();
+
+        // Get all model URLs from cache
+        const modelURLs = await reconstructionCache.getAllModelURLs(
+          projectId,
+          reconstructionMetadata.reconstructionId
+        );
+
+        const total = modelURLs.length;
+        let loaded = 0;
+
+        console.log(`[ProjectContext] 📦 Preloading ${total} models into Three.js cache...`);
+
+        // Import useGLTF from drei for proper React Three Fiber caching
+        const { useGLTF } = await import('@react-three/drei');
+        
+        // Dynamically import OBJLoader for OBJ files
+        const { OBJLoader } = await import('three/examples/jsm/loaders/OBJLoader.js');
+        const objLoader = new OBJLoader();
+
+        // Load all models with concurrency limit to avoid memory issues
+        const CONCURRENT_LOADS = 3; // Load 3 models at a time
+        
+        for (let i = 0; i < modelURLs.length; i += CONCURRENT_LOADS) {
+          const batch = modelURLs.slice(i, i + CONCURRENT_LOADS);
+          
+          await Promise.all(
+            batch.map(async ({ frame, url, filename }) => {
+              try {
+                const isOBJ = filename.toLowerCase().endsWith('.obj');
+                
+                if (isOBJ) {
+                  // For OBJ files, use OBJLoader
+                  await new Promise<void>((resolve) => {
+                    objLoader.load(
+                      url,
+                      () => {
+                        loaded++;
+                        setThreeJSPreloadProgress({ current: loaded, total });
+                        if (onProgress) onProgress(loaded, total);
+                        if (loaded % 5 === 0 || loaded === total) {
+                          console.log(`[ProjectContext] 🎮 Preloaded ${loaded}/${total} models (frame ${frame})`);
+                        }
+                        resolve();
+                      },
+                      undefined,
+                      (error) => {
+                        console.error(`[ProjectContext] ❌ Failed to preload OBJ frame ${frame}:`, error);
+                        loaded++;
+                        setThreeJSPreloadProgress({ current: loaded, total });
+                        resolve();
+                      }
+                    );
+                  });
+                } else {
+                  // For GLB/GLTF files, use useGLTF.preload() which integrates with React Three Fiber's cache
+                  try {
+                    useGLTF.preload(url);
+                    loaded++;
+                    setThreeJSPreloadProgress({ current: loaded, total });
+                    if (onProgress) onProgress(loaded, total);
+                    if (loaded % 5 === 0 || loaded === total) {
+                      console.log(`[ProjectContext] 🎮 Preloaded ${loaded}/${total} models (frame ${frame})`);
+                    }
+                  } catch (error) {
+                    console.error(`[ProjectContext] ❌ Failed to preload GLB frame ${frame}:`, error);
+                    loaded++;
+                    setThreeJSPreloadProgress({ current: loaded, total });
+                  }
+                }
+              } catch (error) {
+                console.error(`[ProjectContext] ❌ Error preloading frame ${frame}:`, error);
+                loaded++;
+                setThreeJSPreloadProgress({ current: loaded, total });
+              }
+            })
+          );
+        }
+
+        console.log(`[ProjectContext] ✅ Preloaded ${loaded}/${total} models into Three.js cache`);
+        console.log(`[ProjectContext] 🎯 All models should now load instantly when displayed!`);
+        setThreeJSPreloadProgress(null);
+        
+        return loaded;
+      } catch (error) {
+        console.error("[ProjectContext] ❌ Failed to preload Three.js models:", error);
+        setThreeJSPreloadProgress(null);
+        return 0;
+      } finally {
+        setIsThreeJSPreloading(false);
+      }
+    },
+    [projectId, reconstructionMetadata, reconstructionCacheReady, preloadAllModelURLs]
+  );
 
   const refreshReconstructions = useCallback(async (): Promise<void> => {
     if (!projectId) {
@@ -868,6 +1053,33 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     };
   }, [projectId, reconstructionMetadata, preloadReconstructionModels]);
 
+  // 4d. Auto-preload model URLs when reconstruction cache is ready - NEW (Phase 3)
+  useEffect(() => {
+    if (!reconstructionCacheReady || isFullyPreloaded || isPreloading) {
+      return;
+    }
+
+    if (!projectId || !reconstructionMetadata?.reconstructionId) {
+      return;
+    }
+
+    // Auto-preload URLs in background for smooth playback
+    const autoPreload = async () => {
+      console.log(`[ProjectContext] 🚀 Auto-preloading model URLs for smooth playback...`);
+      try {
+        const count = await preloadAllModelURLs();
+        console.log(`[ProjectContext] ✅ Auto-preload complete: ${count} URLs cached in memory`);
+      } catch (error) {
+        console.error(`[ProjectContext] ❌ Auto-preload failed:`, error);
+      }
+    };
+
+    // Small delay to allow UI to render first
+    const timeoutId = setTimeout(autoPreload, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [reconstructionCacheReady, isFullyPreloaded, isPreloading, projectId, reconstructionMetadata, preloadAllModelURLs]);
+
   // 5. Optimized final loading state management - set to done when all components are ready or there's an error
   useEffect(() => {
     // Set to done when:
@@ -984,6 +1196,15 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       fetchAndExtractProjectModels,
       clearReconstructionCache,
       refreshReconstructions,
+      // NEW: URL Preloading for smooth playback
+      preloadAllModelURLs,
+      isPreloading,
+      preloadProgress,
+      isFullyPreloaded,
+      // NEW: Three.js Aggressive Preloading
+      preloadAllThreeJSModels,
+      isThreeJSPreloading,
+      threeJSPreloadProgress,
       // Cache invalidation
       refreshMasks,
       updateContextMasks,
@@ -1018,6 +1239,13 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       fetchAndExtractProjectModels,
       clearReconstructionCache,
       refreshReconstructions,
+      preloadAllModelURLs,
+      isPreloading,
+      preloadProgress,
+      isFullyPreloaded,
+      preloadAllThreeJSModels,
+      isThreeJSPreloading,
+      threeJSPreloadProgress,
       refreshMasks,
       updateContextMasks,
     ],

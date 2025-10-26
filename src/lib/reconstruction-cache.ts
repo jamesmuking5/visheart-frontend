@@ -1008,6 +1008,178 @@ export class ReconstructionCache {
     this.checkInitialization();
     return await this.db.getCacheSize();
   }
+
+  /**
+   * Preload all model URLs for a reconstruction into memory cache
+   * 
+   * This method loads all model blob URLs for a given reconstruction,
+   * eliminating the IndexedDB lookup delay when switching frames.
+   * 
+   * Benefits:
+   * - Eliminates ~100-300ms IndexedDB read delay per frame
+   * - Creates smooth, stutterless frame navigation
+   * - Lightweight - only creates Object URLs (small memory footprint)
+   * 
+   * @param projectId - Project identifier
+   * @param reconstructionId - Reconstruction ID
+   * @param onProgress - Optional callback for progress updates (current, total)
+   * @returns Promise resolving to number of models preloaded
+   */
+  async preloadAllModelURLs(
+    projectId: string,
+    reconstructionId: string,
+    onProgress?: (current: number, total: number) => void
+  ): Promise<number> {
+    this.checkInitialization();
+
+    console.log(`[ReconstructionCache] 🚀 Starting URL preload for reconstruction ${reconstructionId}...`);
+    const startTime = performance.now();
+
+    // Get all models for this reconstruction
+    const models = await this.db.getModelsByReconstruction(reconstructionId);
+    const sortedModels = models.sort((a, b) => a.frameIndex - b.frameIndex);
+    const totalFrames = sortedModels.length;
+
+    if (totalFrames === 0) {
+      console.warn(`[ReconstructionCache] ⚠️ No models found for reconstruction ${reconstructionId}`);
+      return 0;
+    }
+
+    console.log(`[ReconstructionCache] 📊 Preloading ${totalFrames} model URLs...`);
+
+    let preloadedCount = 0;
+
+    // Iterate through all sequential frames and load URLs
+    for (let frame = 0; frame < totalFrames; frame++) {
+      try {
+        const url = await this.getModelURL(projectId, reconstructionId, frame);
+        if (url) {
+          preloadedCount++;
+          
+          // Report progress
+          if (onProgress) {
+            onProgress(preloadedCount, totalFrames);
+          }
+
+          // Log progress every 10 frames
+          if (preloadedCount % 10 === 0 || preloadedCount === totalFrames) {
+            console.log(`[ReconstructionCache] 💾 Preloaded ${preloadedCount}/${totalFrames} URLs`);
+          }
+        }
+      } catch (error) {
+        console.error(`[ReconstructionCache] ❌ Failed to preload frame ${frame}:`, error);
+      }
+    }
+
+    const elapsed = ((performance.now() - startTime) / 1000).toFixed(2);
+    console.log(`[ReconstructionCache] ✅ Preloaded ${preloadedCount}/${totalFrames} model URLs in ${elapsed}s`);
+    console.log(`[ReconstructionCache] 📈 URL Cache size: ${this.urlCache.size} entries`);
+
+    return preloadedCount;
+  }
+
+  /**
+   * Check if all models for a reconstruction have been preloaded
+   * 
+   * @param projectId - Project identifier
+   * @param reconstructionId - Reconstruction ID
+   * @returns True if all models are cached in memory
+   */
+  async isFullyPreloaded(projectId: string, reconstructionId: string): Promise<boolean> {
+    this.checkInitialization();
+
+    const models = await this.db.getModelsByReconstruction(reconstructionId);
+    
+    if (models.length === 0) {
+      return false;
+    }
+
+    // Check if all models have cached URLs
+    for (const model of models) {
+      const modelId = `${projectId}_${reconstructionId}_f${model.frameIndex}`;
+      if (!this.urlCache.has(modelId)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Get preload status information
+   * 
+   * @param projectId - Project identifier
+   * @param reconstructionId - Reconstruction ID
+   * @returns Preload status with loaded/total counts
+   */
+  async getPreloadStatus(projectId: string, reconstructionId: string): Promise<{
+    totalModels: number;
+    preloadedModels: number;
+    isFullyPreloaded: boolean;
+    preloadPercentage: number;
+  }> {
+    this.checkInitialization();
+
+    const models = await this.db.getModelsByReconstruction(reconstructionId);
+    const totalModels = models.length;
+    
+    if (totalModels === 0) {
+      return {
+        totalModels: 0,
+        preloadedModels: 0,
+        isFullyPreloaded: false,
+        preloadPercentage: 0,
+      };
+    }
+
+    // Count preloaded models
+    let preloadedModels = 0;
+    for (const model of models) {
+      const modelId = `${projectId}_${reconstructionId}_f${model.frameIndex}`;
+      if (this.urlCache.has(modelId)) {
+        preloadedModels++;
+      }
+    }
+
+    return {
+      totalModels,
+      preloadedModels,
+      isFullyPreloaded: preloadedModels === totalModels,
+      preloadPercentage: Math.round((preloadedModels / totalModels) * 100),
+    };
+  }
+
+  /**
+   * Get all model URLs for a reconstruction (for external Three.js preloading)
+   * 
+   * This method retrieves all blob URLs for a reconstruction, which can then be
+   * used by Three.js loaders to preload and cache the parsed models.
+   * 
+   * @param projectId - Project identifier
+   * @param reconstructionId - Reconstruction ID
+   * @returns Array of { frame: number, url: string } objects
+   */
+  async getAllModelURLs(projectId: string, reconstructionId: string): Promise<Array<{ frame: number; url: string; filename: string }>> {
+    this.checkInitialization();
+
+    const models = await this.db.getModelsByReconstruction(reconstructionId);
+    const sortedModels = models.sort((a, b) => a.frameIndex - b.frameIndex);
+    
+    const urls: Array<{ frame: number; url: string; filename: string }> = [];
+
+    for (let i = 0; i < sortedModels.length; i++) {
+      const url = await this.getModelURL(projectId, reconstructionId, i);
+      if (url) {
+        urls.push({
+          frame: i,
+          url,
+          filename: sortedModels[i].filename
+        });
+      }
+    }
+
+    return urls;
+  }
 }
 
 // Export singleton instance for global access
