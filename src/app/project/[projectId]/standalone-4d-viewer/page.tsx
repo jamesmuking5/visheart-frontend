@@ -11,6 +11,11 @@ import { LoadingProject } from "@/components/project/LoadingProject";
 import { ErrorProject } from "@/components/project/ErrorProject";
 import { ReconstructionGLBViewer } from "@/components/reconstruction/ReconstructionGLBViewer";
 import { 
+  ResizablePanelGroup, 
+  ResizablePanel, 
+  ResizableHandle 
+} from "@/components/ui/resizable";
+import { 
   ArrowLeft, 
   Play, 
   Pause, 
@@ -210,162 +215,228 @@ export default function Standalone4DViewerPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl h-screen flex flex-col">
+    <div className="h-screen flex flex-col">
       {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            onClick={() => router.back()}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold">{projectData.name}</h1>
-            <p className="text-sm text-muted-foreground">4D Cardiac Reconstruction Viewer</p>
-          </div>
-        </div>
-        
-        {reconstructionMetadata && (
-          <div className="flex items-center gap-2">
-            <Badge variant="outline">
-              {reconstructionMetadata.name || "Reconstruction"}
-            </Badge>
-            {!reconstructionCacheReady && (
-              <Badge variant="secondary">
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                Loading cache...
-              </Badge>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Main Viewer */}
-      <div className="flex-1 min-h-0 mb-4">
-        <ReconstructionGLBViewer
-          modelUrl={reconstructionModelUrl}
-          frame={currentFrame + 1} // 1-based index for user friendliness
-          className="w-full h-full"
-        />
-      </div>
-
-      {/* Controls */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center justify-between">
-            <span>Playback Controls</span>
-            {isLoadingModel && (
-              <Badge variant="secondary">
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                Loading model...
-              </Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Frame Slider */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">Frame: {currentFrame + 1} / {totalFrames}</span>
-              <span className="text-muted-foreground">
-                {Math.round((currentFrame / (totalFrames - 1)) * 100)}%
-              </span>
+      <div className="border-b bg-background p-4">
+        <div className="container mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => router.back()}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold">{projectData.name}</h1>
+              <p className="text-xs text-muted-foreground">4D Cardiac Reconstruction Viewer</p>
             </div>
-            <Slider
-              value={[currentFrame]}
-              onValueChange={(value) => {
-                setCurrentFrame(value[0]);
-                setIsPlaying(false);
-              }}
-              max={totalFrames - 1}
-              step={1}
-              className="w-full"
-            />
           </div>
-
-          {/* Playback Buttons */}
-          <div className="flex items-center justify-center gap-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentFrame(0)}
-              disabled={currentFrame === 0}
-            >
-              <SkipBack className="h-4 w-4" />
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentFrame(Math.max(0, currentFrame - 1))}
-              disabled={currentFrame === 0}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            
-            <Button
-              variant="default"
-              size="icon"
-              onClick={() => setIsPlaying(!isPlaying)}
-              className="h-10 w-10"
-            >
-              {isPlaying ? (
-                <Pause className="h-5 w-5" />
-              ) : (
-                <Play className="h-5 w-5" />
+          
+          {reconstructionMetadata && (
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs">
+                {reconstructionMetadata.name || "Reconstruction"}
+              </Badge>
+              {!reconstructionCacheReady && (
+                <Badge variant="secondary" className="text-xs">
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  Loading cache...
+                </Badge>
               )}
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentFrame(Math.min(totalFrames - 1, currentFrame + 1))}
-              disabled={currentFrame === totalFrames - 1}
-            >
-              <ArrowLeft className="h-4 w-4 rotate-180" />
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setCurrentFrame(totalFrames - 1)}
-              disabled={currentFrame === totalFrames - 1}
-            >
-              <SkipForward className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Speed Control */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">Playback Speed</span>
-              <span className="text-muted-foreground">
-                {(1000 / playbackSpeed).toFixed(1)} fps
-              </span>
             </div>
-            <Slider
-              value={[playbackSpeed]}
-              onValueChange={(value) => setPlaybackSpeed(value[0])}
-              min={100}
-              max={2000}
-              step={100}
-              className="w-full"
+          )}
+        </div>
+      </div>
+
+      {/* Resizable Layout */}
+      <ResizablePanelGroup 
+        direction="horizontal" 
+        className="flex-1 min-h-0"
+      >
+        {/* Main Viewer Panel */}
+        <ResizablePanel defaultSize={70} minSize={40}>
+          <div className="h-full w-full p-4">
+            <ReconstructionGLBViewer
+              modelUrl={reconstructionModelUrl}
+              frame={currentFrame + 1} // 1-based index for user friendliness
+              className="w-full h-full rounded-lg border"
             />
           </div>
+        </ResizablePanel>
 
-          {/* Keyboard Shortcuts Info */}
-          <div className="pt-2 border-t">
-            <p className="text-xs text-muted-foreground font-medium mb-1">Keyboard Shortcuts:</p>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span><kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px]">←</kbd> Previous Frame</span>
-              <span><kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px]">→</kbd> Next Frame</span>
-              <span><kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px]">Space</kbd> Play/Pause</span>
-            </div>
+        <ResizableHandle withHandle />
+
+        {/* Controls Panel */}
+        <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
+          <div className="h-full overflow-y-auto p-4">
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center justify-between">
+                  <span>Playback Controls</span>
+                  {isLoadingModel && (
+                    <Badge variant="secondary" className="text-xs">
+                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                      Loading...
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Frame Slider */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">Frame: {currentFrame + 1} / {totalFrames}</span>
+                    <span className="text-muted-foreground">
+                      {Math.round((currentFrame / (totalFrames - 1)) * 100)}%
+                    </span>
+                  </div>
+                  <Slider
+                    value={[currentFrame]}
+                    onValueChange={(value) => {
+                      setCurrentFrame(value[0]);
+                      setIsPlaying(false);
+                    }}
+                    max={totalFrames - 1}
+                    step={1}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Playback Buttons */}
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentFrame(0)}
+                    disabled={currentFrame === 0}
+                    title="First Frame"
+                  >
+                    <SkipBack className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentFrame(Math.max(0, currentFrame - 1))}
+                    disabled={currentFrame === 0}
+                    title="Previous Frame"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  <Button
+                    variant="default"
+                    size="icon"
+                    onClick={() => setIsPlaying(!isPlaying)}
+                    className="h-10 w-10"
+                    title={isPlaying ? "Pause" : "Play"}
+                  >
+                    {isPlaying ? (
+                      <Pause className="h-5 w-5" />
+                    ) : (
+                      <Play className="h-5 w-5" />
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentFrame(Math.min(totalFrames - 1, currentFrame + 1))}
+                    disabled={currentFrame === totalFrames - 1}
+                    title="Next Frame"
+                  >
+                    <ArrowLeft className="h-4 w-4 rotate-180" />
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setCurrentFrame(totalFrames - 1)}
+                    disabled={currentFrame === totalFrames - 1}
+                    title="Last Frame"
+                  >
+                    <SkipForward className="h-4 w-4" />
+                  </Button>
+                </div>
+
+                {/* Speed Control */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">Playback Speed</span>
+                    <span className="text-muted-foreground">
+                      {(1000 / playbackSpeed).toFixed(1)} fps
+                    </span>
+                  </div>
+                  <Slider
+                    value={[playbackSpeed]}
+                    onValueChange={(value) => setPlaybackSpeed(value[0])}
+                    min={100}
+                    max={2000}
+                    step={100}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Reconstruction Info */}
+                {reconstructionMetadata && (
+                  <div className="pt-4 border-t space-y-3">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Reconstruction Info
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <p className="text-muted-foreground">ED Frame</p>
+                        <p className="font-mono font-semibold">
+                          Frame {reconstructionMetadata.metadata?.edFrameIndex || 1}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Format</p>
+                        <p className="font-mono font-semibold uppercase">
+                          {reconstructionMetadata.meshFormat || 'GLB'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Resolution</p>
+                        <p className="font-mono">
+                          {reconstructionMetadata.metadata?.resolution || 32}³
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground">Iterations</p>
+                        <p className="font-mono">
+                          {reconstructionMetadata.metadata?.numIterations || 30}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Keyboard Shortcuts Info */}
+                <div className="pt-4 border-t">
+                  <p className="text-xs text-muted-foreground font-medium mb-2">Keyboard Shortcuts:</p>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px] font-mono">←</kbd>
+                      <span>Previous Frame</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px] font-mono">→</kbd>
+                      <span>Next Frame</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <kbd className="px-1.5 py-0.5 bg-muted rounded border text-[10px] font-mono">Space</kbd>
+                      <span>Play/Pause</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }
