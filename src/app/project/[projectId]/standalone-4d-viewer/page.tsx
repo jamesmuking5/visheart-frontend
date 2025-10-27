@@ -226,7 +226,7 @@ export default function Standalone4DViewerPage() {
         className="flex-1 min-h-0"
       >
         {/* Main Viewer Panel */}
-        <ResizablePanel defaultSize={70} minSize={40}>
+        <ResizablePanel defaultSize={70} minSize={20}>
           <div className="h-full w-full p-4 relative">
             {/* Back Button - Positioned in top-left */}
             <Button 
@@ -250,7 +250,7 @@ export default function Standalone4DViewerPage() {
         <ResizableHandle withHandle />
 
         {/* Controls Panel */}
-        <ResizablePanel defaultSize={30} minSize={20} maxSize={50}>
+        <ResizablePanel defaultSize={30} minSize={0}>
           <div className="h-full overflow-y-auto p-4">
             <Card className="h-full">
               <CardHeader>

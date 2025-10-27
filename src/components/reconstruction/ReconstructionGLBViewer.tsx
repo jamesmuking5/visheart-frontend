@@ -126,6 +126,11 @@ function GLBModel({ url, settings }: ModelProps) {
           material.transparent = settings.opacity < 1;
           material.opacity = settings.opacity;
           material.envMapIntensity = 1.2;
+          
+          // Fix transparency rendering issues
+          material.side = THREE.DoubleSide; // Render both sides of faces
+          material.depthWrite = settings.opacity >= 1; // Disable depth writing for transparent objects
+          
           material.needsUpdate = true; // Force material update
           
           // Edge wireframe overlay
@@ -177,6 +182,8 @@ function OBJModel({ url, settings }: ModelProps) {
               transparent: settings.opacity < 1,
               opacity: settings.opacity,
               envMapIntensity: 1.2,
+              side: THREE.DoubleSide, // Render both sides of faces
+              depthWrite: settings.opacity >= 1, // Disable depth writing for transparent objects
             });
             
             mesh.castShadow = true;
