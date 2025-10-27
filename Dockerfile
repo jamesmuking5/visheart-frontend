@@ -17,10 +17,10 @@ WORKDIR /app
 RUN npm install -g pnpm
 
 # Define build arguments for Next.js environment variables
-ARG NEXT_PUBLIC_API_URL=http://dual-docker-alb-1560987899.ap-southeast-1.elb.amazonaws.com
+ARG NEXT_PUBLIC_API_URL=https://api.visheart.art
 ARG NEXT_PUBLIC_ENV=production
 
-# Set environment variables for the build processb
+# Set environment variables for the build process
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_ENV=$NEXT_PUBLIC_ENV
 
