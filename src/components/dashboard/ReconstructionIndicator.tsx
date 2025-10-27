@@ -22,7 +22,7 @@ export function ReconstructionIndicator({ status, variant = "badge" }: Reconstru
         <Tooltip>
           <TooltipTrigger>
             {variant === "badge" ? (
-              <Badge variant="outline" className="gap-1">
+              <Badge variant="outline" className="gap-1 text-xs whitespace-nowrap">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Checking...
               </Badge>
@@ -45,7 +45,7 @@ export function ReconstructionIndicator({ status, variant = "badge" }: Reconstru
         <Tooltip>
           <TooltipTrigger>
             {variant === "badge" ? (
-              <Badge variant="outline" className="gap-1 border-orange-300 text-orange-700">
+              <Badge variant="outline" className="gap-1 border-orange-300 text-orange-700 text-xs whitespace-nowrap">
                 <XCircle className="h-3 w-3" />
                 Unknown
               </Badge>
@@ -68,7 +68,7 @@ export function ReconstructionIndicator({ status, variant = "badge" }: Reconstru
         <TooltipTrigger>
           {hasReconstructions ? (
             variant === "badge" ? (
-              <Badge variant="outline" className="gap-1 border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300">
+              <Badge variant="outline" className="gap-1 border-blue-300 bg-blue-50 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300 text-xs whitespace-nowrap">
                 <Box className="h-3 w-3" />
                 {reconstructionCount && reconstructionCount > 1 ? `${reconstructionCount} Models` : "Reconstructed"}
               </Badge>
@@ -77,7 +77,7 @@ export function ReconstructionIndicator({ status, variant = "badge" }: Reconstru
             )
           ) : (
             variant === "badge" ? (
-              <Badge variant="outline" className="gap-1 border-gray-300 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300">
+              <Badge variant="outline" className="gap-1 border-gray-300 bg-gray-50 text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300 text-xs whitespace-nowrap">
                 <AlertCircle className="h-3 w-3" />
                 No 4D Model
               </Badge>

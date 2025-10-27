@@ -88,8 +88,8 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
   return (
     <Card className="h-full">
       <CardHeader>
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0 pr-2">
             {isEditing ? (
               <div className="space-y-2">
                 <Input
@@ -112,7 +112,7 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
               </div>
             ) : (
               <div className="space-y-1">
-                <div className="flex items-center justify-between gap-2 max-w-64">
+                <div className="flex items-center justify-between gap-2 max-w-[180px] sm:max-w-[200px] md:max-w-64">
                   <p className="text-lg font-semibold truncate" title={project.name}>
                     {project.name}
                   </p>
@@ -129,7 +129,7 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
             )}
           </div>
 
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex flex-col items-end gap-1.5 flex-shrink-0 min-w-[110px]">
             {isEditing ? (
               <div className="flex items-center gap-1">
                 <Button variant="outline" size="sm" onClick={handleCancelEdit} disabled={isUpdating} className="h-7 px-2">
@@ -140,17 +140,17 @@ export function EditableProjectCard({ project, onUpdate, onSave, onDelete, onExp
                 </Button>
               </div>
             ) : (
-              <>
-                <ShowForRegisteredUser fallback={<Badge variant={project.isSaved ? "default" : "secondary"}>{project.isSaved ? "Saved" : "Temp"}</Badge>}>
+              <div className="flex flex-col items-end gap-1 md:gap-2">
+                <ShowForRegisteredUser fallback={<Badge variant={project.isSaved ? "default" : "secondary"} className="text-xs whitespace-nowrap">{project.isSaved ? "Saved" : "Temp"}</Badge>}>
                   <Button variant="ghost" size="sm" onClick={() => onSave(project.projectId, !project.isSaved)} className="h-auto p-1">
-                    <Badge variant={project.isSaved ? "default" : "secondary"} className="cursor-pointer hover:opacity-80">
+                    <Badge variant={project.isSaved ? "default" : "secondary"} className="cursor-pointer hover:opacity-80 text-xs whitespace-nowrap">
                       {project.isSaved ? "Saved" : "Temp"}
                     </Badge>
                   </Button>
                 </ShowForRegisteredUser>
                 {segmentationIndicator}
                 {reconstructionIndicator}
-              </>
+              </div>
             )}
           </div>
         </div>

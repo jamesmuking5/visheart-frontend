@@ -22,7 +22,7 @@ export function SegmentationIndicator({ status, variant = "badge" }: Segmentatio
         <Tooltip>
           <TooltipTrigger>
             {variant === "badge" ? (
-              <Badge variant="outline" className="gap-1">
+              <Badge variant="outline" className="gap-1 text-xs whitespace-nowrap">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Checking...
               </Badge>
@@ -45,7 +45,7 @@ export function SegmentationIndicator({ status, variant = "badge" }: Segmentatio
         <Tooltip>
           <TooltipTrigger>
             {variant === "badge" ? (
-              <Badge variant="outline" className="gap-1 border-orange-300 text-orange-700">
+              <Badge variant="outline" className="gap-1 border-orange-300 text-orange-700 text-xs whitespace-nowrap">
                 <XCircle className="h-3 w-3" />
                 Unknown
               </Badge>
@@ -68,7 +68,7 @@ export function SegmentationIndicator({ status, variant = "badge" }: Segmentatio
         <TooltipTrigger>
           {hasMasks ? (
             variant === "badge" ? (
-              <Badge variant="outline" className="gap-1 border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-950 dark:text-green-300">
+              <Badge variant="outline" className="gap-1 border-green-300 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-950 dark:text-green-300 text-xs whitespace-nowrap">
                 <CheckCircle2 className="h-3 w-3" />
                 Segmented
               </Badge>
@@ -77,7 +77,7 @@ export function SegmentationIndicator({ status, variant = "badge" }: Segmentatio
             )
           ) : (
             variant === "badge" ? (
-              <Badge variant="outline" className="gap-1 border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
+              <Badge variant="outline" className="gap-1 border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300 text-xs whitespace-nowrap">
                 <AlertCircle className="h-3 w-3" />
                 No Masks
               </Badge>

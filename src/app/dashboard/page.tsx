@@ -581,14 +581,20 @@ export default function DashboardPage() {
               <p className="text-muted-foreground">Manage your cardiac imaging projects</p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={() => window.open("/sample", "_blank")}>
+              <Button variant="outline" onClick={() => window.open("/sample", "_blank")} className="hidden sm:flex">
                 <FileText className="mr-2 h-4 w-4" />
                 Sample NIfTI Files
               </Button>
+              <Button variant="outline" onClick={() => window.open("/sample", "_blank")} className="sm:hidden">
+                <FileText className="h-4 w-4" />
+              </Button>
               <ShowForUser fallback={null}>
-                <Button onClick={() => setUploadDialogOpen(true)}>
+                <Button onClick={() => setUploadDialogOpen(true)} className="hidden sm:flex">
                   <Upload className="mr-2 h-4 w-4" />
                   Upload New Project
+                </Button>
+                <Button onClick={() => setUploadDialogOpen(true)} className="sm:hidden">
+                  <Upload className="h-4 w-4" />
                 </Button>
               </ShowForUser>
             </div>
