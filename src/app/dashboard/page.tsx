@@ -441,20 +441,25 @@ export default function DashboardPage() {
                 <CardDescription>Your latest uploaded projects</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {projects.slice(0, 3).map((project) => (
-                  <div key={project.projectId} className="flex items-center justify-between rounded-lg border p-2">
-                    <div className="flex items-center gap-3">
-                      <FileText className="text-muted-foreground h-4 w-4" />
-                      <div>
-                        <p className="text-sm font-medium truncate max-w-96">{project.name}</p>
-                        <p className="text-muted-foreground text-xs">
-                          {formatFileSize(project.filesize)} •{project.filetype}
-                        </p>
+                {projects
+                  .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+                  .slice(0, 4)
+                  .map((project) => (
+                    <Link key={project.projectId} href={`/project/${project.projectId}`}>
+                      <div className="flex items-center justify-between rounded-lg border p-2 hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer">
+                        <div className="flex items-center gap-3">
+                          <FileText className="text-muted-foreground h-4 w-4" />
+                          <div>
+                            <p className="text-sm font-medium truncate max-w-96">{project.name}</p>
+                            <p className="text-muted-foreground text-xs">
+                              {formatFileSize(project.filesize)} • {project.filetype}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant={project.isSaved ? "default" : "secondary"}>{project.isSaved ? "Saved" : "Temp"}</Badge>
                       </div>
-                    </div>
-                    <Badge variant={project.isSaved ? "default" : "secondary"}>{project.isSaved ? "Saved" : "Temp"}</Badge>
-                  </div>
-                ))}
+                    </Link>
+                  ))}
                 {projects.length === 0 && <p className="text-muted-foreground py-4 text-center text-sm">No projects yet. Upload your first project to get started.</p>}
               </CardContent>
             </Card>
