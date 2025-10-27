@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/context/auth-context";
 import { useGpuStatus, useUserProjects, useUserJobs, useUserStats } from "@/lib/dashboard-hooks";
 import { useProjectSegmentationStatus } from "@/hooks/useProjectSegmentationStatus";
@@ -8,6 +8,7 @@ import { useProjectReconstructionStatus } from "@/hooks/useProjectReconstruction
 import { ShowForUser, ShowForGuest, ShowForRegisteredUser } from "@/components/RoleGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { reconstructionApi } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -97,6 +98,52 @@ export default function DashboardPage() {
   const { gpuStatus, isLoading: gpuLoading, refresh: refreshGpuStatus } = useGpuStatus();
   const userStats = useUserStats(projects, recentJobs);
 
+  // Add reconstruction jobs tracking
+  const [reconstructionJobs, setReconstructionJobs] = useState<any[]>([]);
+  const [isLoadingReconstructionJobs, setIsLoadingReconstructionJobs] = useState(true);
+
+  // Fetch reconstruction jobs
+  const fetchReconstructionJobs = useCallback(async () => {
+    setIsLoadingReconstructionJobs(true);
+    try {
+      const response = await reconstructionApi.getUserReconstructionJobs();
+      setReconstructionJobs(response.jobs || []);
+    } catch (error) {
+      console.error("Error fetching reconstruction jobs:", error);
+      setReconstructionJobs([]);
+    } finally {
+      setIsLoadingReconstructionJobs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchReconstructionJobs();
+  }, [fetchReconstructionJobs]);
+
+  // Combine and sort all jobs by creation date
+  const allJobs = useMemo(() => {
+    const segmentationJobsWithType = recentJobs.map(job => ({
+      ...job,
+      jobType: 'segmentation' as const,
+      createdAt: job.createdAt || new Date().toISOString()
+    }));
+
+    const reconstructionJobsWithType = reconstructionJobs.map(job => ({
+      ...job,
+      jobType: 'reconstruction' as const,
+      createdAt: job.createdAt || new Date().toISOString()
+    }));
+
+    return [...segmentationJobsWithType, ...reconstructionJobsWithType]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }, [recentJobs, reconstructionJobs]);
+
+  // Helper function to get project name from projectId
+  const getProjectName = (projectId: string): string => {
+    const project = projects.find(p => p.projectId === projectId);
+    return project?.name || 'Unknown Project';
+  };
+
   // Add segmentation status tracking for projects
   const { statuses: segmentationStatuses, refresh: refreshSegmentationStatuses } = useProjectSegmentationStatus(projects);
   
@@ -174,11 +221,11 @@ export default function DashboardPage() {
     });
   };
 
-  const isLoadingData = projectsLoading || jobsLoading || gpuLoading;
+  const isLoadingData = projectsLoading || jobsLoading || gpuLoading || isLoadingReconstructionJobs;
 
   const refreshDashboard = async () => {
     if (user) {
-      await Promise.all([refreshProjects(), refreshJobs(), refreshGpuStatus()]);
+      await Promise.all([refreshProjects(), refreshJobs(), refreshGpuStatus(), fetchReconstructionJobs()]);
       // Refresh segmentation and reconstruction statuses after projects are refreshed
       refreshSegmentationStatuses();
       refreshReconstructionStatuses();
@@ -467,31 +514,48 @@ export default function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Recent Jobs</CardTitle>
-                <CardDescription>Latest segmentation tasks</CardDescription>
+                <CardDescription>Latest segmentation and reconstruction tasks</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {recentJobs.map((job) => {
+                {allJobs.slice(0, 4).map((job) => {
                   const statusDisplay = getStatusDisplay(job.status);
                   const StatusIcon = statusDisplay.icon;
+                  const projectName = getProjectName(job.projectId);
 
                   return (
-                    <div key={job.jobId} className="flex items-center justify-between rounded-lg border p-2">
+                    <div key={`${job.jobType}-${job.jobId}`} className="flex items-center justify-between rounded-lg border p-2">
                       <div className="flex items-center gap-3">
                         <div className={`rounded-full p-1 ${statusDisplay.bg}`}>
                           <StatusIcon className={`h-3 w-3 ${statusDisplay.color}`} />
                         </div>
                         <div>
-                          <p className="text-sm font-medium">Job {job.jobId.slice(-8)}</p>
-                          <p className="text-muted-foreground text-xs">{job.message}</p>
+                          <p className="text-sm font-medium">
+                            {job.jobType === 'segmentation' ? 'Segmentation' : '4D Reconstruction'}
+                          </p>
+                          <p className="text-muted-foreground text-xs">
+                            {projectName} • {job.projectId.slice(-8)}
+                          </p>
                         </div>
                       </div>
-                      <Badge variant="outline" className={statusDisplay.color}>
-                        {job.status}
-                      </Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant={job.jobType === 'segmentation' ? "secondary" : "outline"}
+                          className="text-xs"
+                        >
+                          {job.jobType === 'segmentation' ? (
+                            <><Brain className="h-3 w-3 mr-1" />Seg</>
+                          ) : (
+                            <><Box className="h-3 w-3 mr-1" />4D</>
+                          )}
+                        </Badge>
+                        <Badge variant="outline" className={statusDisplay.color}>
+                          {job.status}
+                        </Badge>
+                      </div>
                     </div>
                   );
                 })}
-                {recentJobs.length === 0 && <p className="text-muted-foreground py-4 text-center text-sm">No segmentation jobs yet.</p>}
+                {allJobs.length === 0 && <p className="text-muted-foreground py-4 text-center text-sm">No processing jobs yet.</p>}
               </CardContent>
             </Card>
           </div>
@@ -753,32 +817,49 @@ export default function DashboardPage() {
         <TabsContent value="jobs" className="space-y-4">
           <div>
             <h2 className="text-2xl font-bold">Jobs</h2>
-            <p className="text-muted-foreground">View ongoing and completed segmentation jobs</p>
+            <p className="text-muted-foreground">View all processing jobs (segmentation and reconstruction)</p>
           </div>
 
-          {/* Segmentation Jobs Display */}
+          {/* All Jobs Display */}
           <div className="grid gap-4">
             <Card>
               <CardHeader>
-                <CardTitle>Active Segmentation Jobs</CardTitle>
-                <CardDescription>Track your ongoing segmentation tasks</CardDescription>
+                <CardTitle>Active Processing Jobs</CardTitle>
+                <CardDescription>Track your ongoing segmentation and reconstruction tasks</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {recentJobs
-                  .filter((job) => job.status === "processing" || job.status === "pending")
+                {allJobs
+                  .filter((job) => job.status === "processing" || job.status === "pending" || job.status === "in_progress")
                   .map((job) => {
                     const statusDisplay = getStatusDisplay(job.status);
                     const StatusIcon = statusDisplay.icon;
+                    const projectName = getProjectName(job.projectId);
 
                     return (
-                      <div key={job.jobId} className="flex items-center justify-between rounded-lg border p-3">
+                      <div key={`${job.jobType}-${job.jobId}`} className="flex items-center justify-between rounded-lg border p-3">
                         <div className="flex items-center gap-3">
                           <div className={`rounded-full p-2 ${statusDisplay.bg}`}>
                             <StatusIcon className={`h-4 w-4 ${statusDisplay.color}`} />
                           </div>
                           <div>
-                            <p className="text-sm font-medium">Job {job.jobId.slice(-8)}</p>
-                            <p className="text-muted-foreground text-xs">{job.message}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium">
+                                {job.jobType === 'segmentation' ? 'Segmentation' : '4D Reconstruction'}
+                              </p>
+                              <Badge 
+                                variant={job.jobType === 'segmentation' ? "secondary" : "outline"}
+                                className="text-xs"
+                              >
+                                {job.jobType === 'segmentation' ? (
+                                  <><Brain className="h-3 w-3 mr-1" />Seg</>
+                                ) : (
+                                  <><Box className="h-3 w-3 mr-1" />4D</>
+                                )}
+                              </Badge>
+                            </div>
+                            <p className="text-muted-foreground text-xs">
+                              {projectName} • {job.projectId.slice(-8)}
+                            </p>
                           </div>
                         </div>
                         <Badge variant="outline" className={statusDisplay.color}>
@@ -787,11 +868,11 @@ export default function DashboardPage() {
                       </div>
                     );
                   })}
-                {recentJobs.filter((job) => job.status === "processing" || job.status === "pending").length === 0 && (
+                {allJobs.filter((job) => job.status === "processing" || job.status === "pending" || job.status === "in_progress").length === 0 && (
                   <div className="py-8 text-center">
                     <Brain className="text-muted-foreground/50 mx-auto h-12 w-12" />
                     <h3 className="mt-4 text-lg font-semibold">No Active Jobs</h3>
-                    <p className="text-muted-foreground">Start a segmentation task from your projects to see active jobs here.</p>
+                    <p className="text-muted-foreground">Start a segmentation or reconstruction task from your projects to see active jobs here.</p>
                   </div>
                 )}
               </CardContent>
@@ -801,43 +882,110 @@ export default function DashboardPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Recent Results</CardTitle>
-                <CardDescription>Your completed segmentation tasks</CardDescription>
+                <CardDescription>Your completed processing tasks</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {recentJobs
+                {allJobs
                   .filter((job) => job.status === "completed")
-                  .slice(0, 3)
+                  .slice(0, 10)
                   .map((job) => {
                     const statusDisplay = getStatusDisplay(job.status);
                     const StatusIcon = statusDisplay.icon;
+                    const projectName = getProjectName(job.projectId);
 
                     return (
-                      <div key={job.jobId} className="flex items-center justify-between rounded-lg border p-3">
+                      <div key={`${job.jobType}-${job.jobId}`} className="flex items-center justify-between rounded-lg border p-3">
                         <div className="flex items-center gap-3">
                           <div className={`rounded-full p-2 ${statusDisplay.bg}`}>
                             <StatusIcon className={`h-4 w-4 ${statusDisplay.color}`} />
                           </div>
                           <div>
-                            <p className="text-sm font-medium">Job {job.jobId.slice(-8)}</p>
-                            <p className="text-muted-foreground text-xs">{job.message}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium">
+                                {job.jobType === 'segmentation' ? 'Segmentation' : '4D Reconstruction'}
+                              </p>
+                              <Badge 
+                                variant={job.jobType === 'segmentation' ? "secondary" : "outline"}
+                                className="text-xs"
+                              >
+                                {job.jobType === 'segmentation' ? (
+                                  <><Brain className="h-3 w-3 mr-1" />Seg</>
+                                ) : (
+                                  <><Box className="h-3 w-3 mr-1" />4D</>
+                                )}
+                              </Badge>
+                            </div>
+                            <p className="text-muted-foreground text-xs">
+                              {projectName} • {job.projectId.slice(-8)}
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className={statusDisplay.color}>
                             {job.status}
                           </Badge>
-                          <ShowForUser fallback={null}>
-                            <Button size="sm" variant="outline">
-                              <Download className="h-3 w-3" />
-                            </Button>
-                          </ShowForUser>
                         </div>
                       </div>
                     );
                   })}
-                {recentJobs.filter((job) => job.status === "completed").length === 0 && <p className="text-muted-foreground py-4 text-center text-sm">No completed segmentations yet.</p>}
+                {allJobs.filter((job) => job.status === "completed").length === 0 && (
+                  <p className="text-muted-foreground py-4 text-center text-sm">No completed tasks yet.</p>
+                )}
               </CardContent>
             </Card>
+
+            {/* Failed Jobs */}
+            {allJobs.filter((job) => job.status === "failed").length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Failed Jobs</CardTitle>
+                  <CardDescription>Jobs that encountered errors</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {allJobs
+                    .filter((job) => job.status === "failed")
+                    .slice(0, 5)
+                    .map((job) => {
+                      const statusDisplay = getStatusDisplay(job.status);
+                      const StatusIcon = statusDisplay.icon;
+                      const projectName = getProjectName(job.projectId);
+
+                      return (
+                        <div key={`${job.jobType}-${job.jobId}`} className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50/50 p-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`rounded-full p-2 ${statusDisplay.bg}`}>
+                              <StatusIcon className={`h-4 w-4 ${statusDisplay.color}`} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium">
+                                  {job.jobType === 'segmentation' ? 'Segmentation' : '4D Reconstruction'}
+                                </p>
+                                <Badge 
+                                  variant={job.jobType === 'segmentation' ? "secondary" : "outline"}
+                                  className="text-xs"
+                                >
+                                  {job.jobType === 'segmentation' ? (
+                                    <><Brain className="h-3 w-3 mr-1" />Seg</>
+                                  ) : (
+                                    <><Box className="h-3 w-3 mr-1" />4D</>
+                                  )}
+                                </Badge>
+                              </div>
+                              <p className="text-muted-foreground text-xs">
+                                {projectName} • {job.projectId.slice(-8)}
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className={statusDisplay.color}>
+                            {job.status}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
       </Tabs>
