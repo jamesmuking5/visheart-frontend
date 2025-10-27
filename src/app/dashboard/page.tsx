@@ -841,7 +841,7 @@ export default function DashboardPage() {
                           <div className={`rounded-full p-2 ${statusDisplay.bg}`}>
                             <StatusIcon className={`h-4 w-4 ${statusDisplay.color}`} />
                           </div>
-                          <div>
+                          <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-medium">
                                 {job.jobType === 'segmentation' ? 'Segmentation' : '4D Reconstruction'}
@@ -859,6 +859,9 @@ export default function DashboardPage() {
                             </div>
                             <p className="text-muted-foreground text-xs">
                               {projectName} • {job.projectId.slice(-8)}
+                            </p>
+                            <p className="text-muted-foreground text-xs">
+                              {new Date(job.createdAt).toLocaleString()}
                             </p>
                           </div>
                         </div>
@@ -899,7 +902,7 @@ export default function DashboardPage() {
                           <div className={`rounded-full p-2 ${statusDisplay.bg}`}>
                             <StatusIcon className={`h-4 w-4 ${statusDisplay.color}`} />
                           </div>
-                          <div>
+                          <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-medium">
                                 {job.jobType === 'segmentation' ? 'Segmentation' : '4D Reconstruction'}
@@ -917,6 +920,9 @@ export default function DashboardPage() {
                             </div>
                             <p className="text-muted-foreground text-xs">
                               {projectName} • {job.projectId.slice(-8)}
+                            </p>
+                            <p className="text-muted-foreground text-xs">
+                              {new Date(job.createdAt).toLocaleString()}
                             </p>
                           </div>
                         </div>
@@ -956,7 +962,7 @@ export default function DashboardPage() {
                             <div className={`rounded-full p-2 ${statusDisplay.bg}`}>
                               <StatusIcon className={`h-4 w-4 ${statusDisplay.color}`} />
                             </div>
-                            <div>
+                            <div className="flex-1">
                               <div className="flex items-center gap-2">
                                 <p className="text-sm font-medium">
                                   {job.jobType === 'segmentation' ? 'Segmentation' : '4D Reconstruction'}
@@ -974,6 +980,9 @@ export default function DashboardPage() {
                               </div>
                               <p className="text-muted-foreground text-xs">
                                 {projectName} • {job.projectId.slice(-8)}
+                              </p>
+                              <p className="text-muted-foreground text-xs">
+                                {new Date(job.createdAt).toLocaleString()}
                               </p>
                             </div>
                           </div>
