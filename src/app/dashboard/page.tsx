@@ -209,8 +209,19 @@ export default function DashboardPage() {
       switch (sortBy) {
         case "name":
           return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-        case "size":
-          return b.filesize - a.filesize; // Larger files first
+        case "nifti-size":
+          // Sort by NIfTI file size (larger first)
+          return b.filesize - a.filesize;
+        case "mesh-size":
+          // Sort by mesh/reconstruction size (larger first)
+          const aMeshSize = a.reconstruction?.tarFileSize ?? 0;
+          const bMeshSize = b.reconstruction?.tarFileSize ?? 0;
+          return bMeshSize - aMeshSize;
+        case "total-size":
+          // Sort by total size (NIfTI + mesh, larger first)
+          const aTotalSize = a.filesize + (a.reconstruction?.tarFileSize ?? 0);
+          const bTotalSize = b.filesize + (b.reconstruction?.tarFileSize ?? 0);
+          return bTotalSize - aTotalSize;
         case "type":
           return a.filetype.toLowerCase().localeCompare(b.filetype.toLowerCase());
         case "date":
@@ -630,13 +641,15 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Sort by:</span>
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-[180px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="date">Date Added</SelectItem>
                     <SelectItem value="name">Name (A-Z)</SelectItem>
-                    <SelectItem value="size">File Size</SelectItem>
+                    <SelectItem value="nifti-size">NIfTI Size</SelectItem>
+                    <SelectItem value="mesh-size">Mesh Size</SelectItem>
+                    <SelectItem value="total-size">Total Size</SelectItem>
                     <SelectItem value="type">File Type</SelectItem>
                   </SelectContent>
                 </Select>
@@ -836,13 +849,13 @@ export default function DashboardPage() {
                     const projectName = getProjectName(job.projectId);
 
                     return (
-                      <div key={`${job.jobType}-${job.jobId}`} className="flex items-center justify-between rounded-lg border p-3">
-                        <div className="flex items-center gap-3">
-                          <div className={`rounded-full p-2 ${statusDisplay.bg}`}>
+                      <div key={`${job.jobType}-${job.jobId}`} className="flex items-center justify-between rounded-lg border p-3 gap-4">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className={`rounded-full p-2 flex-shrink-0 ${statusDisplay.bg}`}>
                             <StatusIcon className={`h-4 w-4 ${statusDisplay.color}`} />
                           </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <p className="text-sm font-medium">
                                 {job.jobType === 'segmentation' ? 'Segmentation' : '4D Reconstruction'}
                               </p>
@@ -857,15 +870,18 @@ export default function DashboardPage() {
                                 )}
                               </Badge>
                             </div>
-                            <p className="text-muted-foreground text-xs">
-                              {projectName} • {job.projectId.slice(-8)}
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                              {new Date(job.createdAt).toLocaleString()}
-                            </p>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <span className="font-medium">{projectName}</span>
+                                <span>•</span>
+                                <span className="font-mono">{job.projectId.slice(-8)}</span>
+                              </span>
+                              <span className="hidden sm:inline">•</span>
+                              <span className="whitespace-nowrap">{new Date(job.createdAt).toLocaleString()}</span>
+                            </div>
                           </div>
                         </div>
-                        <Badge variant="outline" className={statusDisplay.color}>
+                        <Badge variant="outline" className={`${statusDisplay.color} flex-shrink-0`}>
                           {job.status}
                         </Badge>
                       </div>
@@ -897,13 +913,13 @@ export default function DashboardPage() {
                     const projectName = getProjectName(job.projectId);
 
                     return (
-                      <div key={`${job.jobType}-${job.jobId}`} className="flex items-center justify-between rounded-lg border p-3">
-                        <div className="flex items-center gap-3">
-                          <div className={`rounded-full p-2 ${statusDisplay.bg}`}>
+                      <div key={`${job.jobType}-${job.jobId}`} className="flex items-center justify-between rounded-lg border p-3 gap-4">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className={`rounded-full p-2 flex-shrink-0 ${statusDisplay.bg}`}>
                             <StatusIcon className={`h-4 w-4 ${statusDisplay.color}`} />
                           </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <p className="text-sm font-medium">
                                 {job.jobType === 'segmentation' ? 'Segmentation' : '4D Reconstruction'}
                               </p>
@@ -918,16 +934,19 @@ export default function DashboardPage() {
                                 )}
                               </Badge>
                             </div>
-                            <p className="text-muted-foreground text-xs">
-                              {projectName} • {job.projectId.slice(-8)}
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                              {new Date(job.createdAt).toLocaleString()}
-                            </p>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                              <span className="flex items-center gap-1">
+                                <span className="font-medium">{projectName}</span>
+                                <span>•</span>
+                                <span className="font-mono">{job.projectId.slice(-8)}</span>
+                              </span>
+                              <span className="hidden sm:inline">•</span>
+                              <span className="whitespace-nowrap">{new Date(job.createdAt).toLocaleString()}</span>
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={statusDisplay.color}>
+                          <Badge variant="outline" className={`${statusDisplay.color} flex-shrink-0`}>
                             {job.status}
                           </Badge>
                         </div>
@@ -957,13 +976,13 @@ export default function DashboardPage() {
                       const projectName = getProjectName(job.projectId);
 
                       return (
-                        <div key={`${job.jobType}-${job.jobId}`} className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50/50 p-3">
-                          <div className="flex items-center gap-3">
-                            <div className={`rounded-full p-2 ${statusDisplay.bg}`}>
+                        <div key={`${job.jobType}-${job.jobId}`} className="flex items-center justify-between rounded-lg border border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-950/20 p-3 gap-4">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className={`rounded-full p-2 flex-shrink-0 ${statusDisplay.bg}`}>
                               <StatusIcon className={`h-4 w-4 ${statusDisplay.color}`} />
                             </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-sm font-medium">
                                   {job.jobType === 'segmentation' ? 'Segmentation' : '4D Reconstruction'}
                                 </p>
@@ -978,15 +997,18 @@ export default function DashboardPage() {
                                   )}
                                 </Badge>
                               </div>
-                              <p className="text-muted-foreground text-xs">
-                                {projectName} • {job.projectId.slice(-8)}
-                              </p>
-                              <p className="text-muted-foreground text-xs">
-                                {new Date(job.createdAt).toLocaleString()}
-                              </p>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
+                                <span className="flex items-center gap-1">
+                                  <span className="font-medium">{projectName}</span>
+                                  <span>•</span>
+                                  <span className="font-mono">{job.projectId.slice(-8)}</span>
+                                </span>
+                                <span className="hidden sm:inline">•</span>
+                                <span className="whitespace-nowrap">{new Date(job.createdAt).toLocaleString()}</span>
+                              </div>
                             </div>
                           </div>
-                          <Badge variant="outline" className={statusDisplay.color}>
+                          <Badge variant="outline" className={`${statusDisplay.color} flex-shrink-0`}>
                             {job.status}
                           </Badge>
                         </div>

@@ -568,8 +568,8 @@ export default function SecondSection({ className = '' }: SecondSectionProps) {
                 </div>
                 <div className="w-full">
                   <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 mb-4">
-                    <p className="text-sm text-amber-700 dark:text-amber-400">
-                      <strong>Prerequisites:</strong> Segmentation must be completed before starting reconstruction
+                    <p className="text-sm text-amber-700 dark:text-amber-400 text-center">
+                      <strong>Prerequisites:</strong> Segmentation <b>must</b> be completed before starting reconstruction
                     </p>
                   </div>
                   <motion.div 
