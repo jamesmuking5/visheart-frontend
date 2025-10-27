@@ -1,68 +1,92 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { BookOpen, Zap, Info, Users, Play } from "lucide-react";
+import { BookOpen, Zap, Info, Users, Play, Menu, X } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 const DocPage = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const navigationItems = [
+    { value: "introduction", icon: Info, label: "Introduction" },
+    { value: "getting-started", icon: BookOpen, label: "Getting Started" },
+    { value: "accounts", icon: Users, label: "Accounts" },
+    { value: "how-it-works", icon: Play, label: "How Segmentation Works" },
+    { value: "reconstruction", icon: Zap, label: "How Reconstruction Works" },
+  ];
+
+  const NavigationContent = ({ onItemClick }: { onItemClick?: () => void }) => (
+    <>
+      <div className="p-4 md:p-6 border-b">
+        <h2 className="font-semibold text-lg">Documentation</h2>
+        <p className="text-sm text-muted-foreground">VisHeart Platform Guide</p>
+      </div>
+      <ScrollArea className="flex-1">
+        <TabsList className="flex flex-col h-auto w-full bg-transparent p-4 space-y-1 items-stretch">
+          {navigationItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <TabsTrigger
+                key={item.value}
+                value={item.value}
+                onClick={onItemClick}
+                className="w-full justify-start text-left h-auto py-2 px-3 data-[state=active]:bg-secondary"
+              >
+                <div className="flex items-center gap-2">
+                  <Icon className="w-4 h-4" />
+                  <span className="text-sm">{item.label}</span>
+                </div>
+              </TabsTrigger>
+            );
+          })}
+        </TabsList>
+      </ScrollArea>
+    </>
+  );
+
   return (
-    <div className="flex h-screen">
-      <Tabs defaultValue="introduction" orientation="vertical" className="w-full flex flex-row">
-        {/* Navigation Sidebar */}
-        <div className="w-80 border-r bg-muted/30 flex flex-col flex-shrink-0">
-          <div className="p-6 border-b">
-            <h2 className="font-semibold text-lg">Documentation</h2>
-            <p className="text-sm text-muted-foreground">VisHeart Platform Guide</p>
+    <div className="flex flex-col md:flex-row h-screen">
+      <Tabs defaultValue="introduction" orientation="vertical" className="w-full flex flex-col md:flex-row">
+        {/* Mobile Header with Menu Button */}
+        <div className="md:hidden border-b bg-background sticky top-0 z-50">
+          <div className="flex items-center justify-between p-4">
+            <div>
+              <h2 className="font-semibold text-lg">Documentation</h2>
+              <p className="text-sm text-muted-foreground">VisHeart Platform Guide</p>
+            </div>
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-72 p-0">
+                <NavigationContent onItemClick={() => setMobileMenuOpen(false)} />
+              </SheetContent>
+            </Sheet>
           </div>
-          <ScrollArea className="flex-1">
-            <TabsList className="flex flex-col h-auto w-full bg-transparent p-4 space-y-1 items-stretch">
-              <TabsTrigger value="introduction" className="w-full justify-start text-left h-auto py-2 px-3 data-[state=active]:bg-secondary">
-                <div className="flex items-center gap-2">
-                  <Info className="w-4 h-4" />
-                  <span className="text-sm">Introduction</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger value="getting-started" className="w-full justify-start text-left h-auto py-2 px-3 data-[state=active]:bg-secondary">
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" />
-                  <span className="text-sm">Getting Started</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger value="accounts" className="w-full justify-start text-left h-auto py-2 px-3 data-[state=active]:bg-secondary">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  <span className="text-sm">Accounts</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger value="how-it-works" className="w-full justify-start text-left h-auto py-2 px-3 data-[state=active]:bg-secondary">
-                <div className="flex items-center gap-2">
-                  <Play className="w-4 h-4" />
-                  <span className="text-sm">How Segmentation Works</span>
-                </div>
-              </TabsTrigger>
-              <TabsTrigger value="reconstruction" className="w-full justify-start text-left h-auto py-2 px-3 data-[state=active]:bg-secondary">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4" />
-                  <span className="text-sm">How Reconstruction Works</span>
-                </div>
-              </TabsTrigger>
-            </TabsList>
-          </ScrollArea>
+        </div>
+
+        {/* Desktop Navigation Sidebar */}
+        <div className="hidden md:flex w-80 border-r bg-muted/30 flex-col flex-shrink-0">
+          <NavigationContent />
         </div>
 
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <TabsContent value="introduction" className="flex-1 m-0 h-full">
             <ScrollArea className="h-full w-full">
-              <div className="p-8 w-full">
+              <div className="p-4 md:p-8 w-full">
                 <div className="space-y-6 max-w-none">
                   <div>
-                    <h1 className="text-3xl font-bold mb-4">Introduction to VisHeart</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold mb-4">Introduction to VisHeart</h1>
                     <p className="text-muted-foreground mb-6">
                       VisHeart is a cutting-edge cardiac segmentation platform designed to revolutionize medical image analysis through advanced artificial intelligence and intuitive user interfaces.
                     </p>
@@ -70,7 +94,7 @@ const DocPage = () => {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+                      <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                         <Info className="w-5 h-5" />
                         About VisHeart
                       </CardTitle>
@@ -82,14 +106,14 @@ const DocPage = () => {
                       </p>
                       <div className="grid gap-4">
                         <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-medium">AI</div>
+                          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-medium flex-shrink-0">AI</div>
                           <div>
                             <h4 className="font-semibold">AI-Powered Analysis</h4>
                             <p className="text-sm text-muted-foreground">Advanced neural networks trained on extensive cardiac imaging datasets.</p>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm font-medium">3D</div>
+                          <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm font-medium flex-shrink-0">3D</div>
                           <div>
                             <h4 className="font-semibold">
                               3D Visualization{" "}
@@ -98,7 +122,7 @@ const DocPage = () => {
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-medium">⚡</div>
+                          <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-medium flex-shrink-0">⚡</div>
                           <div>
                             <h4 className="font-semibold">Fast Processing</h4>
                             <p className="text-sm text-muted-foreground">Efficient algorithms that deliver results in minutes, not hours.</p>
@@ -108,7 +132,7 @@ const DocPage = () => {
                     </CardContent>
                   </Card>
 
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     <Card>
                       <CardHeader>
                         <CardTitle>Key Features</CardTitle>
@@ -161,10 +185,10 @@ const DocPage = () => {
 
           <TabsContent value="getting-started" className="flex-1 m-0 h-full">
             <ScrollArea className="h-full w-full">
-              <div className="p-8 w-full">
+              <div className="p-4 md:p-8 w-full">
                 <div className="space-y-6 max-w-none">
                   <div>
-                    <h1 className="text-3xl font-bold mb-4">Getting Started with VisHeart</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold mb-4">Getting Started with VisHeart</h1>
                     <p className="text-muted-foreground mb-6">
                       Welcome to VisHeart, a comprehensive cardiac segmentation platform that combines advanced AI-powered image analysis with intuitive visualization tools.
                     </p>
@@ -172,7 +196,7 @@ const DocPage = () => {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
+                      <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
                         <Zap className="w-5 h-5" />
                         Quick Start
                       </CardTitle>
@@ -180,28 +204,28 @@ const DocPage = () => {
                     <CardContent className="space-y-4">
                       <div className="grid gap-4">
                         <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">1</div>
+                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium flex-shrink-0">1</div>
                           <div>
                             <h4 className="font-semibold">Create an Account</h4>
                             <p className="text-sm text-muted-foreground">Sign up for a new account or log in with existing credentials.</p>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">2</div>
+                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium flex-shrink-0">2</div>
                           <div>
                             <h4 className="font-semibold">Upload Medical Images</h4>
                             <p className="text-sm text-muted-foreground">Upload your NIfTI files for analysis.</p>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">3</div>
+                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium flex-shrink-0">3</div>
                           <div>
                             <h4 className="font-semibold">Run Segmentation</h4>
                             <p className="text-sm text-muted-foreground">Let our AI analyze your cardiac images automatically.</p>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">4</div>
+                          <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium flex-shrink-0">4</div>
                           <div>
                             <h4 className="font-semibold">View Results</h4>
                             <p className="text-sm text-muted-foreground">Analyze the segmented results with our interactive visualization tools.</p>
@@ -211,10 +235,10 @@ const DocPage = () => {
                     </CardContent>
                   </Card>
 
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <Card className="col-span-1 md:col-span-1 lg:col-span-1">
                       <CardHeader>
-                        <CardTitle>System Requirements</CardTitle>
+                        <CardTitle className="text-base md:text-lg">System Requirements</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <ul className="space-y-2 text-sm">
@@ -227,7 +251,7 @@ const DocPage = () => {
                     </Card>
                     <Card className="col-span-1 md:col-span-1 lg:col-span-1">
                       <CardHeader>
-                        <CardTitle>Supported Formats</CardTitle>
+                        <CardTitle className="text-base md:text-lg">Supported Formats</CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="flex flex-wrap gap-2">
@@ -244,76 +268,76 @@ const DocPage = () => {
 
           <TabsContent value="accounts" className="flex-1 m-0 h-full">
             <ScrollArea className="h-full w-full">
-              <div className="p-8 w-full">
+              <div className="p-4 md:p-8 w-full">
                 <div className="space-y-6 max-w-none">
                   <div>
-                    <h1 className="text-3xl font-bold mb-4">Account Types</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold mb-4">Account Types</h1>
                     <p className="text-muted-foreground mb-6">Compare the features and capabilities available for Guest and Registered User accounts.</p>
                   </div>
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Feature Comparison</CardTitle>
+                      <CardTitle className="text-lg md:text-xl">Feature Comparison</CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="overflow-x-auto">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-1/3">Feature</TableHead>
-                            <TableHead className="text-center">Guest Account</TableHead>
-                            <TableHead className="text-center">User Account</TableHead>
+                            <TableHead className="w-1/3 text-xs md:text-sm">Feature</TableHead>
+                            <TableHead className="text-center text-xs md:text-sm">Guest Account</TableHead>
+                            <TableHead className="text-center text-xs md:text-sm">User Account</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           <TableRow>
-                            <TableCell className="font-medium">File Upload</TableCell>
-                            <TableCell className="text-center">✓</TableCell>
-                            <TableCell className="text-center">✓</TableCell>
+                            <TableCell className="font-medium text-xs md:text-sm">File Upload</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell className="font-medium">Cardiac Segmentation</TableCell>
-                            <TableCell className="text-center">✓</TableCell>
-                            <TableCell className="text-center">✓</TableCell>
+                            <TableCell className="font-medium text-xs md:text-sm">Cardiac Segmentation</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell className="font-medium">3D/4D Visualization</TableCell>
-                            <TableCell className="text-center">✓</TableCell>
-                            <TableCell className="text-center">✓</TableCell>
+                            <TableCell className="font-medium text-xs md:text-sm">3D/4D Visualization</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell className="font-medium">Export Results</TableCell>
-                            <TableCell className="text-center">✓</TableCell>
-                            <TableCell className="text-center">✓</TableCell>
+                            <TableCell className="font-medium text-xs md:text-sm">Export Results</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell className="font-medium">File Saving</TableCell>
-                            <TableCell className="text-center">✗</TableCell>
-                            <TableCell className="text-center">✓</TableCell>
+                            <TableCell className="font-medium text-xs md:text-sm">File Saving</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✗</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell className="font-medium">Project Management</TableCell>
-                            <TableCell className="text-center">✗</TableCell>
-                            <TableCell className="text-center">✓</TableCell>
+                            <TableCell className="font-medium text-xs md:text-sm">Project Management</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✗</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell className="font-medium">Processing History</TableCell>
-                            <TableCell className="text-center">✗</TableCell>
-                            <TableCell className="text-center">✓</TableCell>
+                            <TableCell className="font-medium text-xs md:text-sm">Processing History</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✗</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell className="font-medium">Cloud Storage</TableCell>
-                            <TableCell className="text-center">✗</TableCell>
-                            <TableCell className="text-center">✓</TableCell>
+                            <TableCell className="font-medium text-xs md:text-sm">Cloud Storage</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✗</TableCell>
+                            <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
                           </TableRow>
                         </TableBody>
                       </Table>
                     </CardContent>
                   </Card>
 
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <Card>
                       <CardHeader>
-                        <CardTitle>Guest Account</CardTitle>
+                        <CardTitle className="text-base md:text-lg">Guest Account</CardTitle>
                         <Badge variant="secondary" className="w-fit">
                           Free
                         </Badge>
@@ -330,7 +354,7 @@ const DocPage = () => {
                     </Card>
                     <Card>
                       <CardHeader>
-                        <CardTitle>User Account</CardTitle>
+                        <CardTitle className="text-base md:text-lg">User Account</CardTitle>
                         <Badge variant="default" className="w-fit">
                           Free Registration
                         </Badge>
@@ -353,10 +377,10 @@ const DocPage = () => {
 
           <TabsContent value="how-it-works" className="flex-1 m-0 h-full">
             <ScrollArea className="h-full w-full">
-              <div className="p-8 w-full">
-                <div className="space-y-8 max-w-none">
+              <div className="p-4 md:p-8 w-full">
+                <div className="space-y-6 md:space-y-8 max-w-none">
                   <div>
-                    <h1 className="text-3xl font-bold mb-4">How the Segmentation System Works</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold mb-4">How the Segmentation System Works</h1>
                     <p className="text-muted-foreground mb-6">
                       Follow this comprehensive guide to understand the complete workflow from project creation to cardiac segmentation results.
                     </p>
@@ -365,8 +389,8 @@ const DocPage = () => {
                   {/* Step 1: Getting Started */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">1</div>
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">1</div>
                         Welcome to VisHeart
                       </CardTitle>
                     </CardHeader>
@@ -374,13 +398,13 @@ const DocPage = () => {
                       <p className="text-sm text-muted-foreground">
                         Start your journey with VisHeart&apos;s intuitive homepage. Here you&apos;ll find the main entry points to access the platform.
                       </p>
-                      <div className="rounded-lg border bg-muted/30 p-4">
+                      <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                         <Image 
                           src="/images/doc/homescreen.png" 
                           alt="VisHeart Homepage - Welcome screen showing platform features and Get Started button" 
                           width={1200}
                           height={800}
-                          className="w-full rounded-md border shadow-sm"
+                          className="w-full h-auto rounded-md border shadow-sm"
                         />
                         <p className="text-xs text-muted-foreground mt-2">The VisHeart homepage with key features highlighted and easy access to get started.</p>
                       </div>
@@ -390,8 +414,8 @@ const DocPage = () => {
                   {/* Step 2: Dashboard Overview */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">2</div>
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">2</div>
                         Dashboard Overview
                       </CardTitle>
                     </CardHeader>
@@ -399,13 +423,13 @@ const DocPage = () => {
                       <p className="text-sm text-muted-foreground">
                         Your dashboard provides a comprehensive overview of your projects, GPU status, and system statistics.
                       </p>
-                      <div className="rounded-lg border bg-muted/30 p-4">
+                      <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                         <Image 
                           src="/images/doc/dashboard-overview.png" 
                           alt="Dashboard Overview - Statistics cards showing total projects, completed segmentations, pending jobs, and GPU status" 
                           width={1200}
                           height={800}
-                          className="w-full rounded-md border shadow-sm"
+                          className="w-full h-auto rounded-md border shadow-sm"
                         />
                         <p className="text-xs text-muted-foreground mt-2">Dashboard overview showing project statistics, GPU status, and quick access to new project creation.</p>
                       </div>
@@ -415,8 +439,8 @@ const DocPage = () => {
                   {/* Step 3: New Project State */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">3</div>
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">3</div>
                         Starting Fresh
                       </CardTitle>
                     </CardHeader>
@@ -424,13 +448,13 @@ const DocPage = () => {
                       <p className="text-sm text-muted-foreground">
                         When you first access the Projects tab, you&apos;ll see a clean interface ready for your first medical imaging project.
                       </p>
-                      <div className="rounded-lg border bg-muted/30 p-4">
+                      <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                         <Image 
                           src="/images/doc/dashboard-project-no-projects.png" 
                           alt="Empty Projects Dashboard - Clean interface showing no projects with Upload New Project button" 
                           width={1200}
                           height={800}
-                          className="w-full rounded-md border shadow-sm"
+                          className="w-full h-auto rounded-md border shadow-sm"
                         />
                         <p className="text-xs text-muted-foreground mt-2">Empty projects dashboard with clear call-to-action to upload your first project.</p>
                       </div>
@@ -440,8 +464,8 @@ const DocPage = () => {
                   {/* Step 4: Upload Process */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">4</div>
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">4</div>
                         Upload Your Medical Images
                       </CardTitle>
                     </CardHeader>
@@ -449,24 +473,24 @@ const DocPage = () => {
                       <p className="text-sm text-muted-foreground">
                         The upload process is straightforward - simply drag and drop or click to browse for your medical imaging files.
                       </p>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="rounded-lg border bg-muted/30 p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                           <Image 
                             src="/images/doc/dashboard-project-upload-new-project.png" 
                             alt="Upload Dialog - File upload interface with drag and drop zone" 
                             width={600}
                             height={400}
-                            className="w-full rounded-md border shadow-sm"
+                            className="w-full h-auto rounded-md border shadow-sm"
                           />
                           <p className="text-xs text-muted-foreground mt-2">Upload dialog with drag-and-drop interface for medical imaging files.</p>
                         </div>
-                        <div className="rounded-lg border bg-muted/30 p-4">
+                        <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                           <Image 
                             src="/images/doc/dashboard-project-upload-new-project-with-file-added.png" 
                             alt="Upload Dialog with File - Shows selected file with metadata and project details form" 
                             width={600}
                             height={400}
-                            className="w-full rounded-md border shadow-sm"
+                            className="w-full h-auto rounded-md border shadow-sm"
                           />
                           <p className="text-xs text-muted-foreground mt-2">Upload dialog showing selected file with metadata and project configuration options.</p>
                         </div>
@@ -477,8 +501,8 @@ const DocPage = () => {
                   {/* Step 5: Project Management */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold">5</div>
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">5</div>
                         Project Management
                       </CardTitle>
                     </CardHeader>
@@ -486,24 +510,24 @@ const DocPage = () => {
                       <p className="text-sm text-muted-foreground">
                         Once uploaded, your projects appear in the dashboard with detailed information and management options.
                       </p>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="rounded-lg border bg-muted/30 p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                           <Image 
                             src="/images/doc/dashboard-project-with-1-project.png" 
                             alt="Project Card - Shows project with No Masks status and project actions" 
                             width={600}
                             height={400}
-                            className="w-full rounded-md border shadow-sm"
+                            className="w-full h-auto rounded-md border shadow-sm"
                           />
                           <p className="text-xs text-muted-foreground mt-2">Project card showing uploaded project with &quot;No Masks&quot; status, ready for segmentation.</p>
                         </div>
-                        <div className="rounded-lg border bg-muted/30 p-4">
+                        <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                           <Image 
                             src="/images/doc/dashboard-project-with-1-project-saved.png" 
                             alt="Saved Project Card - Shows project marked as Saved with edit icon" 
                             width={600}
                             height={400}
-                            className="w-full rounded-md border shadow-sm"
+                            className="w-full h-auto rounded-md border shadow-sm"
                           />
                           <p className="text-xs text-muted-foreground mt-2">Project card showing saved project with persistent storage status.</p>
                         </div>
@@ -514,8 +538,8 @@ const DocPage = () => {
                   {/* Step 6: Project Details & Segmentation */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold">6</div>
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">6</div>
                         Project Details & AI Segmentation
                       </CardTitle>
                     </CardHeader>
@@ -523,24 +547,24 @@ const DocPage = () => {
                       <p className="text-sm text-muted-foreground">
                         Access detailed project information and start the AI-powered segmentation process with a single click.
                       </p>
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="rounded-lg border bg-muted/30 p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                           <Image 
                             src="/images/doc/project-overview.png" 
                             alt="Project Overview - Detailed project view with technical specifications and Start Segmentation button" 
                             width={600}
                             height={400}
-                            className="w-full rounded-md border shadow-sm"
+                            className="w-full h-auto rounded-md border shadow-sm"
                           />
                           <p className="text-xs text-muted-foreground mt-2">Detailed project overview showing technical specifications and segmentation controls.</p>
                         </div>
-                        <div className="rounded-lg border bg-muted/30 p-4">
+                        <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                           <Image 
                             src="/images/doc/project-overview-segmentation-done.png" 
                             alt="Completed Segmentation - Project view showing available masks and Edit Segmentation option" 
                             width={600}
                             height={400}
-                            className="w-full rounded-md border shadow-sm"
+                            className="w-full h-auto rounded-md border shadow-sm"
                           />
                           <p className="text-xs text-muted-foreground mt-2">Project view after successful segmentation showing available masks and editing options.</p>
                         </div>
@@ -551,8 +575,8 @@ const DocPage = () => {
                   {/* Step 7: MRI Viewer (Pre-Segmentation) */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">7</div>
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">7</div>
                         MRI Viewer (Before Segmentation)
                       </CardTitle>
                     </CardHeader>
@@ -560,17 +584,17 @@ const DocPage = () => {
                       <p className="text-sm text-muted-foreground">
                         When segmentation masks are not yet available or processing is pending, the MRI viewer allows you to preview and examine your medical images.
                       </p>
-                      <div className="rounded-lg border bg-muted/30 p-4">
+                      <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                         <Image 
                           src="/images/doc/project-preview.png" 
                           alt="MRI Viewer - Medical image viewer with frame navigation and zoom controls available when no masks exist" 
                           width={1200}
                           height={800}
-                          className="w-full rounded-md border shadow-sm"
+                          className="w-full h-auto rounded-md border shadow-sm"
                         />
                         <p className="text-xs text-muted-foreground mt-2">MRI viewer interface with frame navigation, zoom controls, and image display options - available when segmentation is not yet complete.</p>
                       </div>
-                      <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                      <div className="p-2 md:p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
                         <p className="text-sm font-medium mb-1">📋 MRI Viewer Features</p>
                         <ul className="text-sm text-muted-foreground space-y-1">
                           <li>• Frame-by-frame navigation through medical image slices</li>
@@ -586,8 +610,8 @@ const DocPage = () => {
                   {/* Step 8: Segmentation Viewer (Post-Segmentation) */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center text-sm font-bold">8</div>
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <div className="w-8 h-8 rounded-full bg-red-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">8</div>
                         Segmentation Viewer & Manual Editing
                       </CardTitle>
                     </CardHeader>
@@ -595,17 +619,17 @@ const DocPage = () => {
                       <p className="text-sm text-muted-foreground">
                         Once AI segmentation is complete, the segmentation viewer becomes available with advanced editing tools. This viewer includes all MRI viewing capabilities plus mask editing features.
                       </p>
-                      <div className="rounded-lg border bg-muted/30 p-4">
+                      <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                         <Image 
                           src="/images/doc/project-segmentation.png" 
                           alt="Segmentation Viewer - Advanced editing interface with drawing tools, mask overlays, and medical image access" 
                           width={1200}
                           height={800}
-                          className="w-full rounded-md border shadow-sm"
+                          className="w-full h-auto rounded-md border shadow-sm"
                         />
                         <p className="text-xs text-muted-foreground mt-2">Segmentation viewer with precision drawing tools, brush settings, mask overlays, and full medical image access.</p>
                       </div>
-                      <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                      <div className="p-2 md:p-4 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
                         <p className="text-sm font-medium mb-1">🎨 Segmentation Viewer Features</p>
                         <ul className="text-sm text-muted-foreground space-y-1">
                           <li>• <strong>All MRI viewer capabilities</strong> - frame navigation, zoom, pan, thumbnails</li>
@@ -617,7 +641,7 @@ const DocPage = () => {
                           <li>• Available only after successful AI segmentation</li>
                         </ul>
                       </div>
-                      <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
+                      <div className="p-2 md:p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800">
                         <p className="text-sm font-medium mb-1">💡 Important Note</p>
                         <p className="text-sm text-muted-foreground">
                           The original medical images remain fully accessible in the segmentation viewer. You can toggle between viewing the raw medical data and the segmented masks, or view them overlaid together for precise editing.
@@ -629,42 +653,42 @@ const DocPage = () => {
                   {/* Workflow Summary */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Zap className="w-5 h-5" />
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <Zap className="w-5 h-5 flex-shrink-0" />
                         Complete Workflow Summary
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="grid gap-3">
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-                          <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold">1</div>
-                          <span className="text-sm">Start from the homepage and navigate to the dashboard</span>
+                        <div className="flex items-center gap-3 p-2 md:p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                          <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">1</div>
+                          <span className="text-xs md:text-sm">Start from the homepage and navigate to the dashboard</span>
                         </div>
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
-                          <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold">2</div>
-                          <span className="text-sm">Upload your medical imaging files (NIfTI)</span>
+                        <div className="flex items-center gap-3 p-2 md:p-3 rounded-lg bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                          <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">2</div>
+                          <span className="text-xs md:text-sm">Upload your medical imaging files (NIfTI)</span>
                         </div>
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
-                          <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold">3</div>
-                          <span className="text-sm">Review project details and start AI segmentation</span>
+                        <div className="flex items-center gap-3 p-2 md:p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800">
+                          <div className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">3</div>
+                          <span className="text-xs md:text-sm">Review project details and start AI segmentation</span>
                         </div>
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800">
-                          <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold">4</div>
-                          <span className="text-sm">Use MRI viewer to preview images (before segmentation)</span>
+                        <div className="flex items-center gap-3 p-2 md:p-3 rounded-lg bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800">
+                          <div className="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">4</div>
+                          <span className="text-xs md:text-sm">Use MRI viewer to preview images (before segmentation)</span>
                         </div>
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
-                          <div className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold">5</div>
-                          <span className="text-sm">Access segmentation viewer for advanced editing (after AI processing)</span>
+                        <div className="flex items-center gap-3 p-2 md:p-3 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+                          <div className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">5</div>
+                          <span className="text-xs md:text-sm">Access segmentation viewer for advanced editing (after AI processing)</span>
                         </div>
                       </div>
-                      <div className="p-4 rounded-lg bg-muted/50 border-l-4 border-primary">
+                      <div className="p-2 md:p-4 rounded-lg bg-muted/50 border-l-4 border-primary">
                         <p className="text-sm font-medium mb-1">Pro Tip</p>
                         <p className="text-sm text-muted-foreground">
                           Register for a user account to save your projects permanently and access advanced project management features.
                           Guest accounts provide full functionality but projects are only available during your session.
                         </p>
                       </div>
-                      <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500">
+                      <div className="p-2 md:p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500">
                         <p className="text-sm font-medium mb-1">Viewer Availability</p>
                         <p className="text-sm text-muted-foreground">
                           <strong>MRI Viewer:</strong> Available immediately after upload for image preview and examination.<br/>
@@ -680,10 +704,10 @@ const DocPage = () => {
 
           <TabsContent value="reconstruction" className="flex-1 m-0 h-full">
             <ScrollArea className="h-full w-full">
-              <div className="p-8 w-full">
-                <div className="space-y-8 max-w-none">
+              <div className="p-4 md:p-8 w-full">
+                <div className="space-y-6 md:space-y-8 max-w-none">
                   <div>
-                    <h1 className="text-3xl font-bold mb-4">3D/4D Reconstruction</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold mb-4">3D/4D Reconstruction</h1>
                     <p className="text-muted-foreground mb-6">
                       Follow this comprehensive guide to run 3D/4D reconstructions. It walks you through preparing your project,
                       choosing a reference frame, submitting a reconstruction job, monitoring progress, and downloading results.
@@ -693,8 +717,8 @@ const DocPage = () => {
                   {/* Overview */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Zap className="w-5 h-5" />
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <Zap className="w-5 h-5 flex-shrink-0" />
                         Overview
                       </CardTitle>
                     </CardHeader>
@@ -707,14 +731,14 @@ const DocPage = () => {
 
                       <div className="grid gap-4">
                         <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm font-medium">3D</div>
+                          <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm font-medium flex-shrink-0">3D</div>
                           <div>
                             <h4 className="font-semibold">3D Reconstruction</h4>
                             <p className="text-sm text-muted-foreground">Single mesh reconstruction generated from a mri scan with only one frame.</p>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-medium">4D</div>
+                          <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-medium flex-shrink-0">4D</div>
                           <div>
                             <h4 className="font-semibold">4D (Time-series) Reconstruction</h4>
                             <p className="text-sm text-muted-foreground">Mesh sequence generated for multiple frames to capture cardiac motion across time.</p>
@@ -727,8 +751,8 @@ const DocPage = () => {
                   {/* Step 1: Starting Reconstruction */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">1</div>
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">1</div>
                         Starting a Reconstruction Job
                       </CardTitle>
                     </CardHeader>
@@ -736,13 +760,13 @@ const DocPage = () => {
                       <p className="text-sm text-muted-foreground">
                         Ensure segmentation has been completed for your project first — reconstruction uses those results. Open the project and click <strong>Create 4D Reconstruction</strong>.
                       </p>
-                      <div className="rounded-lg border bg-muted/30 p-4">
+                      <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                         <Image
                           src="/images/doc/project-reconstruction-overview.png"
                           alt="Project reconstruction overview showing Create 4D Reconstruction button"
                           width={1200}
                           height={800}
-                          className="w-full rounded-md border shadow-sm"
+                          className="w-full h-auto rounded-md border shadow-sm"
                         />
                         <p className="text-xs text-muted-foreground mt-2">Project overview with Create 4D Reconstruction button to start the process.</p>
                       </div>
@@ -752,8 +776,8 @@ const DocPage = () => {
                   {/* Step 2: Configure Parameters */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">2</div>
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">2</div>
                         Configure 4D Reconstruction
                       </CardTitle>
                     </CardHeader>
@@ -785,24 +809,24 @@ const DocPage = () => {
                         </div>
                       </div>
 
-                      <div className="grid md:grid-cols-2 gap-4 mt-4">
-                        <div className="rounded-lg border bg-muted/30 p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                           <Image
                             src="/images/doc/project-reconstruction-configuration.png"
                             alt="Configure modal with export format and ED frame settings"
                             width={600}
                             height={400}
-                            className="w-full rounded-md border shadow-sm"
+                            className="w-full h-auto rounded-md border shadow-sm"
                           />
                           <p className="text-xs text-muted-foreground mt-2">Configuration panel with export format, ED frame selector, and basic parameters.</p>
                         </div>
-                        <div className="rounded-lg border bg-muted/30 p-4">
+                        <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                           <Image
                             src="/images/doc/project-reconstruction-configuration-advanced.png"
                             alt="Advanced settings panel with SDF optimizer and marching cubes controls"
                             width={600}
                             height={400}
-                            className="w-full rounded-md border shadow-sm"
+                            className="w-full h-auto rounded-md border shadow-sm"
                           />
                           <p className="text-xs text-muted-foreground mt-2">Advanced settings panel with SDF optimizer iterations and marching cubes resolution controls.</p>
                         </div>
@@ -815,8 +839,8 @@ const DocPage = () => {
                   {/* Step 3: View Results */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold">3</div>
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">3</div>
                         Inspect & Visualize Results
                       </CardTitle>
                     </CardHeader>
@@ -832,29 +856,29 @@ const DocPage = () => {
                         <li>• If you re-edit segmentation masks, re-run reconstruction to update the 4D model</li>
                       </ul>
 
-                      <div className="rounded-lg border bg-muted/30 p-4 mt-4">
+                      <div className="rounded-lg border bg-muted/30 p-2 md:p-4 mt-4">
                         <Image
                           src="/images/doc/project-reconstruction.png"
                           alt="Reconstruction results list with completed reconstruction and download options"
                           width={1200}
                           height={800}
-                          className="w-full rounded-md border shadow-sm"
+                          className="w-full h-auto rounded-md border shadow-sm"
                         />
                         <p className="text-xs text-muted-foreground mt-2">Reconstruction results showing completed 4D reconstruction with metadata and view options.</p>
                       </div>
 
-                      <div className="rounded-lg border bg-muted/30 p-4 mt-4">
+                      <div className="rounded-lg border bg-muted/30 p-2 md:p-4 mt-4">
                         <Image
                           src="/images/doc/project-reconsturction-view.png"
                           alt="4D reconstruction viewer with side-by-side comparison and playback controls"
                           width={1200}
                           height={800}
-                          className="w-full rounded-md border shadow-sm"
+                          className="w-full h-auto rounded-md border shadow-sm"
                         />
                         <p className="text-xs text-muted-foreground mt-2">Interactive 4D viewer with side-by-side segmentation comparison and playback timeline controls.</p>
                       </div>
 
-                      <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 mt-4">
+                      <div className="p-2 md:p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 mt-4">
                         <p className="text-sm font-medium mb-1">💡 Important Note</p>
                         <ul className="text-sm text-muted-foreground space-y-1">
                           <li>• If you make changes to your segmentation masks, you can <strong>re-run reconstruction</strong> to update the 4D model with the new segmentation data.</li>
@@ -868,8 +892,8 @@ const DocPage = () => {
                   {/* Step 4: Project Details & Management */}
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">4</div>
+                      <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+                        <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">4</div>
                         Complete Project Details & Management
                       </CardTitle>
                     </CardHeader>
@@ -908,30 +932,30 @@ const DocPage = () => {
                         </div>
                       </div>
 
-                      <div className="grid md:grid-cols-2 gap-4 mt-4">
-                        <div className="rounded-lg border bg-muted/30 p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                           <Image
                             src="/images/doc/project-reconstruction-details.png"
                             alt="Project details overview showing metadata, segmentation masks, and reconstruction information"
                             width={600}
                             height={400}
-                            className="w-full rounded-md border shadow-sm"
+                            className="w-full h-auto rounded-md border shadow-sm"
                           />
                           <p className="text-xs text-muted-foreground mt-2">Comprehensive project details with metadata, storage statistics, and segmentation/reconstruction information.</p>
                         </div>
-                        <div className="rounded-lg border bg-muted/30 p-4">
+                        <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
                           <Image
                             src="/images/doc/project-reconstruction-details2.png"
                             alt="Project management actions including export masks, export project, and reset options"
                             width={600}
                             height={400}
-                            className="w-full rounded-md border shadow-sm"
+                            className="w-full h-auto rounded-md border shadow-sm"
                           />
                           <p className="text-xs text-muted-foreground mt-2">Project management panel with export and reset options for easy data management.</p>
                         </div>
                       </div>
 
-                      <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 mt-4">
+                      <div className="p-2 md:p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 mt-4">
                         <p className="text-sm font-medium mb-1">⚠️ Reset Masks Warning</p>
                         <p className="text-sm text-muted-foreground">
                           Using the <strong>Reset Masks</strong> option will permanently delete all segmentation masks and reconstruction data. 
