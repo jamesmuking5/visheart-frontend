@@ -614,35 +614,35 @@ export function ReconstructionGLBViewer({
           }
         >
           {/* Three-Point Lighting Setup (Medical Visualization Standard) */}
-          {/* Key Light - Main light source (front-top-right) */}
+          {/* Key Light - Main light source (top-right, more angular) */}
           <directionalLight 
-            position={[50, 50, 50]} 
-            intensity={1.5} 
+            position={[80, 60, 40]} 
+            intensity={1.4} 
             castShadow
             shadow-mapSize={[2048, 2048]}
           />
           
-          {/* Fill Light - Soften shadows (front-top-left) */}
+          {/* Fill Light - Soften shadows (left side, lower intensity) */}
           <directionalLight 
-            position={[-30, 30, 30]} 
-            intensity={0.6} 
+            position={[-60, 35, 50]} 
+            intensity={0.25} 
           />
           
-          {/* Rim Light - Edge highlighting (back-top) */}
+          {/* Rim Light - Edge highlighting (back-top-left for depth) */}
           <directionalLight 
-            position={[0, 20, -50]} 
-            intensity={0.8} 
-            color="#e8f4ff"
+            position={[-40, 50, -60]} 
+            intensity={0.4} 
+            color="#c8d5e8"
           />
           
-          {/* Ambient Light - Overall scene illumination */}
-          <ambientLight intensity={0.3} />
+          {/* Ambient Light - Minimal for darker interiors */}
+          <ambientLight intensity={0.05} />
           
-          {/* Hemisphere Light - Subtle gradient lighting */}
+          {/* Hemisphere Light - Very subtle */}
           <hemisphereLight 
             color="#ffffff" 
-            groundColor="#444444" 
-            intensity={0.4} 
+            groundColor="#222222" 
+            intensity={0.1} 
           />
           
           {/* Ground Grid for spatial reference - toggleable */}
