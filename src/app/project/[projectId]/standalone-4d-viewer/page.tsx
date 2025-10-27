@@ -61,7 +61,8 @@ export default function Standalone4DViewerPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(500); // ms per frame
 
-  const totalFrames = projectData?.dimensions?.frames || 0;
+  // Get total frames from reconstruction metadata (more reliable than project dimensions for reconstructions)
+  const totalFrames = reconstructionMetadata?.totalFrames || projectData?.dimensions?.frames || 0;
 
   // Load 3D reconstruction model when frame changes
   useEffect(() => {
@@ -107,6 +108,9 @@ export default function Standalone4DViewerPage() {
   // Keyboard navigation for frame control
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
+      // Don't handle keyboard shortcuts if only 1 frame
+      if (totalFrames <= 1) return;
+      
       // Prevent default browser behavior for arrow keys
       if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
         event.preventDefault();
@@ -224,12 +228,12 @@ export default function Standalone4DViewerPage() {
         {/* Main Viewer Panel */}
         <ResizablePanel defaultSize={70} minSize={40}>
           <div className="h-full w-full p-4 relative">
-            {/* Back Button - Positioned in bottom-left to avoid overlap with frame badge */}
+            {/* Back Button - Positioned in top-left */}
             <Button 
               variant="secondary" 
               size="sm"
               onClick={() => router.push(`/project/${projectId}`)}
-              className="absolute bottom-6 left-6 z-20 bg-black/70 hover:bg-black/90 text-white"
+              className="absolute top-6 left-6 z-20 bg-black/70 hover:bg-black/90 text-white"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Project
@@ -266,7 +270,7 @@ export default function Standalone4DViewerPage() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium">Frame: {currentFrame + 1} / {totalFrames}</span>
                     <span className="text-muted-foreground">
-                      {Math.round((currentFrame / (totalFrames - 1)) * 100)}%
+                      {totalFrames > 1 ? Math.round((currentFrame / (totalFrames - 1)) * 100) : 100}%
                     </span>
                   </div>
                   <Slider
@@ -275,9 +279,10 @@ export default function Standalone4DViewerPage() {
                       setCurrentFrame(value[0]);
                       setIsPlaying(false);
                     }}
-                    max={totalFrames - 1}
+                    max={Math.max(0, totalFrames - 1)}
                     step={1}
                     className="w-full"
+                    disabled={totalFrames <= 1}
                   />
                 </div>
 
@@ -287,7 +292,7 @@ export default function Standalone4DViewerPage() {
                     variant="outline"
                     size="icon"
                     onClick={() => setCurrentFrame(0)}
-                    disabled={currentFrame === 0}
+                    disabled={totalFrames <= 1 || currentFrame === 0}
                     title="First Frame"
                   >
                     <SkipBack className="h-4 w-4" />
@@ -297,7 +302,7 @@ export default function Standalone4DViewerPage() {
                     variant="outline"
                     size="icon"
                     onClick={() => setCurrentFrame(Math.max(0, currentFrame - 1))}
-                    disabled={currentFrame === 0}
+                    disabled={totalFrames <= 1 || currentFrame === 0}
                     title="Previous Frame"
                   >
                     <ArrowLeft className="h-4 w-4" />
@@ -309,6 +314,7 @@ export default function Standalone4DViewerPage() {
                     onClick={() => setIsPlaying(!isPlaying)}
                     className="h-10 w-10"
                     title={isPlaying ? "Pause" : "Play"}
+                    disabled={totalFrames <= 1}
                   >
                     {isPlaying ? (
                       <Pause className="h-5 w-5" />
@@ -321,7 +327,7 @@ export default function Standalone4DViewerPage() {
                     variant="outline"
                     size="icon"
                     onClick={() => setCurrentFrame(Math.min(totalFrames - 1, currentFrame + 1))}
-                    disabled={currentFrame === totalFrames - 1}
+                    disabled={totalFrames <= 1 || currentFrame === totalFrames - 1}
                     title="Next Frame"
                   >
                     <ArrowLeft className="h-4 w-4 rotate-180" />
@@ -331,7 +337,7 @@ export default function Standalone4DViewerPage() {
                     variant="outline"
                     size="icon"
                     onClick={() => setCurrentFrame(totalFrames - 1)}
-                    disabled={currentFrame === totalFrames - 1}
+                    disabled={totalFrames <= 1 || currentFrame === totalFrames - 1}
                     title="Last Frame"
                   >
                     <SkipForward className="h-4 w-4" />
@@ -353,6 +359,7 @@ export default function Standalone4DViewerPage() {
                     max={2000}
                     step={100}
                     className="w-full"
+                    disabled={totalFrames <= 1}
                   />
                 </div>
 

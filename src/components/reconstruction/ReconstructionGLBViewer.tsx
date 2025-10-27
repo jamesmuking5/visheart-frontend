@@ -412,7 +412,7 @@ export function ReconstructionGLBViewer({
       className={"relative rounded-lg border overflow-hidden " + getBackgroundClass() + " " + className}
     >
       {/* Frame Badge */}
-      <div className="absolute top-3 left-3 z-10 px-3 py-2 rounded-md bg-black/70 text-white text-xs font-semibold">
+      <div className="absolute bottom-3 left-3 z-10 px-3 py-2 rounded-md bg-black/70 text-white text-xs font-semibold">
         Frame {frame}
       </div>
 
