@@ -372,12 +372,12 @@ export default function DashboardPage() {
 
       {/* Guest Mode Alert */}
       <ShowForGuest fallback={null}>
-        <Alert className="border-orange-200 bg-orange-50">
-          <AlertCircle className="h-4 w-4 text-orange-600" />
-          <AlertDescription className="text-orange-800">
+        <Alert className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/30">
+          <AlertCircle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+          <AlertDescription className="text-orange-800 dark:text-orange-200">
             You&apos;re in guest mode. Your projects and work won&apos;t be permanently saved.
             <Link href="/register">
-              <Button variant="link" className="ml-2 h-auto p-0 text-orange-800 underline">
+              <Button variant="link" className="ml-2 h-auto p-0 text-orange-800 dark:text-orange-200 underline hover:text-orange-900 dark:hover:text-orange-100">
                 Upgrade to full account
               </Button>
             </Link>
