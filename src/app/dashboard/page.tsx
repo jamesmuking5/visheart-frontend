@@ -376,9 +376,11 @@ export default function DashboardPage() {
           <AlertCircle className="h-4 w-4 text-orange-600" />
           <AlertDescription className="text-orange-800">
             You&apos;re in guest mode. Your projects and work won&apos;t be permanently saved.
-            <Button variant="link" className="ml-2 h-auto p-0 text-orange-800 underline">
-              Upgrade to full account
-            </Button>
+            <Link href="/register">
+              <Button variant="link" className="ml-2 h-auto p-0 text-orange-800 underline">
+                Upgrade to full account
+              </Button>
+            </Link>
           </AlertDescription>
         </Alert>
       </ShowForGuest>
