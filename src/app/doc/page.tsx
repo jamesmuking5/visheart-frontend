@@ -72,11 +72,48 @@ const DocPage = () => {
               </SheetContent>
             </Sheet>
           </div>
+<<<<<<< HEAD
         </div>
 
         {/* Desktop Navigation Sidebar */}
         <div className="hidden md:flex w-80 border-r bg-muted/30 flex-col flex-shrink-0">
           <NavigationContent />
+=======
+          <ScrollArea className="flex-1">
+            <TabsList className="flex flex-col h-auto w-full bg-transparent p-4 space-y-1 items-stretch">
+              <TabsTrigger value="introduction" className="w-full justify-start text-left h-auto py-2 px-3 data-[state=active]:bg-secondary">
+                <div className="flex items-center gap-2">
+                  <Info className="w-4 h-4" />
+                  <span className="text-sm">Introduction</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger value="getting-started" className="w-full justify-start text-left h-auto py-2 px-3 data-[state=active]:bg-secondary">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4" />
+                  <span className="text-sm">Getting Started</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger value="accounts" className="w-full justify-start text-left h-auto py-2 px-3 data-[state=active]:bg-secondary">
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  <span className="text-sm">Accounts</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger value="how-it-works" className="w-full justify-start text-left h-auto py-2 px-3 data-[state=active]:bg-secondary">
+                <div className="flex items-center gap-2">
+                  <Play className="w-4 h-4" />
+                  <span className="text-sm">How Segmentation Works</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger value="reconstruction" className="w-full justify-start text-left h-auto py-2 px-3 data-[state=active]:bg-secondary">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4" />
+                  <span className="text-sm">How Reconstruction Works</span>
+                </div>
+              </TabsTrigger>
+            </TabsList>
+          </ScrollArea>
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
         </div>
 
         {/* Main Content */}
@@ -300,9 +337,15 @@ const DocPage = () => {
                             <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
                           </TableRow>
                           <TableRow>
+<<<<<<< HEAD
                             <TableCell className="font-medium text-xs md:text-sm">3D/4D Visualization</TableCell>
                             <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
                             <TableCell className="text-center text-xs md:text-sm">✓</TableCell>
+=======
+                            <TableCell className="font-medium">3D/4D Visualization</TableCell>
+                            <TableCell className="text-center">✓</TableCell>
+                            <TableCell className="text-center">✓</TableCell>
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                           </TableRow>
                           <TableRow>
                             <TableCell className="font-medium text-xs md:text-sm">Export Results</TableCell>
@@ -704,10 +747,17 @@ const DocPage = () => {
 
           <TabsContent value="reconstruction" className="flex-1 m-0 h-full">
             <ScrollArea className="h-full w-full">
+<<<<<<< HEAD
               <div className="p-4 md:p-8 w-full">
                 <div className="space-y-6 md:space-y-8 max-w-none">
                   <div>
                     <h1 className="text-2xl md:text-3xl font-bold mb-4">3D/4D Reconstruction</h1>
+=======
+              <div className="p-8 w-full">
+                <div className="space-y-8 max-w-none">
+                  <div>
+                    <h1 className="text-3xl font-bold mb-4">3D/4D Reconstruction</h1>
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                     <p className="text-muted-foreground mb-6">
                       Follow this comprehensive guide to run 3D/4D reconstructions. It walks you through preparing your project,
                       choosing a reference frame, submitting a reconstruction job, monitoring progress, and downloading results.
@@ -717,8 +767,13 @@ const DocPage = () => {
                   {/* Overview */}
                   <Card>
                     <CardHeader>
+<<<<<<< HEAD
                       <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                         <Zap className="w-5 h-5 flex-shrink-0" />
+=======
+                      <CardTitle className="flex items-center gap-2">
+                        <Zap className="w-5 h-5" />
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                         Overview
                       </CardTitle>
                     </CardHeader>
@@ -731,14 +786,22 @@ const DocPage = () => {
 
                       <div className="grid gap-4">
                         <div className="flex items-start gap-3">
+<<<<<<< HEAD
                           <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm font-medium flex-shrink-0">3D</div>
+=======
+                          <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-sm font-medium">3D</div>
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                           <div>
                             <h4 className="font-semibold">3D Reconstruction</h4>
                             <p className="text-sm text-muted-foreground">Single mesh reconstruction generated from a mri scan with only one frame.</p>
                           </div>
                         </div>
                         <div className="flex items-start gap-3">
+<<<<<<< HEAD
                           <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-medium flex-shrink-0">4D</div>
+=======
+                          <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-sm font-medium">4D</div>
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                           <div>
                             <h4 className="font-semibold">4D (Time-series) Reconstruction</h4>
                             <p className="text-sm text-muted-foreground">Mesh sequence generated for multiple frames to capture cardiac motion across time.</p>
@@ -751,8 +814,13 @@ const DocPage = () => {
                   {/* Step 1: Starting Reconstruction */}
                   <Card>
                     <CardHeader>
+<<<<<<< HEAD
                       <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                         <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">1</div>
+=======
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">1</div>
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                         Starting a Reconstruction Job
                       </CardTitle>
                     </CardHeader>
@@ -760,13 +828,21 @@ const DocPage = () => {
                       <p className="text-sm text-muted-foreground">
                         Ensure segmentation has been completed for your project first — reconstruction uses those results. Open the project and click <strong>Create 4D Reconstruction</strong>.
                       </p>
+<<<<<<< HEAD
                       <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
+=======
+                      <div className="rounded-lg border bg-muted/30 p-4">
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                         <Image
                           src="/images/doc/project-reconstruction-overview.png"
                           alt="Project reconstruction overview showing Create 4D Reconstruction button"
                           width={1200}
                           height={800}
+<<<<<<< HEAD
                           className="w-full h-auto rounded-md border shadow-sm"
+=======
+                          className="w-full rounded-md border shadow-sm"
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                         />
                         <p className="text-xs text-muted-foreground mt-2">Project overview with Create 4D Reconstruction button to start the process.</p>
                       </div>
@@ -776,8 +852,13 @@ const DocPage = () => {
                   {/* Step 2: Configure Parameters */}
                   <Card>
                     <CardHeader>
+<<<<<<< HEAD
                       <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                         <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">2</div>
+=======
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold">2</div>
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                         Configure 4D Reconstruction
                       </CardTitle>
                     </CardHeader>
@@ -809,24 +890,41 @@ const DocPage = () => {
                         </div>
                       </div>
 
+<<<<<<< HEAD
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                         <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
+=======
+                      <div className="grid md:grid-cols-2 gap-4 mt-4">
+                        <div className="rounded-lg border bg-muted/30 p-4">
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                           <Image
                             src="/images/doc/project-reconstruction-configuration.png"
                             alt="Configure modal with export format and ED frame settings"
                             width={600}
                             height={400}
+<<<<<<< HEAD
                             className="w-full h-auto rounded-md border shadow-sm"
                           />
                           <p className="text-xs text-muted-foreground mt-2">Configuration panel with export format, ED frame selector, and basic parameters.</p>
                         </div>
                         <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
+=======
+                            className="w-full rounded-md border shadow-sm"
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">Configuration panel with export format, ED frame selector, and basic parameters.</p>
+                        </div>
+                        <div className="rounded-lg border bg-muted/30 p-4">
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                           <Image
                             src="/images/doc/project-reconstruction-configuration-advanced.png"
                             alt="Advanced settings panel with SDF optimizer and marching cubes controls"
                             width={600}
                             height={400}
+<<<<<<< HEAD
                             className="w-full h-auto rounded-md border shadow-sm"
+=======
+                            className="w-full rounded-md border shadow-sm"
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                           />
                           <p className="text-xs text-muted-foreground mt-2">Advanced settings panel with SDF optimizer iterations and marching cubes resolution controls.</p>
                         </div>
@@ -839,8 +937,13 @@ const DocPage = () => {
                   {/* Step 3: View Results */}
                   <Card>
                     <CardHeader>
+<<<<<<< HEAD
                       <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                         <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">3</div>
+=======
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm font-bold">3</div>
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                         Inspect & Visualize Results
                       </CardTitle>
                     </CardHeader>
@@ -856,29 +959,49 @@ const DocPage = () => {
                         <li>• If you re-edit segmentation masks, re-run reconstruction to update the 4D model</li>
                       </ul>
 
+<<<<<<< HEAD
                       <div className="rounded-lg border bg-muted/30 p-2 md:p-4 mt-4">
+=======
+                      <div className="rounded-lg border bg-muted/30 p-4 mt-4">
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                         <Image
                           src="/images/doc/project-reconstruction.png"
                           alt="Reconstruction results list with completed reconstruction and download options"
                           width={1200}
                           height={800}
+<<<<<<< HEAD
                           className="w-full h-auto rounded-md border shadow-sm"
+=======
+                          className="w-full rounded-md border shadow-sm"
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                         />
                         <p className="text-xs text-muted-foreground mt-2">Reconstruction results showing completed 4D reconstruction with metadata and view options.</p>
                       </div>
 
+<<<<<<< HEAD
                       <div className="rounded-lg border bg-muted/30 p-2 md:p-4 mt-4">
+=======
+                      <div className="rounded-lg border bg-muted/30 p-4 mt-4">
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                         <Image
                           src="/images/doc/project-reconsturction-view.png"
                           alt="4D reconstruction viewer with side-by-side comparison and playback controls"
                           width={1200}
                           height={800}
+<<<<<<< HEAD
                           className="w-full h-auto rounded-md border shadow-sm"
+=======
+                          className="w-full rounded-md border shadow-sm"
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                         />
                         <p className="text-xs text-muted-foreground mt-2">Interactive 4D viewer with side-by-side segmentation comparison and playback timeline controls.</p>
                       </div>
 
+<<<<<<< HEAD
                       <div className="p-2 md:p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 mt-4">
+=======
+                      <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 mt-4">
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                         <p className="text-sm font-medium mb-1">💡 Important Note</p>
                         <ul className="text-sm text-muted-foreground space-y-1">
                           <li>• If you make changes to your segmentation masks, you can <strong>re-run reconstruction</strong> to update the 4D model with the new segmentation data.</li>
@@ -892,8 +1015,13 @@ const DocPage = () => {
                   {/* Step 4: Project Details & Management */}
                   <Card>
                     <CardHeader>
+<<<<<<< HEAD
                       <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                         <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold flex-shrink-0">4</div>
+=======
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold">4</div>
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                         Complete Project Details & Management
                       </CardTitle>
                     </CardHeader>
@@ -932,30 +1060,51 @@ const DocPage = () => {
                         </div>
                       </div>
 
+<<<<<<< HEAD
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                         <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
+=======
+                      <div className="grid md:grid-cols-2 gap-4 mt-4">
+                        <div className="rounded-lg border bg-muted/30 p-4">
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                           <Image
                             src="/images/doc/project-reconstruction-details.png"
                             alt="Project details overview showing metadata, segmentation masks, and reconstruction information"
                             width={600}
                             height={400}
+<<<<<<< HEAD
                             className="w-full h-auto rounded-md border shadow-sm"
                           />
                           <p className="text-xs text-muted-foreground mt-2">Comprehensive project details with metadata, storage statistics, and segmentation/reconstruction information.</p>
                         </div>
                         <div className="rounded-lg border bg-muted/30 p-2 md:p-4">
+=======
+                            className="w-full rounded-md border shadow-sm"
+                          />
+                          <p className="text-xs text-muted-foreground mt-2">Comprehensive project details with metadata, storage statistics, and segmentation/reconstruction information.</p>
+                        </div>
+                        <div className="rounded-lg border bg-muted/30 p-4">
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                           <Image
                             src="/images/doc/project-reconstruction-details2.png"
                             alt="Project management actions including export masks, export project, and reset options"
                             width={600}
                             height={400}
+<<<<<<< HEAD
                             className="w-full h-auto rounded-md border shadow-sm"
+=======
+                            className="w-full rounded-md border shadow-sm"
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                           />
                           <p className="text-xs text-muted-foreground mt-2">Project management panel with export and reset options for easy data management.</p>
                         </div>
                       </div>
 
+<<<<<<< HEAD
                       <div className="p-2 md:p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 mt-4">
+=======
+                      <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 mt-4">
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
                         <p className="text-sm font-medium mb-1">⚠️ Reset Masks Warning</p>
                         <p className="text-sm text-muted-foreground">
                           Using the <strong>Reset Masks</strong> option will permanently delete all segmentation masks and reconstruction data. 

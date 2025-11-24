@@ -1055,7 +1055,11 @@ export function ImageCanvas({
     onMouseMove={handleContainerMouseMove}
     onMouseUp={handleContainerMouseUp}
     onContextMenu={(e) => e.preventDefault()}
+<<<<<<< HEAD
     className="w-full flex-1 bg-background rounded-lg overflow-hidden relative mx-auto border flex flex-col"
+=======
+    className="w-full h-[80vh] min-h-[500px] max-h-[800px] bg-background rounded-lg overflow-hidden relative mx-auto border flex flex-col"
+>>>>>>> e58e112fa7141954ff6be9a09b8f8e0960aa4d26
   >
         {/* Top info bar (frame/slice + zoom) */}
         <div 
