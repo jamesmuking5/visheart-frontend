@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useProject } from "@/context/ProjectContext";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 // API
 import { projectApi, segmentationApi } from "@/lib/api";
@@ -56,7 +56,7 @@ import * as ProjectTypes from "@/types/project";
 export default function ProjectPage() {
   const { projectId } = useParams<{ projectId: string }>();
   const router = useRouter();
-  const { loading, projectData, error, hasMasks, undecodedMasks, jobs, reconstructionJobs, jobsError, refreshMasks, hasReconstructions, reconstructionMetadata, refreshReconstructions } = useProject();
+  const { loading, projectData, error, hasMasks, undecodedMasks, jobs, reconstructionJobs, jobsError, refreshMasks, refreshJobs, refreshReconstructionJobs, hasReconstructions, reconstructionMetadata, refreshReconstructions } = useProject();
 
   // Update page title dynamically
   useEffect(() => {
@@ -133,7 +133,7 @@ export default function ProjectPage() {
               pollIntervalRef.current = null;
             }
           }
-        }, 60000); // Poll every 1 minute (60000ms)
+        }, 5000); // Poll every 5 seconds
       }
     };
 
@@ -186,7 +186,7 @@ export default function ProjectPage() {
               reconstructionPollIntervalRef.current = null;
             }
           }
-        }, 60000); // Poll every 1 minute (60000ms)
+        }, 5000); // Poll every 5 seconds
       }
     };
 
@@ -210,6 +210,43 @@ export default function ProjectPage() {
       stopPolling();
     };
   }, [shouldPollForReconstructions, refreshReconstructions]);
+
+  // Check if there are any active jobs (memoized for use in effects)
+  const hasActiveJobs = useMemo(() => 
+    (jobs || []).some((job) => job.status === ProjectTypes.JobStatus.PENDING || job.status === ProjectTypes.JobStatus.IN_PROGRESS),
+    [jobs]
+  );
+
+  // Check if there are any active reconstruction jobs (memoized for use in effects)
+  const hasActiveReconstructionJobs = useMemo(() => 
+    (reconstructionJobs || []).some((job) => job.status === ProjectTypes.JobStatus.PENDING || job.status === ProjectTypes.JobStatus.IN_PROGRESS),
+    [reconstructionJobs]
+  );
+
+  // Clear starting state when segmentation jobs appear
+  useEffect(() => {
+    if (isStartingSegmentation && hasActiveJobs) {
+      console.log("[Project] Segmentation job detected - clearing starting state");
+      setIsStartingSegmentation(false);
+    }
+  }, [isStartingSegmentation, hasActiveJobs]);
+
+  // Clear starting state when reconstruction jobs appear
+  useEffect(() => {
+    if (isStartingReconstruction && hasActiveReconstructionJobs) {
+      console.log("[Project] Reconstruction job detected - clearing starting state");
+      setIsStartingReconstruction(false);
+    }
+  }, [isStartingReconstruction, hasActiveReconstructionJobs]);
+
+  // Debug logging for reconstruction jobs state changes
+  useEffect(() => {
+    console.log("[Project] Reconstruction jobs state changed:", {
+      reconstructionJobs,
+      hasActiveReconstructionJobs,
+      isStartingReconstruction
+    });
+  }, [reconstructionJobs, hasActiveReconstructionJobs, isStartingReconstruction]);
 
   // Missing projectId handling
   if (!projectId) return <NoProjectFound message="Project ID is missing." />;
@@ -305,14 +342,17 @@ export default function ProjectPage() {
 
     try {
       await segmentationApi.startSegmentation(projectId);
-      // Refresh page to see updated job status
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500); // Small delay to show success state
+      
+      // Wait a moment for the backend to create the job, then refresh
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Refresh jobs to detect the new segmentation job
+      await refreshJobs();
+      
+      console.log("[Project] ✅ Segmentation job started successfully - polling will check for completion");
     } catch (error: unknown) {
       console.error("Error starting segmentation:", error);
       setSegmentationError((error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Failed to start segmentation");
-    } finally {
       setIsStartingSegmentation(false);
     }
   };
@@ -386,25 +426,35 @@ export default function ProjectPage() {
         },
       });
 
-      console.log("[Project] ✅ Reconstruction job started successfully");
+      console.log("[Project] ✅ Reconstruction job started successfully on backend");
       
       // Close dialog
       setShowReconstructionDialog(false);
       
-      // Refresh reconstructions to check status
-      await refreshReconstructions();
+      // Poll for the job to appear - retry up to 5 times with 1 second delay
+      console.log("[Project] 🔄 Polling for reconstruction job to appear...");
+      let jobFound = false;
+      for (let i = 0; i < 5 && !jobFound; i++) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log(`[Project] 🔍 Polling attempt ${i + 1}/5...`);
+        
+        await refreshReconstructionJobs();
+        
+        // Check if job appeared in the context
+        // Note: We can't directly check reconstructionJobs here because state updates are async
+        // The effect will handle clearing isStartingReconstruction when the job appears
+      }
       
-      // Show success message or reload page
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      console.log("[Project] ✅ Job polling complete - effect will clear loading state when job detected");
+      
+      // Keep showing loading state until the job appears
+      // The loading state will be cleared by the effect when hasActiveReconstructionJobs becomes true
     } catch (error: unknown) {
       console.error("[Project] ❌ Error starting reconstruction:", error);
       setReconstructionError(
         (error as { response?: { data?: { message?: string } } })?.response?.data?.message || 
-        "Failed to start 4D reconstruction. Please try again."
+        "Failed to start reconstruction"
       );
-    } finally {
       setIsStartingReconstruction(false);
     }
   };
@@ -450,12 +500,6 @@ export default function ProjectPage() {
     },
     {} as Record<ProjectTypes.JobStatus, number>,
   );
-
-  // Check if there are any active jobs (pending or in progress)
-  const hasActiveJobs = (jobs || []).some((job) => job.status === ProjectTypes.JobStatus.PENDING || job.status === ProjectTypes.JobStatus.IN_PROGRESS);
-  
-  // Check if there are any active reconstruction jobs
-  const hasActiveReconstructionJobs = (reconstructionJobs || []).some((job) => job.status === ProjectTypes.JobStatus.PENDING || job.status === ProjectTypes.JobStatus.IN_PROGRESS);
 
   // Get editable mask (the one users interact with)
   const editableMask = undecodedMasks?.find((mask) => !mask.isMedSAMOutput);

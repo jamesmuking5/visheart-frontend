@@ -582,9 +582,9 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           <>
             {/* Guest Upgrade Info Banner */}
             {isActuallyGuestUpgrade && user?.role === "guest" && (
-              <Alert className="mb-4 border-blue-200 bg-blue-50">
-                <AlertCircle className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-blue-800">
+              <Alert className="mb-4 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30">
+                <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                <AlertDescription className="text-blue-800 dark:text-blue-200">
                   <strong>Welcome back, {user.username}!</strong>
                   <br />
                   Complete your registration to save your projects and access

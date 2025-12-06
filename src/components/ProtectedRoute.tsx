@@ -139,8 +139,8 @@ export function RegistrationOnly({ children, redirectTo = "/dashboard" }: { chil
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && user) {
-      // If user is authenticated (including guests), redirect to dashboard
+    if (!loading && user && user.role !== "guest") {
+      // Only redirect non-guest authenticated users (full users and admins)
       router.push(redirectTo);
     }
   }, [user, loading, router, redirectTo]);
@@ -157,8 +157,8 @@ export function RegistrationOnly({ children, redirectTo = "/dashboard" }: { chil
     );
   }
 
-  // Immediately redirect authenticated users (including guests) without showing login form
-  if (user) {
+  // Immediately redirect authenticated users (excluding guests) without showing login form
+  if (user && user.role !== "guest") {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="flex flex-col items-center space-y-4">
@@ -172,6 +172,6 @@ export function RegistrationOnly({ children, redirectTo = "/dashboard" }: { chil
     );
   }
 
-  // Allow access only for unauthenticated users
+  // Allow access for unauthenticated users and guest users
   return <>{children}</>;
 }

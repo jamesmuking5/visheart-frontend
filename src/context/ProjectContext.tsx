@@ -63,6 +63,8 @@ interface ProjectContextType {
   
   // Cache invalidation
   refreshMasks: () => Promise<void>;
+  refreshJobs: () => Promise<void>;
+  refreshReconstructionJobs: () => Promise<void>;
   
   // Optimistic updates
   updateContextMasks: (newMasks: Record<string, Uint8Array>) => void;
@@ -142,6 +144,10 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
   const loadingRef = useRef<LoadingStage>("idle");
   const projectDataRef = useRef<ProjectTypes.ProjectData | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Refs to track if jobs have been fetched (prevents redundant API calls during polling)
+  const jobsFetchedRef = useRef<boolean>(false);
+  const reconstructionJobsFetchedRef = useRef<boolean>(false);
 
   // Update refs when state changes
   useEffect(() => {
@@ -762,19 +768,31 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
   useEffect(() => {
     const abortController = new AbortController();
 
-    // If masks are present, clear any previous job error about missing results
-    if (hasMasks && jobsError) {
-      setJobsError(null);
+    // If masks are present, clear any previous job data and error about missing results
+    if (hasMasks) {
+      if (jobsError) {
+        setJobsError(null);
+      }
+      if (jobs !== null) {
+        console.log("[ProjectContext] Clearing segmentation jobs since masks are now available");
+        setJobs(null);
+      }
+      // Reset the fetch flag so jobs can be fetched again if masks are later removed
+      jobsFetchedRef.current = false;
       return;
     }
 
     // Only fetch jobs if mask fetch is done, we don't have masks, and project data is loaded
     // Don't block on segmentationError (e.g., 'No masks found')
-    if (!maskFetchDone || hasMasks || !projectData || !projectId) {
+    // IMPORTANT: Only fetch if we haven't already fetched jobs (prevents redundant API calls during mask polling)
+    if (!maskFetchDone || hasMasks || !projectData || !projectId || jobsFetchedRef.current) {
       return;
     }
 
     setLoading("job");
+    
+    // Mark that we're fetching jobs to prevent redundant calls
+    jobsFetchedRef.current = true;
 
     // Fetch jobs for the current user
     segmentationApi
@@ -826,16 +844,28 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
   useEffect(() => {
     const abortController = new AbortController();
 
-    // If reconstructions are present, clear any previous job error about missing results
-    if (hasReconstructions && reconstructionJobsError) {
-      setReconstructionJobsError(null);
+    // If reconstructions are present, clear any previous job data and error about missing results
+    if (hasReconstructions) {
+      if (reconstructionJobsError) {
+        setReconstructionJobsError(null);
+      }
+      if (reconstructionJobs !== null) {
+        console.log("[ProjectContext] Clearing reconstruction jobs since reconstructions are now available");
+        setReconstructionJobs(null);
+      }
+      // Reset the fetch flag so jobs can be fetched again if reconstructions are later removed
+      reconstructionJobsFetchedRef.current = false;
       return;
     }
 
     // Only fetch jobs if we don't have reconstructions and project data is loaded
-    if (hasReconstructions || !projectData || !projectId) {
+    // IMPORTANT: Only fetch if we haven't already fetched jobs (prevents redundant API calls during reconstruction polling)
+    if (hasReconstructions || !projectData || !projectId || reconstructionJobsFetchedRef.current) {
       return;
     }
+
+    // Mark that we're fetching jobs to prevent redundant calls
+    reconstructionJobsFetchedRef.current = true;
 
     // Fetch reconstruction jobs for the current user
     reconstructionApi
@@ -1163,6 +1193,76 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
     }
   }, [projectId, projectData?.dimensions]);
 
+  // Refresh jobs function - manually refetch jobs from backend
+  const refreshJobs = useCallback(async () => {
+    if (!projectId) {
+      console.warn("[ProjectContext] Cannot refresh jobs - missing projectId");
+      return;
+    }
+
+    console.log("[ProjectContext] Manually refreshing segmentation jobs...");
+    
+    // Reset the fetch flag to allow refetching
+    jobsFetchedRef.current = false;
+    
+    try {
+      const response = await segmentationApi.getUserJobs();
+      
+      if (!response.success) {
+        setJobsError(response.message);
+        console.warn("[ProjectContext] Failed to refresh jobs:", response.message);
+        setJobs(null);
+        return;
+      }
+
+      const projectJobs = response.jobs.filter((job: ProjectTypes.UserJob) => job.projectId === projectId);
+      setJobs(projectJobs);
+      console.log(`[ProjectContext] Refreshed jobs - found ${projectJobs.length} for project ${projectId}`);
+      
+      // Mark as fetched
+      jobsFetchedRef.current = true;
+    } catch (error) {
+      console.error("[ProjectContext] Error refreshing jobs:", error);
+      setJobsError("Failed to refresh job data");
+      setJobs(null);
+    }
+  }, [projectId]);
+
+  // Refresh reconstruction jobs function - manually refetch reconstruction jobs from backend
+  const refreshReconstructionJobs = useCallback(async () => {
+    if (!projectId) {
+      console.warn("[ProjectContext] Cannot refresh reconstruction jobs - missing projectId");
+      return;
+    }
+
+    console.log("[ProjectContext] Manually refreshing reconstruction jobs...");
+    
+    // Reset the fetch flag to allow refetching
+    reconstructionJobsFetchedRef.current = false;
+    
+    try {
+      const response = await reconstructionApi.getUserReconstructionJobs();
+      
+      if (!response.success) {
+        setReconstructionJobsError(response.message || "Failed to refresh reconstruction jobs");
+        console.warn("[ProjectContext] Failed to refresh reconstruction jobs:", response.message);
+        setReconstructionJobs(null);
+        return;
+      }
+
+      const projectJobs = response.jobs.filter((job: ProjectTypes.UserJob) => job.projectId === projectId);
+      setReconstructionJobs(projectJobs);
+      console.log(`[ProjectContext] Refreshed reconstruction jobs - found ${projectJobs.length} for project ${projectId}`);
+      
+      // Mark as fetched
+      reconstructionJobsFetchedRef.current = true;
+    } catch (error) {
+      console.error("[ProjectContext] Error refreshing reconstruction jobs:", error);
+      setReconstructionJobsError("Failed to refresh reconstruction job data");
+      setReconstructionJobs(null);
+    }
+  }, [projectId]);
+
   // Optimistic update function - updates context masks directly without backend fetch
   const updateContextMasks = useCallback((newMasks: Record<string, Uint8Array>) => {
     console.log("[ProjectContext] Optimistic update - updating context masks directly:", Object.keys(newMasks));
@@ -1216,6 +1316,8 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       threeJSPreloadProgress,
       // Cache invalidation
       refreshMasks,
+      refreshJobs,
+      refreshReconstructionJobs,
       updateContextMasks,
     }),
     [
@@ -1256,6 +1358,8 @@ export function ProjectProvider({ children, projectId }: ProjectProviderProps) {
       isThreeJSPreloading,
       threeJSPreloadProgress,
       refreshMasks,
+      refreshJobs,
+      refreshReconstructionJobs,
       updateContextMasks,
     ],
   );

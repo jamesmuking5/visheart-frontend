@@ -5,6 +5,7 @@ import { useAuth } from "@/context/auth-context";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import Link from "next/link";
 import { authApi } from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -201,9 +202,15 @@ export default function ProfilePage() {
         </div>
 
         {isGuest && (
-          <Alert variant="default" className="border-yellow-200 bg-yellow-50">
-            <AlertCircle className="h-4 w-4 text-yellow-600" />
-            <AlertDescription className="text-yellow-800">You are currently in guest mode. To save your data and access all features, please register for a full account.</AlertDescription>
+          <Alert variant="default" className="border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-950/30">
+            <AlertCircle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+            <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+              You are currently in guest mode. To save your data and access all features, please{" "}
+              <Link href="/register" className="font-semibold underline hover:text-yellow-900 dark:hover:text-yellow-100">
+                register for a full account
+              </Link>
+              .
+            </AlertDescription>
           </Alert>
         )}
 
