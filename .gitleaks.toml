@@ -28,54 +28,31 @@ regex = '''mongodb(\+srv)?://[^:]+:[^@]+@[^\s/]+'''
 tags = ["database", "mongodb", "credentials"]
 
 # Allowlist patterns - these are safe to ignore
-[[allowlist]]
-description = "Ignore .env.example files"
+[allowlist]
+description = "Allowlist for safe patterns"
 paths = [
     '''\.env\.example$''',
-    '''\.env\.sample$'''
-]
-
-[[allowlist]]
-description = "Ignore test fixtures and mock data"
-paths = [
+    '''\.env\.sample$''',
     '''(^|/)test/''',
     '''(^|/)tests/''',
     '''(^|/)__tests__/''',
     '''(^|/)fixtures/''',
     '''(^|/)mocks/''',
     '''\.test\.(ts|tsx|js|jsx)$''',
-    '''\.spec\.(ts|tsx|js|jsx)$'''
-]
-
-[[allowlist]]
-description = "Ignore lock files"
-paths = [
+    '''\.spec\.(ts|tsx|js|jsx)$''',
     '''package-lock\.json$''',
     '''pnpm-lock\.yaml$''',
-    '''yarn\.lock$'''
-]
-
-[[allowlist]]
-description = "Ignore build artifacts and dependencies"
-paths = [
+    '''yarn\.lock$''',
     '''(^|/)node_modules/''',
     '''(^|/)\.next/''',
     '''(^|/)build/''',
-    '''(^|/)dist/'''
+    '''(^|/)dist/''',
+    '''\.d\.ts$'''
 ]
-
-[[allowlist]]
-description = "Ignore public placeholder text that looks like secrets"
 regexes = [
     '''your[-_]api[-_]key[-_]here''',
     '''your[-_]secret[-_]here''',
     '''example[-_]token''',
     '''placeholder[-_]key''',
     '''NEXT_PUBLIC_''' # Next.js public env vars are safe
-]
-
-[[allowlist]]
-description = "Ignore safe type definitions and interfaces"
-paths = [
-    '''\.d\.ts$'''
 ]
