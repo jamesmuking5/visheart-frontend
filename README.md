@@ -948,9 +948,25 @@ console.log('[GPU] Server status:', {
 
 ---
 
+## Security
+
+This project follows strict security practices for handling medical imaging data and user information. For details, see [SECURITY.md](./SECURITY.md).
+
+**Security Highlights:**
+- ✅ No exposed secrets or credentials in codebase
+- ✅ All dependencies regularly updated and audited
+- ✅ Automated security scanning via GitHub Actions
+- ✅ Session-based authentication with secure cookies
+- ✅ HTTPS enforcement for all production deployments
+
+**Reporting Vulnerabilities:** Please report security issues responsibly by following the guidelines in [SECURITY.md](./SECURITY.md).
+
+---
+
 ## Support & Resources
 
 ### Documentation
+- **Security Policy** - See [SECURITY.md](./SECURITY.md)
 - **API Documentation** - See `Cardiac_Segmentation_FYP_Server/README.md`
 - **Component Storybook** - Visual component documentation
 - **User Guides** - Available at `/doc` route in application

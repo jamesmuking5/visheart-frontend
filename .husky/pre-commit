@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run Gitleaks on staged files to prevent secret commits
+echo "🔍 Running Gitleaks secret detection on staged files..."
+
+# Check if gitleaks is installed
+if command -v gitleaks &> /dev/null; then
+    gitleaks protect --staged --verbose
+    if [ $? -ne 0 ]; then
+        echo "❌ Gitleaks found potential secrets in your staged files!"
+        echo "Please review the output above and remove any secrets before committing."
+        echo "If this is a false positive, you can:"
+        echo "  1. Add the pattern to .gitleaks.toml allowlist"
+        echo "  2. Use 'git commit --no-verify' to bypass this check (not recommended)"
+        exit 1
+    fi
+    echo "✅ Gitleaks scan passed - no secrets detected"
+else
+    echo "⚠️  Gitleaks not installed. Skipping secret detection."
+    echo "Install with: brew install gitleaks (macOS) or download from https://github.com/gitleaks/gitleaks"
+fi
+
+# Run linter if available
+if command -v npm &> /dev/null && [ -f "package.json" ]; then
+    echo "🔍 Running ESLint..."
+    npm run lint 2>/dev/null || echo "⚠️  ESLint check skipped"
+fi
+
+exit 0

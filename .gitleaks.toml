@@ -1,0 +1,81 @@
+# Gitleaks configuration file for VisHeart Frontend
+# This file configures Gitleaks to detect secrets and credentials in the codebase
+# Run: gitleaks detect --source . --verbose
+
+title = "VisHeart Frontend Secret Detection Configuration"
+
+[extend]
+# Use default gitleaks rules as base
+useDefault = true
+
+# Additional custom rules for medical imaging/healthcare specific secrets
+[[rules]]
+id = "medical-api-key"
+description = "Potential medical/healthcare API key"
+regex = '''(?i)(medical|health|fhir|hl7|dicom)[-_]?(api)?[-_]?key\s*=\s*['"][a-zA-Z0-9]{20,}['"]'''
+tags = ["api-key", "healthcare"]
+
+[[rules]]
+id = "aws-s3-presigned-url"
+description = "AWS S3 presigned URL with credentials"
+regex = '''https://[a-zA-Z0-9-]+\.s3[.-]([a-z0-9-]+)?\.amazonaws\.com/[^\s]*[?&]X-Amz-Credential=([A-Z0-9]+)'''
+tags = ["aws", "s3", "credentials"]
+
+[[rules]]
+id = "mongodb-connection-string"
+description = "MongoDB connection string with credentials"
+regex = '''mongodb(\+srv)?://[^:]+:[^@]+@[^\s/]+'''
+tags = ["database", "mongodb", "credentials"]
+
+# Allowlist patterns - these are safe to ignore
+[[allowlist]]
+description = "Ignore .env.example files"
+paths = [
+    '''\.env\.example$''',
+    '''\.env\.sample$'''
+]
+
+[[allowlist]]
+description = "Ignore test fixtures and mock data"
+paths = [
+    '''(^|/)test/''',
+    '''(^|/)tests/''',
+    '''(^|/)__tests__/''',
+    '''(^|/)fixtures/''',
+    '''(^|/)mocks/''',
+    '''\.test\.(ts|tsx|js|jsx)$''',
+    '''\.spec\.(ts|tsx|js|jsx)$'''
+]
+
+[[allowlist]]
+description = "Ignore lock files"
+paths = [
+    '''package-lock\.json$''',
+    '''pnpm-lock\.yaml$''',
+    '''yarn\.lock$'''
+]
+
+[[allowlist]]
+description = "Ignore build artifacts and dependencies"
+paths = [
+    '''(^|/)node_modules/''',
+    '''(^|/)\.next/''',
+    '''(^|/)build/''',
+    '''(^|/)dist/'''
+]
+
+[[allowlist]]
+description = "Ignore public placeholder text that looks like secrets"
+regexes = [
+    '''your[-_]api[-_]key[-_]here''',
+    '''your[-_]secret[-_]here''',
+    '''example[-_]token''',
+    '''placeholder[-_]key''',
+    '''NEXT_PUBLIC_''' # Next.js public env vars are safe
+]
+
+[[allowlist]]
+description = "Ignore safe type definitions and interfaces"
+paths = [
+    '''\.d\.ts$'''
+]
